@@ -1,0 +1,25 @@
+{
+  "name": "e2e-ui-view",
+  "version": "1.0.0",
+  "description": "E2E nibi.ui.view fixture",
+  "runtime": { "apiVersion": "1", "entry": "./extension.mjs" },
+  "capabilities": ["nibi.ui.view", "nibi.settings.own"],
+  "mcpServers": {
+    "ui": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${NIBI_PLUGIN_ROOT}/server.mjs"]
+    }
+  },
+  "ui": {
+    "surfaces": [
+      {
+        "id": "panel",
+        "title": "E2E UI View",
+        "server": "ui",
+        "resourceUri": "ui://e2e-ui-view/panel.html",
+        "availability": "session"
+      }
+    ]
+  }
+}

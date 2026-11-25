@@ -140,7 +140,7 @@ function Figure({
         aria-label={parts === undefined ? unavailable : undefined}
         className={cn(
           "whitespace-nowrap font-mono text-ui-lg leading-tight tabular-nums",
-          parts === undefined ? "text-foreground-subtlest" : "font-medium text-foreground",
+          parts === undefined ? "text-foreground-subtlest" : "font-semibold text-foreground",
         )}
         title={title}
       >
@@ -209,7 +209,7 @@ export function WorkflowCompletionCard({
       aria-label={format({ id: WORKFLOW_RUN_KIND_ID.completed })}
       // `@container/wf-card`：窄卡（<480px）上动词只剩图标——判据必须是**卡自己的宽度**，
       // 视口断点在分栏、侧板与手机三种窄法之间对不上（docs/dynamic-workflow/transcript-and-notifications.md）。
-      className="wf-motion wf-arrive @container/wf-card flex w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border/70 bg-card/70 px-3.5 pb-3 pt-1.5"
+      className="wf-motion wf-arrive @container/wf-card flex w-full min-w-0 flex-col gap-2.5 rounded-xl border border-card-border bg-card/92 px-3.5 pb-3 pt-1.5 shadow-[var(--nibi-shadow-card)]"
       data-testid={`workflow-completion-card-${testIdKey}`}
       data-workflow-completion-card="true"
     >
@@ -231,7 +231,7 @@ export function WorkflowCompletionCard({
         {...(onOpenRun === undefined ? {} : { onOpenRun })}
       />
       <div
-        className="grid grid-cols-4 gap-x-3 border-t border-[var(--color-workflow-rule)] pt-2.5"
+        className="grid grid-cols-4 gap-x-3 border-t border-[var(--color-workflow-rule)] pt-3"
         data-testid="workflow-completion-figures"
       >
         <Figure

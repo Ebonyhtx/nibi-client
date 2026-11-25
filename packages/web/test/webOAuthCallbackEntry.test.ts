@@ -72,6 +72,9 @@ describe("Web OAuth callback entry", () => {
       async (result) => {
         const handleCallback = await bootstrap(path, `state=entry-state&${result}`);
         expect(document.body.textContent).toContain("Finishing Sign-In");
+        const spinner = document.body.querySelector("progress.nibi-remote-spinner");
+        expect(spinner).not.toBeNull();
+        expect(spinner?.getAttribute("value")).toBeNull();
         expect(handleCallback).toHaveBeenCalledExactlyOnceWith(window.location.href);
       },
     );

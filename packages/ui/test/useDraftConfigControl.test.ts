@@ -631,7 +631,7 @@ describe("useDraftConfigControl slash command hydration", () => {
       useDraftConfigControl({
         workspacePath,
         workspaceIdentity,
-        provider: "glm",
+        provider: "nibi-agent",
         sessionId: null,
         modelSelectionView: null,
       });
@@ -667,7 +667,7 @@ describe("useDraftConfigControl slash command hydration", () => {
     function Probe() {
       useDraftConfigControl({
         workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         sessionId: "session-known",
         modelSelectionView: null,
       });
@@ -698,7 +698,7 @@ describe("useDraftConfigControl slash command hydration", () => {
     function Probe() {
       useDraftConfigControl({
         workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         sessionId: "session-known",
         modelSelectionView: null,
       });
@@ -760,7 +760,7 @@ describe("useDraftConfigControl slash command hydration", () => {
     function Probe() {
       const control = useDraftConfigControl({
         workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         sessionId: null,
         modelSelectionView: null,
       });
@@ -822,7 +822,7 @@ describe("useDraftConfigControl slash command hydration", () => {
     function Probe({ sessionId }: { sessionId: string | null }) {
       const control = useDraftConfigControl({
         workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         sessionId,
         modelSelectionView: null,
       });
@@ -858,7 +858,7 @@ describe("useDraftConfigControl slash command hydration", () => {
     function Probe({ view }: { view: ModelSelectionView }) {
       control = useDraftConfigControl({
         workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         sessionId: null,
         modelSelectionView: view,
       });

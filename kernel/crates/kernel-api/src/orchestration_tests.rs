@@ -3,8 +3,32 @@
 use std::sync::Arc;
 
 use super::*;
-use crate::model::QuerySource;
+use crate::model::{ModelError, QuerySource};
 use crate::tool::Tool;
+
+#[test]
+fn failure_message_uses_the_provider_original_text() {
+    let rate_limited = QueryError::Model(ModelError::RateLimited {
+        message: "Requests are too frequent. Request id: abc".to_owned(),
+        retry_after_ms: Some(0),
+    });
+    assert_eq!(
+        rate_limited.failure_message(),
+        "Requests are too frequent. Request id: abc"
+    );
+    assert_eq!(
+        QueryError::Api {
+            message: "blocked by policy".to_owned()
+        }
+        .failure_message(),
+        "blocked by policy"
+    );
+    // 没有 provider 原文的错误保留 Display，避免吞掉取消/流空闲等动作信息。
+    assert_eq!(
+        QueryError::Model(ModelError::Cancelled).failure_message(),
+        "model request cancelled"
+    );
+}
 
 struct Turns;
 

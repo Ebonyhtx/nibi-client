@@ -9,6 +9,12 @@ import type { WorkflowRunCardSummary } from "@/ToolCallBlocks/shared.js";
 import { readWorkflowHoleTarget } from "@/ToolCallBlocks/renderers/createWorkflowHoleInput.js";
 import { isFillWorkflowHoleToolCall } from "@/lib/workflowToolNames.js";
 
+const EMPTY_WORKFLOW_MAP = new Map<unknown, unknown>();
+
+function emptyReadonlyMap<K, V>(): ReadonlyMap<K, V> {
+  return EMPTY_WORKFLOW_MAP as ReadonlyMap<K, V>;
+}
+
 /**
  * 工具卡 → dwf run 的联接（docs/dynamic-workflow/presentation.md「The tool row」）。
  *
@@ -42,7 +48,7 @@ export function buildWorkflowRunByToolCallId(
       ...(run.resumable === true ? { resumable: true as const } : {}),
     });
   }
-  return byToolCallId;
+  return byToolCallId.size === 0 ? emptyReadonlyMap() : byToolCallId;
 }
 
 /**
@@ -73,7 +79,7 @@ export function buildWorkflowRunByRunId(
       ...(run.toolCallId ? { toolCallId: run.toolCallId } : {}),
     });
   }
-  return byRunId;
+  return byRunId.size === 0 ? emptyReadonlyMap() : byRunId;
 }
 
 /**
@@ -104,8 +110,11 @@ export function resolveWorkflowRunOpenToolCallId(
 export function buildWorkflowRunPendingQuestionsByRunId(
   runs: readonly WorkflowRunState[] | undefined,
 ): ReadonlyMap<string, ReadonlySet<string>> {
+  if (!runs || runs.length === 0) {
+    return emptyReadonlyMap();
+  }
   const byRunId = new Map<string, ReadonlySet<string>>();
-  for (const run of runs ?? []) {
+  for (const run of runs) {
     byRunId.set(run.runId, new Set((run.pendingQuestions ?? []).map((question) => question.qid)));
   }
   return byRunId;
@@ -160,7 +169,7 @@ export function buildWorkflowGraphByToolCallId(
       byToolCallId.set(found.toolCallId, found.graph);
     }
   }
-  return byToolCallId;
+  return byToolCallId.size === 0 ? emptyReadonlyMap() : byToolCallId;
 }
 
 /**
@@ -207,7 +216,7 @@ export function buildWorkflowFillGraphByRunId(
     if (fill.name !== undefined) labels.set(fill.holeId, { name: fill.name });
     byRunId.set(fill.runId, { graph: fill.graph, holeLabels: labels });
   }
-  return byRunId;
+  return byRunId.size === 0 ? emptyReadonlyMap() : byRunId;
 }
 
 /** 卡与侧板取图的唯一入口：补全过就是补全行的图，否则按发起 toolCallId（含「配置」的借图规则）。 */
@@ -301,5 +310,5 @@ export function buildWorkflowSaveCandidatesByRunId(
     list.push(found.candidate);
     byRunId.set(found.runId, list);
   }
-  return byRunId;
+  return byRunId.size === 0 ? emptyReadonlyMap() : byRunId;
 }

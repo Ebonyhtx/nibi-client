@@ -54,7 +54,7 @@ export function WelcomeScreen({ onComplete, onOpenModelSettings, onDismiss }: We
       {/* 原生拖拽命中不受 pointer-events/z-index 约束；拖拽层必须避开窗控，且先于 no-drag 区声明。 */}
       <div className="pointer-events-none absolute left-0 top-0 right-0 z-10 flex h-12 items-center [app-region:drag] platform-windows-desktop:right-[134px] platform-linux-desktop:right-[134px]" />
       <DesktopOverlayWindowControls />
-      <section className="relative z-10 w-full flex flex-col gap-10 max-w-sm rounded-2xl border border-popover-border bg-card p-8 text-ui-base/relaxed shadow-md sm:p-10">
+      <section className="relative z-10 flex w-full max-w-sm flex-col gap-10 rounded-2xl border border-border/80 bg-card/94 p-8 text-ui-base/relaxed shadow-[var(--nibi-shadow-popover)] backdrop-blur-md sm:p-10">
         <LoginPanel
           active
           onComplete={onComplete}
@@ -426,7 +426,7 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
         {status === "waiting" && (
           <div className="space-y-4">
             <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface p-2 text-ui-base text-foreground-subtle">
-              <LoaderIcon className="size-4 animate-spin" />
+              <LoaderIcon className="size-4 animate-spin motion-reduce:animate-none" />
               {intl.formatMessage(
                 { id: "login.oauth.waiting" },
                 { provider: pendingProviderName ?? "OAuth" },
@@ -541,8 +541,8 @@ function LoginPanelHeader({
     <header className="flex flex-col items-center gap-3 text-center">
       <LoginPanelLogo />
       <div className="flex flex-col items-center gap-1 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-        <p className="text-ui-base/relaxed text-foreground-subtle">{description}</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance">{title}</h1>
+        <p className="text-ui-base/relaxed text-pretty text-foreground-subtle">{description}</p>
       </div>
       {children}
     </header>
@@ -579,7 +579,7 @@ function LoginOAuthRegionTag({ providerId }: { providerId: string }) {
   }
 
   return (
-    <span className="ml-1 inline-flex h-5 shrink-0 items-center rounded-full border border-primary-foreground/30 px-2 text-ui-xs font-medium leading-none text-primary-foreground/60">
+    <span className="ml-1 inline-flex h-5 shrink-0 items-center rounded-full border border-primary-foreground/35 px-2 text-ui-xs font-medium leading-none text-primary-foreground/90">
       {intl.formatMessage({ id: messageId })}
     </span>
   );

@@ -1690,6 +1690,27 @@ describe("SessionDataLayer", () => {
     expect(transport.subscribeCalls).toHaveLength(2);
   });
 
+  it("keep-warm 会话数量封顶，超出按释放顺序淘汰最旧", async () => {
+    const capped = new SessionDataLayer({
+      transport,
+      keepWarmMs: 30_000,
+      maxKeepWarmSessions: 2,
+    });
+    try {
+      for (const id of ["a", "b", "c"]) {
+        capped.acquire(id).release();
+        await flushMicrotasks();
+      }
+      expect(capped.size).toBe(2);
+      // a 已被淘汰：重新打开是冷订阅，不是 keep-warm。
+      const reopened = capped.acquire("a");
+      expect(reopened.openKind).toBe("cold");
+      reopened.release();
+    } finally {
+      capped.dispose();
+    }
+  });
+
   it("release 幂等：重复 release 不影响其他租约", async () => {
     const a = layer.acquire("s1");
     const b = layer.acquire("s1");

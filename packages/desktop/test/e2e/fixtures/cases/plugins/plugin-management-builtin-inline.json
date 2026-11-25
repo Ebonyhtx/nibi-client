@@ -6,7 +6,9 @@
     "./test/e2e/fixtures/upstream/common.json",
     "./test/e2e/fixtures/upstream/plugin-management/plugin-management-builtin-inline.json"
   ],
-  "fileFixtures": ["bundled skill-creator plus runtime-generated inline plugin"],
+  "fileFixtures": [
+    "bundled skill-creator plus runtime-generated inline plugin"
+  ],
   "requests": [
     {
       "id": "plugin-management-inline-skill-call",

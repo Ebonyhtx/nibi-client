@@ -19,6 +19,10 @@ import {
   type NibiCommand,
 } from "@nibi/shared";
 import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@nibi/shared";
+import {
+  PLUGIN_MANIFEST_RELATIVE_PATHS,
+  flattenPluginManifest,
+} from "@nibi/shared";
 import type { ICommandsService } from "./commands.js";
 import { CommandFileParser, type CommandFileFormat } from "./commandFileParser.js";
 import {
@@ -50,9 +54,6 @@ const COMMAND_AGENT_SOURCE_ORDER: readonly CommandAgentSource[] = NIBI_COMMAND_A
 const HOME_PREFIX = "~/";
 const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official";
 const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
-// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 由 App 管理的
-// 一次性迁移处理，用户 plugins.dirs 不改写，也不在这里回退读取。
-const NIBI_PLUGIN_MANIFEST_PATH = join(".nibi-plugin", "plugin.json");
 const NIBI_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
   agentSource: "nibiAgent",
   directorySource: "nibi",
@@ -235,8 +236,8 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
   }
 
   try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isRecord(parsed)) {
+    const parsed = flattenPluginManifest(JSON.parse(raw) as unknown);
+    if (!parsed) {
       return null;
     }
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
@@ -250,8 +251,11 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
 }
 
 async function findPluginManifestPath(rootPath: string): Promise<string | null> {
-  const manifestPath = join(rootPath, NIBI_PLUGIN_MANIFEST_PATH);
-  return existsSync(manifestPath) ? manifestPath : null;
+  for (const relativePath of PLUGIN_MANIFEST_RELATIVE_PATHS) {
+    const manifestPath = join(rootPath, ...relativePath.split("/"));
+    if (existsSync(manifestPath)) return manifestPath;
+  }
+  return null;
 }
 
 function resolvePluginCommandRoots(params: {

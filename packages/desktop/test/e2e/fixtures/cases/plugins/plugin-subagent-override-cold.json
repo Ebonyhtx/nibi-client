@@ -23,6 +23,13 @@
       "syntheticReason": "确定性触发插件 child，模型与档位以实际请求为证据。"
     },
     {
+      "id": "plugin-override-cold-async-launched",
+      "kind": "main",
+      "timingPolicy": "fast-text",
+      "source": "synthetic",
+      "syntheticReason": "Agent 异步启动时父 continuation 只拿到启动回执，父轮以原模型/max 收口。"
+    },
+    {
       "id": "plugin-override-cold-child",
       "kind": "main",
       "timingPolicy": "fast-text",

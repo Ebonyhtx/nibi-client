@@ -99,16 +99,16 @@ export function NibiAuthWebviewDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#12100e]/45 p-4 dark:bg-black/65 supports-[backdrop-filter]:backdrop-blur-[4px]"
       data-testid="nibi-auth-webview-dialog"
     >
       <section
         role="dialog"
         aria-modal="true"
         aria-label={intl.formatMessage({ id: "login.title" })}
-        className="flex h-[min(760px,90vh)] w-full max-w-[520px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        className="flex h-[min(760px,90vh)] w-full max-w-[520px] flex-col overflow-hidden rounded-2xl border border-popover-border bg-popover shadow-[var(--nibi-shadow-popover)]"
       >
-        <header className="flex items-start gap-3 border-b border-border px-5 py-4">
+        <header className="flex items-start gap-3 border-b border-border bg-header/80 px-5 py-4">
           <div className="min-w-0 flex-1">
             <h2 className="text-ui-lg font-semibold text-foreground">
               {intl.formatMessage({ id: "login.title" })}

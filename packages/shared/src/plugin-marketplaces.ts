@@ -99,24 +99,53 @@ export function isPublicStoreMarketplaceId(id: string): boolean {
 
 // ── 插件清单目录（包格式） ─────────────────────────────────────────────────
 //
-// 插件包 = 一个目录，里面必须有 `.nibi-plugin/plugin.json`。旧格式
-// `.claude-plugin`/`.codex-plugin` 已不再参与发现：App 管理的旧缓存由适配器一次性
-// 迁到 NIBI 布局，用户自选 `plugins.dirs` 不改写，旧格式目录按“清单缺失”处理。
-export const NIBI_PLUGIN_MANIFEST_DIR = ".nibi-plugin";
+// 插件包 = 一个目录，根 `plugin.json` 是 Agent Plugins 1.0.0 清单；NIBI 自己的组件声明
+// 放在 `extensions["com.nibistudio.nibi"]`。旧 `.claude-plugin`/`.codex-plugin`/`.zcode-plugin`
+// 目录仍由适配器**只读**识别（外部插件、用户自选目录），不迁移、不改写。
+export const NIBI_PLUGIN_MANIFEST_FILE = "plugin.json";
+export const NIBI_PLUGIN_EXTENSION_KEY = "com.nibistudio.nibi";
 
 /**
- * @deprecated 旧 Claude 插件清单目录。NIBI 发现逻辑只认 {@link NIBI_PLUGIN_MANIFEST_DIR}；
- * 保留导出仅为不破坏外部消费者签名，仓库内不得再引用。
+ * 发现清单的固定顺序：根清单优先，其余按生态特异性排列。
+ * 写入路径永远只写根 `plugin.json`；这里只用于读取。
  */
-export const CLAUDE_PLUGIN_MANIFEST_DIR = ".claude-plugin";
+export const PLUGIN_MANIFEST_RELATIVE_PATHS = [
+  NIBI_PLUGIN_MANIFEST_FILE,
+  ".claude-plugin/plugin.json",
+  ".codex-plugin/plugin.json",
+  ".zcode-plugin/plugin.json",
+] as const;
 
 /**
- * @deprecated 旧 Codex 插件清单目录。语义同 {@link CLAUDE_PLUGIN_MANIFEST_DIR}。
+ * 把 Agent Plugins 清单摊平成 NIBI 内部字段：NIBI 组件声明在扩展命名空间里，
+ * 但设置页/服务层一直按根字段读取。没有扩展时原样返回。
  */
-export const CODEX_PLUGIN_MANIFEST_DIR = ".codex-plugin";
-
-/**
- * @deprecated 发现逻辑只认 NIBI 自有清单；保留导出仅为不破坏外部消费者签名。
- * 仓库内应直接使用 {@link NIBI_PLUGIN_MANIFEST_DIR}。
- */
-export const PLUGIN_MANIFEST_DIRS = [NIBI_PLUGIN_MANIFEST_DIR] as const;
+export function flattenPluginManifest(raw: unknown): Record<string, unknown> | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const manifest = raw as Record<string, unknown>;
+  const extensions =
+    typeof manifest.extensions === "object" &&
+    manifest.extensions !== null &&
+    !Array.isArray(manifest.extensions)
+      ? (manifest.extensions as Record<string, unknown>)
+      : null;
+  const extension = extensions?.[NIBI_PLUGIN_EXTENSION_KEY];
+  if (typeof extension !== "object" || extension === null || Array.isArray(extension)) {
+    return manifest;
+  }
+  const fields = extension as Record<string, unknown>;
+  return {
+    ...fields,
+    name: manifest.name,
+    version: manifest.version,
+    description: manifest.description,
+    author: manifest.author,
+    homepage: manifest.homepage,
+    repository: manifest.repository,
+    license: manifest.license,
+    keywords: manifest.keywords,
+    ...(typeof fields.descriptionI18n === "object" && fields.descriptionI18n !== null
+      ? { description_i18n: fields.descriptionI18n }
+      : {}),
+  };
+}

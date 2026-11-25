@@ -111,8 +111,9 @@ const PLUGIN_ROOT_PLACEHOLDER_PREFIX = "${NIBI_PLUGIN_ROOT}/";
  * 文件不在 staged 目录里，staging 直接失败，而不是产出残缺 archive。
  */
 async function assertOfficialPluginRuntime(stagedDir: string, name: string): Promise<void> {
-  const manifestPath = join(stagedDir, ".nibi-plugin", "plugin.json");
+  const manifestPath = join(stagedDir, "plugin.json");
   let manifest: {
+    extensions?: Record<string, unknown>;
     mcpServers?: Record<string, { command?: unknown; args?: unknown } | undefined>;
   };
   try {
@@ -122,8 +123,30 @@ async function assertOfficialPluginRuntime(stagedDir: string, name: string): Pro
       cause: error,
     });
   }
+  // Agent Plugins 固定根 mcp.json；NIBI 扩展里也可能内联 mcpServers（旧包 / 测试件）。
+  const extension =
+    manifest.extensions && typeof manifest.extensions["com.nibistudio.nibi"] === "object"
+      ? (manifest.extensions["com.nibistudio.nibi"] as {
+          mcpServers?: Record<string, { command?: unknown; args?: unknown } | undefined>;
+        })
+      : undefined;
+  let fromFile: Record<string, { command?: unknown; args?: unknown } | undefined> = {};
+  try {
+    const parsed = JSON.parse(await readFile(join(stagedDir, "mcp.json"), "utf8")) as unknown;
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      const servers = (parsed as { mcpServers?: unknown }).mcpServers;
+      if (typeof servers === "object" && servers !== null && !Array.isArray(servers)) {
+        fromFile = servers as typeof fromFile;
+      }
+    }
+  } catch {
+    // 没有 mcp.json 的插件不是错误；下面只看清单内联声明。
+  }
+  const mcpServers = { ...fromFile };
+  if (manifest.mcpServers) Object.assign(mcpServers, manifest.mcpServers);
+  if (extension?.mcpServers) Object.assign(mcpServers, extension.mcpServers);
   const missing: string[] = [];
-  for (const server of Object.values(manifest.mcpServers ?? {})) {
+  for (const server of Object.values(mcpServers)) {
     if (!server) continue;
     const references = [server.command, ...(Array.isArray(server.args) ? server.args : [])];
     for (const reference of references) {

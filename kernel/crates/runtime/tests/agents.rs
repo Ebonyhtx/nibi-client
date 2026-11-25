@@ -375,6 +375,15 @@ mod agents {
             fact,
             nibi_kernel_api::store::Fact::SubagentLinked { agent_type, .. } if agent_type == "Explore"
         )));
+        // 协议冷投影的查询面：同一份关联要从会话句柄读得回来。
+        let links = session.subagent_links().await.unwrap();
+        assert!(
+            links
+                .iter()
+                .any(|link| link.tool_use.as_str() == "toolu_1"
+                    && link.agent_type == "Explore"),
+            "{links:?}"
+        );
         let last = format!("{:?}", main[2].messages.last().unwrap());
         assert!(last.contains("<task-notification>"), "{last}");
         assert!(

@@ -54,9 +54,6 @@ interface LogicalUiDerivationInputs {
   autoExpandTurns: number;
 }
 
-let lastInputs: LogicalUiDerivationInputs | null = null;
-let lastDerivation: PluginUiInstanceDerivation | null = null;
-
 function hasSameStrings(previous: readonly string[], next: readonly string[]): boolean {
   if (previous.length !== next.length) return false;
   for (let index = 0; index < next.length; index += 1) {
@@ -121,6 +118,60 @@ function deriveFromInputs({
   return { instances, byToolCallId };
 }
 
+/** 单个时间线实例的派生缓存（每个 SessionPane 一份）。 */
+export interface PluginUiDerivationCache {
+  derive(
+    rows: readonly ConversationRow[],
+    options?: { autoExpandTurns?: number },
+  ): PluginUiInstanceDerivation;
+}
+
+/**
+ * 创建**实例级**缓存。
+ *
+ * 为什么不能像以前那样用模块级单槽：主会话、子代理会话侧栏、选中片段侧聊会同时挂载
+ * 多个 `ConversationTimeline`。单槽会被它们交替覆盖，每个实例都必然 miss，派生对象
+ * 每帧变新 → `pluginUiPinResolver` 变新 → 所有已完成 Turn 的 render unit 缓存全部失效。
+ * 实例级缓存让每个时间线各自复用，互不干扰。
+ */
+export function createPluginUiDerivationCache(): PluginUiDerivationCache {
+  let lastInputs: LogicalUiDerivationInputs | null = null;
+  let lastDerivation: PluginUiInstanceDerivation | null = null;
+
+  return {
+    derive(rows, options = {}) {
+      const autoExpandTurns = options.autoExpandTurns ?? PLUGIN_UI_AUTO_EXPAND_TURNS;
+      const turnOrder: string[] = [];
+      const seenTurns: Record<string, true> = Object.create(null) as Record<string, true>;
+      const pluginRows: ToolCallRow[] = [];
+      for (const row of rows) {
+        if (!seenTurns[row.turnId]) {
+          seenTurns[row.turnId] = true;
+          turnOrder.push(row.turnId);
+        }
+        if (isPluginUiToolRow(row)) pluginRows.push(row);
+      }
+
+      if (
+        lastInputs !== null &&
+        lastDerivation !== null &&
+        lastInputs.autoExpandTurns === autoExpandTurns &&
+        hasSameStrings(lastInputs.turnOrder, turnOrder) &&
+        hasSameRows(lastInputs.pluginRows, pluginRows)
+      ) {
+        return lastDerivation;
+      }
+
+      const derivation = deriveFromInputs({ turnOrder, pluginRows, autoExpandTurns });
+      lastInputs = { turnOrder, pluginRows, autoExpandTurns };
+      lastDerivation = derivation;
+      return derivation;
+    },
+  };
+}
+
+const defaultPluginUiDerivationCache = createPluginUiDerivationCache();
+
 /**
  * 纯函数：从投影行推导逻辑 UI 实例与每行的展示裁决（V-a）。
  * key 同时绑定来源、server、资源、权限与逻辑视图；同 key 内最新一次成功结果替代更早的成功结果，
@@ -128,38 +179,12 @@ function deriveFromInputs({
  * autoExpand 按全部行的回合顺序取最近 N 个回合（回合里没有插件卡片也算一个回合）。
  *
  * 结果只依赖「回合首次出现顺序 + 插件 UI 行引用」，因此流式正文/普通工具更新时复用上一份结果：
- * 调用方（ConversationTimeline）把返回值继续当作 pin resolver 的输入，稳定引用才能让历史
- * turn 的派生缓存命中。缓存只保留最近一次输入，不延长历史窗口生命期。
+ * 调用方（ConversationTimeline）应使用 `createPluginUiDerivationCache()` 的实例级缓存，
+ * 稳定引用才能让历史 turn 的派生缓存命中。这里的模块级函数只供无实例上下文的调用方/测试使用。
  */
 export function deriveLogicalUiInstances(
   rows: readonly ConversationRow[],
   options: { autoExpandTurns?: number } = {},
 ): PluginUiInstanceDerivation {
-  // domain 不用 Map / Set（模块边界约束），全部用数组与普通对象。
-  const autoExpandTurns = options.autoExpandTurns ?? PLUGIN_UI_AUTO_EXPAND_TURNS;
-  const turnOrder: string[] = [];
-  const seenTurns: Record<string, true> = Object.create(null) as Record<string, true>;
-  const pluginRows: ToolCallRow[] = [];
-  for (const row of rows) {
-    if (!seenTurns[row.turnId]) {
-      seenTurns[row.turnId] = true;
-      turnOrder.push(row.turnId);
-    }
-    if (isPluginUiToolRow(row)) pluginRows.push(row);
-  }
-
-  if (
-    lastInputs !== null &&
-    lastDerivation !== null &&
-    lastInputs.autoExpandTurns === autoExpandTurns &&
-    hasSameStrings(lastInputs.turnOrder, turnOrder) &&
-    hasSameRows(lastInputs.pluginRows, pluginRows)
-  ) {
-    return lastDerivation;
-  }
-
-  const derivation = deriveFromInputs({ turnOrder, pluginRows, autoExpandTurns });
-  lastInputs = { turnOrder, pluginRows, autoExpandTurns };
-  lastDerivation = derivation;
-  return derivation;
+  return defaultPluginUiDerivationCache.derive(rows, options);
 }

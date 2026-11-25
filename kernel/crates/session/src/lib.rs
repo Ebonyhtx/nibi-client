@@ -210,6 +210,9 @@ pub struct SessionState {
     /// 已落库的受管 worktree 创建结果（冷加载的 `LoadedSession.worktree_creations`）：首轮输入提交时
     /// actor 追加并写 part，`view()` 带给冷投影在轮顶落 `worktreeCreated` 标记。
     pub worktree_creations: Vec<nibi_kernel_api::store::WorktreeCreationTurn>,
+    /// 已持久化的子代理调用关联（冷加载的 `LoadedSession.subagent_links`）：协议冷投影据此恢复
+    /// 父会话 timeline 的 `subagent` 行。
+    pub subagent_links: Vec<nibi_kernel_api::agents::SubagentLink>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行，状态与消息只在
     /// 内存里；第一条用户输入提交时 actor 才写会话行与初始事实（`actor.rs` 的 `promote`）。
     pub draft: bool,
@@ -531,6 +534,13 @@ impl SessionHandle for Session {
         &self,
     ) -> Result<Vec<nibi_kernel_api::panels::SubagentEntry>, KernelError> {
         Ok(self.deps.agents.subagents(&self.id).await)
+    }
+
+    /// 已持久化的子代理调用关联：冷投影恢复父会话 timeline 的 `subagent` 行。
+    async fn subagent_links(
+        &self,
+    ) -> Result<Vec<nibi_kernel_api::agents::SubagentLink>, KernelError> {
+        self.ask(|reply| Request::SubagentLinks { reply }).await
     }
 
     fn subagent_changes(&self) -> BoxStream<'static, ()> {

@@ -6,7 +6,10 @@ import type {
   TurnHeaderRow,
   UserInputRow,
 } from "@nibi/shared/nibi-protocol-v4";
-import { deriveLogicalUiInstances } from "@/plugin-ui/domain/pluginUiInstancePolicy.js";
+import {
+  createPluginUiDerivationCache,
+  deriveLogicalUiInstances,
+} from "@/plugin-ui/domain/pluginUiInstancePolicy.js";
 
 function baseRow<T extends ConversationRow>(
   row: Omit<T, "createdAt" | "createdAtSeq" | "rowId" | "turnId"> & {
@@ -74,6 +77,29 @@ function pluginTool(rowId: number, turnId: string, status: ToolCallRow["status"]
 }
 
 describe("deriveLogicalUiInstances identity reuse", () => {
+  it("多个时间线各自的实例缓存互不覆盖", () => {
+    // 主会话 / 子代理侧栏 / 片段侧聊会同时挂载时间线；单槽缓存会互相踩掉。
+    const cacheA = createPluginUiDerivationCache();
+    const cacheB = createPluginUiDerivationCache();
+    const rowsA: ConversationRow[] = [
+      turnHeader(1, "turn-a"),
+      userInput(2, "turn-a"),
+      pluginTool(3, "turn-a", "success"),
+    ];
+    const rowsB: ConversationRow[] = [
+      turnHeader(11, "turn-b"),
+      userInput(12, "turn-b"),
+      pluginTool(13, "turn-b", "success"),
+    ];
+
+    const firstA = cacheA.derive(rowsA);
+    const firstB = cacheB.derive(rowsB);
+    // 交替调用后仍要命中各自的上一份结果。
+    expect(cacheA.derive(rowsA)).toBe(firstA);
+    expect(cacheB.derive(rowsB)).toBe(firstB);
+    expect(firstA).not.toBe(firstB);
+  });
+
   it("正文更新不改变插件展示裁决对象；插件行或回合顺序变化才重建", () => {
     const base: ConversationRow[] = [
       turnHeader(1, "turn-1"),

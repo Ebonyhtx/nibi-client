@@ -10,9 +10,7 @@ import { Button } from "../ui/button.js";
 import { ButtonGroup, ButtonGroupText } from "../ui/button-group.js";
 import { cn } from "../lib/utils.js";
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
 import { createMathPlugin } from "@streamdown/math";
-import { mermaid } from "@streamdown/mermaid";
 import type { EditorInfo, FileStat, OpenInEditorOptions } from "@nibi/shared";
 import type { UIMessage } from "ai";
 import {
@@ -135,7 +133,7 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
   <div
     className={cn(
       "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-ui-base",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-sm group-[.is-user]:border group-[.is-user]:border-border/80 group-[.is-user]:bg-card group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground group-[.is-user]:shadow-[var(--nibi-shadow-card)]",
       "group-[.is-assistant]:text-foreground",
       className,
     )}
@@ -411,6 +409,29 @@ export interface MessageFileLinkTarget {
 // @streamdown/math 默认不解析 `$...$` 行内公式，导致客户消息里块级 `$$...$$`
 // 能渲染而 `$c(\mathbf{r})$` 会原样显示；聊天消息需要兼容常见 Markdown/LaTeX 输出。
 const messageMathPlugin = createMathPlugin({ singleDollarTextMath: true });
+let katexStylesLoaded = false;
+let katexStylesPromise: Promise<unknown> | null = null;
+
+function ensureKatexStylesLoaded(): void {
+  if (katexStylesLoaded || katexStylesPromise || typeof window === "undefined") {
+    return;
+  }
+  katexStylesPromise = import("katex/dist/katex.min.css")
+    .then(() => {
+      katexStylesLoaded = true;
+    })
+    .catch(() => {
+      katexStylesPromise = null;
+    });
+}
+
+function useKatexStyles(enabled: boolean): void {
+  useEffect(() => {
+    if (enabled) {
+      ensureKatexStylesLoaded();
+    }
+  }, [enabled]);
+}
 
 function disableSingleTilde(plugin: Pluggable): Pluggable {
   if (!Array.isArray(plugin)) {
@@ -436,7 +457,9 @@ const messageCjkPlugin: typeof cjk = {
   remarkPlugins: [...cjk.remarkPluginsBefore, ...messageCjkRemarkPluginsAfter],
   remarkPluginsAfter: messageCjkRemarkPluginsAfter,
 };
-const streamdownPlugins = { cjk: messageCjkPlugin, code, math: messageMathPlugin, mermaid };
+// Custom CodeBlock & MermaidBlock replace Streamdown built-ins; omit unused @streamdown/code & @streamdown/mermaid
+// so their heavy grammars and diagram runtimes aren't pulled into the main bundle.
+const streamdownPlugins = { cjk: messageCjkPlugin, math: messageMathPlugin };
 const messageLinkSafety = { enabled: false } as const;
 // `decoration-dashed` 会把原有的细圆点下划线绘制成短线段；这里只改变下划线的
 // 出现时机，继续使用 `dotted` 保留原视觉形态。
@@ -1124,7 +1147,34 @@ interface MessageFileLinkProps {
   onOpen: () => void;
 }
 
-function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFileLinkProps) {
+function MessageFileLink(props: MessageFileLinkProps) {
+  const [contextMenuEnabled, setContextMenuEnabled] = useState(false);
+
+  if (!contextMenuEnabled) {
+    return (
+      <MessageFileLinkButton
+        className={props.className}
+        fileIconSrc={props.fileIconSrc}
+        fileLink={props.fileLink}
+        onOpen={props.onOpen}
+        onPointerEnter={() => setContextMenuEnabled(true)}
+        onFocus={() => setContextMenuEnabled(true)}
+        onContextMenu={() => setContextMenuEnabled(true)}
+      >
+        {props.fileLink.label}
+      </MessageFileLinkButton>
+    );
+  }
+
+  return <MessageFileLinkInteractive {...props} />;
+}
+
+function MessageFileLinkInteractive({
+  className,
+  fileIconSrc,
+  fileLink,
+  onOpen,
+}: MessageFileLinkProps) {
   const { intl } = useNibiIntl();
   const platform = usePlatform();
   const services = useOptionalServices();
@@ -1411,6 +1461,11 @@ export const MessageResponse = memo(
       [projectedCitationMarkdown],
     );
     const streamdownMode = resolveMessageStreamdownMode(renderStreaming);
+    const hasMathDelimiter =
+      targetMarkdown.includes("$") ||
+      targetMarkdown.includes("\\(") ||
+      targetMarkdown.includes("\\[");
+    useKatexStyles(hasMathDelimiter);
     const messageRemarkPlugins = useMemo<PluggableList>(
       () => [
         // 显式传 remarkPlugins 会覆盖 Streamdown 默认插件；
@@ -1607,7 +1662,7 @@ export const MessageResponse = memo(
             return (
               <code
                 className={cn(
-                  "rounded-md bg-markdown-inline-code/50 mx-0.5 px-1.5 py-0.5 font-mono text-ui-sm",
+                  "mx-0.5 rounded-md border border-border/55 bg-markdown-inline-code/55 px-1.5 py-0.5 font-mono text-ui-sm",
                   codeClassName,
                 )}
                 {...codeProps}
@@ -1622,7 +1677,7 @@ export const MessageResponse = memo(
 
           return (
             <CodeBlock
-              className="my-4 border border-border bg-card"
+              className="my-4"
               code={codeText}
               // 流式消息里的代码围栏会被 Streamdown 反复拆分/重挂载。
               // 高亮等消息完成后再启动，避免 async highlighter 和消息流更新叠加触发 React #185。
@@ -1634,11 +1689,7 @@ export const MessageResponse = memo(
               appTheme={theme}
               wrapLongLines={wrapLongLines}
             >
-              <CodeBlockHeader
-                className="pl-3 pr-2 pt-2"
-                language={language}
-                showWrapButton={!forceCodeWrap}
-              />
+              <CodeBlockHeader language={language} showWrapButton={!forceCodeWrap} />
             </CodeBlock>
           );
         },

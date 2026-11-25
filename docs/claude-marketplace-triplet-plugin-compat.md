@@ -1,8 +1,11 @@
 # Claude Marketplace 三件套插件兼容验证规格
 
-> 状态（2026-11-18，G1）：插件包 manifest 已收口为 `.nibi-plugin/plugin.json`；
-> 本文的 `.claude-plugin/plugin.json` 插件包读取路径不再适用。市场目录仍兼容
-> `.claude-plugin/marketplace.json`，但仅作为旧市场布局读取。
+> 状态（2026-11-22）：插件包主清单是根 `plugin.json`；`.claude-plugin/plugin.json`
+> 由 claude 适配器**只读**识别，不迁移、不改写。市场目录继续读取
+> `.claude-plugin/marketplace.json`（外部源规范位置），本地缓存仍写根 `marketplace.json`。
+>
+> **市场身份口径（2026-11-25）**：NIBI 的官方市场只有一个 `nibi-official`；Claude Code
+> Marketplace 只作为个人分段的外部市场源被兼容读取，不构成第二个官方市场。
 
 ## 背景
 

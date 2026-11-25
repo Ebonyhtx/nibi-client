@@ -34,7 +34,10 @@ export function UsageMeter({
   systemLabel,
 }: UsageMeterProps) {
   return (
-    <div className="rounded-xl border border-card-border bg-card p-4" data-testid={testId}>
+    <div
+      className="rounded-xl border border-card-border bg-card p-4 shadow-[var(--nibi-shadow-card)]"
+      data-testid={testId}
+    >
       <div className="text-ui-sm font-medium text-foreground-subtle">{label}</div>
       <div className="mt-2 flex items-baseline gap-2">
         <span className="font-mono text-ui-xl font-medium" data-testid={`${testId}-app`}>
@@ -98,12 +101,12 @@ export function UsageGroup({
 }: UsageGroupProps) {
   return (
     <div
-      className="overflow-hidden rounded-xl border border-card-border bg-card"
+      className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]"
       data-testid={`resource-manager-group-${group.category}`}
     >
       <button
         type="button"
-        className="flex h-9 w-full items-center gap-2 px-3 text-left hover:bg-hover"
+        className="flex h-9 w-full items-center gap-2 px-3 text-left transition-colors hover:bg-hover"
         aria-expanded={expanded}
         onClick={onToggle}
       >

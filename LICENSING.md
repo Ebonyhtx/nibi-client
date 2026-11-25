@@ -14,7 +14,9 @@ NIBI is an independent project, not an official upstream release and not endorse
 by any upstream project.
 
 - **TypeScript client lineage**: derived from
-  [ZCode](https://github.com/zai-org/ZCode) v3.16.2, Apache-2.0.
+  [ZCode](https://github.com/zai-org/ZCode) v3.16.2, Apache-2.0. Later upstream
+  3.17.2/3.18.2 changes have been absorbed selectively; item-by-item status is
+  tracked in [docs/upstream-parity-report.md](docs/upstream-parity-report.md).
 - **Rust kernel**: vendored from
   [`MBearo/ZCode-rs`](https://github.com/MBearo/ZCode-rs) 0.1.67 (commit
   `6d349ed4`), Apache-2.0. The vendored subtree is `kernel/`; its source and

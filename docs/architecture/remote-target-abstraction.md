@@ -4,7 +4,7 @@
 
 远程链路的核心实现早已不是 SSH 专属：
 
-- `packages/server/src/remote/connect.ts` 只依赖 `IRemoteBackend`
+- `packages/server/src/source-server/transportAdapter.ts` 只依赖 `IRemoteBackend`
 - deploy / stdio handshake / RPC proxy 都可以复用
 
 真正把能力绑死在 SSH 上的，曾经是 desktop → main → host 这一层入口协议：

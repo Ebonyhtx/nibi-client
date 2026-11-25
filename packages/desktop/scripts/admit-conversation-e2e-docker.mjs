@@ -21,7 +21,7 @@ const containerScriptPath = resolve(
 );
 const dockerPlanPath = resolve(
   repoRoot,
-  "docs/testing/conversation-session-docker-automation-plan.md",
+  "docs/testing/conversation-session-docker-automation.md",
 );
 const suiteAssignmentPattern =
   /^(CONVERSATION_SESSION_VERIFIED_E2E_SPEC=")([^"]*)(")$/m;

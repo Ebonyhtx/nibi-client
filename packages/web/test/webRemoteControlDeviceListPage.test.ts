@@ -171,11 +171,13 @@ describe("连接前设备列表", () => {
     expect(empty(false, false)).toContain("在电脑端登录同一账号并开启 Web 远程控制");
     expect(empty(false, false)).toContain(">刷新</button>");
     expect(empty(true, false)).toContain("正在加载设备");
+    expect(empty(true, false)).toContain("animate-pulse");
     expect(empty(true, false)).not.toContain("暂无设备");
     expect(empty(true, false)).toMatch(
       /aria-label="刷新"[^>]*disabled=""|disabled=""[^>]*aria-label="刷新"/,
     );
     expect(empty(false, true)).toContain("无法加载设备");
+    expect(empty(false, true)).toContain('role="alert"');
     expect(empty(false, true)).not.toContain("暂无设备");
   });
 

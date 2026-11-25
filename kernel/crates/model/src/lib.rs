@@ -78,7 +78,8 @@ impl ProviderModel {
             route: Ok(Route {
                 egress,
                 endpoints,
-                retry: RetryPolicy::default(),
+                // 生产策略读 NIBI_MODEL_RETRY_*（Node 同名环境变量）；测试用 with_retry 显式覆盖。
+                retry: RetryPolicy::from_env(),
                 idle: StreamIdle::default(),
                 clock,
                 assume_first_party: false,

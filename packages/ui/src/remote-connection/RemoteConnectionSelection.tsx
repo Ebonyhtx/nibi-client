@@ -54,9 +54,9 @@ function SelectionRow({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-hover focus-visible:bg-hover disabled:opacity-50"
+      className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 hover:bg-hover focus-visible:bg-hover disabled:opacity-50"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface text-remote-foreground-muted">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-remote-foreground-muted shadow-2xs">
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
@@ -199,7 +199,7 @@ export function RemoteConnectionSelection({
                           type="button"
                           title={entry.workspacePath}
                           onClick={() => onSelectProfile(historyProfile, entry.workspacePath)}
-                          className="flex max-w-full items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-ui-sm text-remote-foreground-muted hover:bg-hover"
+                          className="flex max-w-full items-center gap-1 rounded-lg border border-border bg-card/85 px-2 py-0.5 font-mono text-ui-sm text-remote-foreground-muted transition-colors hover:border-border-hover hover:bg-card"
                         >
                           <FolderIcon className="size-3 shrink-0" />
                           <span className="truncate">{entry.workspacePath}</span>

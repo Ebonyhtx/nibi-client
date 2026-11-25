@@ -15,7 +15,7 @@ function createTaskMeta(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     createdAt: 1,
     mode: "default",
-    provider: "glm",
+    provider: "nibi-agent",
     taskId: TASK_ID,
     title: "目标清理任务",
     traceId: "trace-goal-clear-cache",

@@ -71,6 +71,40 @@ export interface RegisterMcpToolsOptions {
    * 只用于 display.ui 的归属投影；缺失时该 server 的工具不投影 UI。
    */
   pluginIdByServerName?: ReadonlyMap<string, string>;
+  /**
+   * 执行期付费插件门禁。返回 allowed=false 时**不注册**该 server 的工具。
+   *
+   * 注册期就拦而不是只拦 handler：付费插件工具出现在工具表里，模型会一直尝试调用并
+   * 收到一串拒绝；直接从表里拿掉更接近 Rust 内核的行为（工具存在性即授权状态）。
+   * 会话中途到期的情况由 handler 阶段的复核兜住（工具已在表里）。
+   */
+  paidPluginGate?: McpToolPaidGate;
+}
+
+/**
+ * 执行期门禁的入参：插件身份三元组 + 归属 server（不含本机路径）。
+ * 返回 `{ allowed: false, message }` 时调用方必须拒绝执行。
+ */
+export type McpToolPaidGate = (plugin: {
+  id: string;
+  marketplace: string;
+  name: string;
+}) => { allowed: boolean; message?: string };
+
+/**
+ * server → 付费门禁三元的解析器。catalog 只有 `pluginId`（`<name>@<marketplace>`），
+ * 门禁需要拆开的 name/marketplace —— 这里拆一次并缓存，避免每次工具调用都 split。
+ */
+function paidPluginIdentity(
+  pluginId: string,
+): { id: string; marketplace: string; name: string } | null {
+  const at = pluginId.lastIndexOf("@");
+  if (at <= 0 || at === pluginId.length - 1) return null;
+  return {
+    id: pluginId,
+    marketplace: pluginId.slice(at + 1),
+    name: pluginId.slice(0, at),
+  };
 }
 
 export function registerMcpTools(
@@ -92,15 +126,46 @@ export function registerMcpTools(
     // denylist 会静默失效并放行。新旧名称任一命中 deny 即拒绝，任一命中 allow 即接受。
     if (allowed && !allowed.has(name) && !allowed.has(descriptorName)) continue;
     if (disallowed?.has(name) || disallowed?.has(descriptorName)) continue;
+    const pluginId = options.pluginIdByServerName?.get(descriptor.serverName);
+    // 注册期付费门禁：只对手上真有 pluginId 的 server 判定（无法归属的 MCP 由
+    // 通用权限系统管，不是插件付费面）。
+    let paidGateMessage: string | undefined;
+    let paidIdentity: { id: string; marketplace: string; name: string } | undefined;
+    if (pluginId && options.paidPluginGate) {
+      paidIdentity = paidPluginIdentity(pluginId) ?? undefined;
+      if (paidIdentity) {
+        const verdict = options.paidPluginGate(paidIdentity);
+        if (!verdict.allowed) {
+          paidGateMessage = verdict.message ?? "Plugin requires an active NIBI membership";
+        }
+      }
+    }
+    if (paidGateMessage) continue;
     registry.register(
       createMcpToolEntry(name, descriptor, mcpPort, officialCuaAuthorityVerified, {
-        pluginId: options.pluginIdByServerName?.get(descriptor.serverName),
+        ...(pluginId ? { pluginId } : {}),
+        ...(options.paidPluginGate ? { paidPluginGate: options.paidPluginGate } : {}),
+        ...(paidIdentity ? { paidPluginIdentity: paidIdentity } : {}),
       }),
     );
     registered.push(name);
   }
 
   return registered;
+}
+
+/**
+ * 执行期复核。抛出的错误带固定前缀，供上层投影成「会员已到期 · 工具已停用」；
+ * 不能静默返回空结果——模型会把空结果当成工具真的没数据。
+ */
+function assertPaidPluginStillAllowed(
+  gate: McpToolPaidGate | undefined,
+  identity: { id: string; marketplace: string; name: string } | undefined,
+): void {
+  if (!gate || !identity) return;
+  const verdict = gate(identity);
+  if (verdict.allowed) return;
+  throw new Error(verdict.message ?? "Plugin requires an active NIBI membership");
 }
 
 function toRegisteredMcpToolName(
@@ -124,7 +189,12 @@ export function createMcpToolEntry(
   descriptor: McpToolDescriptor,
   mcpPort: McpPort,
   officialCuaAuthorityVerified: boolean,
-  presentation: { pluginId?: string } = {},
+  presentation: {
+    pluginId?: string;
+    /** 执行期付费门禁：handler 每次调用前复核（注册期只拦一次不够）。 */
+    paidPluginGate?: McpToolPaidGate;
+    paidPluginIdentity?: { id: string; marketplace: string; name: string };
+  } = {},
 ): ToolEntry {
   const readOnly = descriptor.annotations?.readOnlyHint === true;
   const destructive = descriptor.annotations?.destructiveHint === true;
@@ -241,6 +311,9 @@ export function createMcpToolEntry(
     },
     handler: async (input, context) => {
       const startedAt = Date.now();
+      // 执行期复核：会员到期/服务端撤销发生在会话中途时，工具仍在注册表里。
+      // 这里再查一次，保证「续费前不能继续调用」，与 Rust PaidPluginGate 一致。
+      assertPaidPluginStillAllowed(presentation.paidPluginGate, presentation.paidPluginIdentity);
       const result = await mcpPort.callTool(
         {
           serverName: descriptor.serverName,

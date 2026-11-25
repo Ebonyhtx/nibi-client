@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRightIcon, LaptopIcon, RefreshCwIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronRightIcon, LaptopIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "@nibi/ui/button";
 import { DevicePlatformIcon, getDevicePlatformLabel } from "@nibi/ui/device-platform-icon";
 import { WebRemoteControlBrand } from "#src/web-remote-control/ui/webRemoteControlBrand.js";
@@ -67,23 +67,36 @@ interface WebRemoteControlDeviceListPageProps {
   now?: () => number;
 }
 
-function SectionHeader({ label, count }: { label: string; count: number }) {
+function SectionHeader({
+  label,
+  count,
+  online,
+}: {
+  label: string;
+  count: number;
+  online?: boolean;
+}) {
   return (
-    <h2 className="flex items-baseline gap-1.5 px-1 pb-2 pt-6 text-ui-sm font-medium text-foreground-subtle">
-      {label}
-      <span className="text-foreground-subtlest">{count}</span>
+    <h2 className="flex items-center gap-1.5 px-1 pt-6 pb-2 text-ui-sm font-medium text-foreground-subtle">
+      {online ? <span aria-hidden="true" className="size-1.5 rounded-full bg-success" /> : null}
+      <span>
+        {label}
+        <span className="ml-1.5 inline-flex items-center rounded-full bg-surface px-2 py-0.5 text-ui-xs font-medium text-foreground-subtle">
+          {count}
+        </span>
+      </span>
     </h2>
   );
 }
 
 function DeviceTile({ platform, online }: { platform?: string; online: boolean }) {
   return (
-    <span className="relative flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface text-foreground">
-      <DevicePlatformIcon platform={platform} className="size-[18px]" />
+    <span className="relative flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-surface text-foreground">
+      <DevicePlatformIcon platform={platform} className="size-5" />
       {online ? (
         <span
           aria-hidden="true"
-          className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-success ring-2 ring-card"
+          className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full bg-success ring-2 ring-card"
         />
       ) : null}
     </span>
@@ -114,12 +127,14 @@ function DeviceSection({
   devices,
   copy,
   selectable,
+  onlineSection,
   onOpen,
 }: {
   label: string;
   devices: WebRemoteControlDeviceGroup[];
   copy: DeviceListCopy;
   selectable: boolean;
+  onlineSection?: boolean;
   onOpen(device: WebRemoteControlDeviceGroup): void;
 }) {
   if (devices.length === 0) return null;
@@ -130,8 +145,8 @@ function DeviceSection({
   }
   return (
     <section>
-      <SectionHeader label={label} count={devices.length} />
-      <ul className="overflow-hidden rounded-xl border border-card-border bg-card">
+      <SectionHeader label={label} count={devices.length} online={onlineSection} />
+      <ul className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-xs">
         {devices.map((device, index) => {
           const name = device.name || copy.unnamed;
           const online = device.onlineConnections.length > 0;
@@ -149,13 +164,13 @@ function DeviceSection({
                   online ? (
                     <>
                       {multiple ? (
-                        <span className="shrink-0 text-ui-sm text-foreground-subtle">
+                        <span className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-0.5 text-ui-xs font-medium text-foreground-subtle">
                           {copy.connections(device.onlineConnections.length)}
                         </span>
                       ) : null}
                       <ChevronRightIcon
                         aria-hidden="true"
-                        className="size-4 shrink-0 text-foreground-subtlest"
+                        className="size-4 shrink-0 text-foreground-subtle"
                       />
                     </>
                   ) : null
@@ -190,7 +205,7 @@ function AccountRow({
       <Button
         type="button"
         variant="ghost"
-        className="-my-1 h-11 shrink-0 rounded-lg px-2 font-medium focus-visible:bg-hover"
+        className="h-11 shrink-0 rounded-lg px-2.5 text-ui-sm font-medium text-primary hover:bg-hover focus-visible:bg-hover"
       >
         {label}
       </Button>
@@ -198,27 +213,29 @@ function AccountRow({
   );
   if (!account) {
     return (
-      <div className="-ml-2 mt-1 flex items-center">{switchButton(copy.switchAccountFallback)}</div>
+      <div className="mt-3 flex items-center justify-end rounded-xl border border-card-border bg-card px-3 py-1 shadow-xs">
+        {switchButton(copy.switchAccountFallback)}
+      </div>
     );
   }
   return (
-    <div className="mt-1 flex min-w-0 items-center gap-2 text-ui-sm text-foreground-subtle">
+    <div className="mt-3 flex min-w-0 items-center gap-2.5 rounded-xl border border-card-border bg-card py-1.5 pr-1.5 pl-3 shadow-xs">
       {account.avatarUrl ? (
         <img
           src={account.avatarUrl}
           alt=""
           aria-hidden="true"
-          className="size-5 shrink-0 rounded-full object-cover"
+          className="size-7 shrink-0 rounded-full object-cover"
         />
       ) : (
         <span
           aria-hidden="true"
-          className="flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-hover text-ui-xs font-semibold text-foreground"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-ui-xs font-semibold text-primary"
         >
           {Array.from(account.displayName.trim())[0]?.toUpperCase() ?? "?"}
         </span>
       )}
-      <span className="min-w-0 truncate">
+      <span className="min-w-0 flex-1 truncate text-ui-sm font-medium text-foreground-subtle">
         {account.displayName} · {PROVIDER_LABELS[account.provider]}
       </span>
       {switchButton(copy.switchAccount)}
@@ -250,12 +267,12 @@ export function WebRemoteControlDeviceListPage({
   // 全局 body/#root 禁止滚动；入口自己承接长列表，保证末行可达。
   return (
     <main className="h-dvh overflow-y-auto bg-background text-foreground">
-      <div className="mx-auto w-full max-w-md px-4 pb-10 pt-[calc(env(safe-area-inset-top)+12px)]">
+      <div className="mx-auto w-full max-w-md pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pl-[max(1rem,env(safe-area-inset-left))]">
         <div className="flex h-10 items-center">
-          <WebRemoteControlBrand />
+          <WebRemoteControlBrand subtitle={locale === "zh-CN" ? "Web 远程控制" : "Web Remote"} />
         </div>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <h1 className="text-ui-xl font-semibold">{copy.title}</h1>
+          <h1 className="text-ui-xl font-semibold text-balance">{copy.title}</h1>
           <Button
             type="button"
             variant="ghost"
@@ -263,10 +280,13 @@ export function WebRemoteControlDeviceListPage({
             title={copy.refresh}
             disabled={view.loading}
             onClick={onRefresh}
-            className="-mr-2 size-11 rounded-lg text-foreground-subtle focus-visible:bg-hover"
+            className="-mr-2 size-11 rounded-xl text-foreground-subtle hover:bg-hover focus-visible:bg-hover"
           >
             <RefreshCwIcon
-              className={["size-[18px]", view.loading ? "animate-spin" : ""].join(" ")}
+              className={[
+                "size-[18px]",
+                view.loading ? "animate-spin motion-reduce:animate-none" : "",
+              ].join(" ")}
             />
           </Button>
         </div>
@@ -278,9 +298,13 @@ export function WebRemoteControlDeviceListPage({
         />
 
         {view.error ? (
-          <p role="alert" className="mt-5 px-1 text-ui-sm text-destructive">
-            {copy.error}
-          </p>
+          <div
+            role="alert"
+            className="mt-4 flex items-start gap-2.5 rounded-xl border border-destructive/25 bg-destructive-surface px-3.5 py-3 text-ui-sm text-destructive-surface-foreground"
+          >
+            <AlertCircleIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <p className="text-pretty">{copy.error}</p>
+          </div>
         ) : null}
         <div aria-busy={view.loading}>
           {view.devices.length > 0 ? (
@@ -290,6 +314,7 @@ export function WebRemoteControlDeviceListPage({
                 devices={onlineDevices}
                 copy={copy}
                 selectable={selectable}
+                onlineSection
                 onOpen={openDevice}
               />
               <DeviceSection
@@ -299,28 +324,50 @@ export function WebRemoteControlDeviceListPage({
                 selectable={selectable}
                 onOpen={openDevice}
               />
-              <p className="px-1 pt-3 text-ui-sm leading-5 text-foreground-subtlest">
+              <p className="mt-4 rounded-xl border border-border/70 bg-surface/70 px-3.5 py-2.5 text-ui-xs leading-relaxed text-pretty text-foreground-subtle">
                 {copy.notFound}
               </p>
             </>
           ) : view.loading ? (
-            <p role="status" className="py-16 text-center text-ui-sm text-foreground-subtle">
-              {copy.loading}
-            </p>
+            <div className="mt-6">
+              <div
+                aria-hidden="true"
+                className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-xs"
+              >
+                {[0, 1].map((rowIndex) => (
+                  <div
+                    key={rowIndex}
+                    className={[
+                      "flex items-center gap-3.5 px-4 py-3.5",
+                      rowIndex > 0 ? "border-t border-border" : "",
+                    ].join(" ")}
+                  >
+                    <div className="size-10 shrink-0 animate-pulse rounded-xl bg-surface motion-reduce:animate-none" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="h-3.5 w-32 animate-pulse rounded-md bg-surface motion-reduce:animate-none" />
+                      <div className="h-3 w-44 animate-pulse rounded-md bg-surface motion-reduce:animate-none" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p role="status" className="mt-4 text-center text-ui-sm text-foreground-subtle">
+                {copy.loading}
+              </p>
+            </div>
           ) : !view.error ? (
-            <div className="mt-16 flex flex-col items-center px-6 text-center">
-              <span className="flex size-14 items-center justify-center rounded-xl bg-surface text-foreground-subtle">
+            <div className="mt-6 flex flex-col items-center rounded-2xl border border-card-border bg-card px-6 py-10 text-center shadow-xs">
+              <span className="flex size-14 items-center justify-center rounded-2xl border border-border bg-surface text-foreground-subtle">
                 <LaptopIcon aria-hidden="true" className="size-7" />
               </span>
-              <p className="mt-4 text-ui-base font-semibold">{copy.emptyTitle}</p>
-              <p className="mt-1.5 text-ui-sm leading-5 text-foreground-subtle">
+              <p className="mt-4 text-ui-base font-semibold text-balance">{copy.emptyTitle}</p>
+              <p className="mt-1.5 text-ui-sm leading-relaxed text-pretty text-foreground-subtle">
                 {copy.emptyDescription}
               </p>
               <Button
                 type="button"
                 variant="outline"
                 size="lg"
-                className="mt-5 h-11 px-4"
+                className="mt-5 h-11 rounded-xl px-5"
                 onClick={onRefresh}
               >
                 <RefreshCwIcon />

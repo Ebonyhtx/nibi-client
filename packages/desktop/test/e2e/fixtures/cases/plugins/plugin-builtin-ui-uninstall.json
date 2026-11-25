@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "caseName": "plugin-builtin-ui-uninstall",
+  "spec": "./test/e2e/plugins/plugin-builtin-ui-uninstall.test.ts",
+  "providerFixtures": [],
+  "providerRequestPolicy": "none",
+  "noProviderRequests": true,
+  "fileFixtures": [
+    "seeded official plugin catalog cache and restorable built-in plugin state under the isolated E2E HOME"
+  ],
+  "requests": []
+}

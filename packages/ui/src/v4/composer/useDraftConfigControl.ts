@@ -39,6 +39,8 @@ import { resolveAppFollowupMode } from "@/v4/composer/followupModeSettings.js";
 import { logger } from "@/logger.js";
 import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 
+const DRAFT_CONTENT_PERSIST_DEBOUNCE_MS = 250;
+
 /** 目录水合单飞（per workspaceKey）：draft、已有 session 和严格模式双挂载共享一次 RPC。 */
 const workspaceCatalogHydrationFlights = new Map<string, Promise<void>>();
 
@@ -175,6 +177,50 @@ export function useDraftConfigControl(params: {
     };
   }, [scopeKey]);
   const [storedState, setStoredState] = useState(loadedScope);
+  const contentOverlayRef = useRef<{
+    scopeKey: string;
+    content: Pick<V4ComposerDraft, "text" | "editorStateJson" | "mention">;
+  } | null>(null);
+  const pendingPersistRef = useRef<{
+    scopeKey: string;
+    timerId: ReturnType<typeof setTimeout> | null;
+    flush: () => void;
+  } | null>(null);
+  const clearPendingPersistTimer = useCallback(() => {
+    const pending = pendingPersistRef.current;
+    if (!pending) return;
+    if (pending.timerId !== null) {
+      clearTimeout(pending.timerId);
+    }
+    pendingPersistRef.current = null;
+  }, []);
+  const flushPendingDraftPersist = useCallback(() => {
+    const pending = pendingPersistRef.current;
+    if (!pending) return;
+    if (pending.timerId !== null) {
+      clearTimeout(pending.timerId);
+    }
+    pendingPersistRef.current = null;
+    pending.flush();
+  }, []);
+  useEffect(() => {
+    contentOverlayRef.current = null;
+    return () => {
+      flushPendingDraftPersist();
+    };
+  }, [scopeKey, flushPendingDraftPersist]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleFlush = () => flushPendingDraftPersist();
+    window.addEventListener("pagehide", handleFlush);
+    window.addEventListener("beforeunload", handleFlush);
+    return () => {
+      window.removeEventListener("pagehide", handleFlush);
+      window.removeEventListener("beforeunload", handleFlush);
+      flushPendingDraftPersist();
+    };
+  }, [flushPendingDraftPersist]);
+
   // 首发是同一 pane 的地址迁移，保持其间的新编辑；换页或卸载不保留第二份配置。
   let currentState: ComposerState =
     storedState.scopeKey === scopeKey
@@ -258,8 +304,21 @@ export function useDraftConfigControl(params: {
   }
   if (draft !== currentState.draft) currentState = { ...currentState, draft };
   if (currentState !== storedState) setStoredState(currentState);
-  const stateRef = useRef(currentState);
-  stateRef.current = currentState;
+  // 正文 overlay 只影响“显示/下一次更新”的草稿，不参与 storedState 同步比较：
+  // 它每帧都会生成新对象，若混进 currentState 会让上面的 setStoredState 在渲染期死循环。
+  const overlayContent =
+    contentOverlayRef.current?.scopeKey === scopeKey ? contentOverlayRef.current.content : undefined;
+  if (overlayContent) {
+    draft = {
+      ...draft,
+      editorStateJson: undefined,
+      mention: undefined,
+      ...overlayContent,
+    };
+  }
+  const displayState = draft === currentState.draft ? currentState : { ...currentState, draft };
+  const stateRef = useRef(displayState);
+  stateRef.current = displayState;
   // 原因：按 revision 清草稿会把短暂不可用永久写成空选择。这里只派生当前结果，
   // 正文/模式自动保存继续保存 draft 中的原意图；读取未就绪时保留展示，提交由 View 门禁阻断。
   const effectiveSelection = modelSelectionView
@@ -352,6 +411,8 @@ export function useDraftConfigControl(params: {
     (update: (current: V4ComposerDraft) => V4ComposerDraft) => {
       // 旧 scope 的延迟编辑器回调不能写入刚切换到的会话。
       if (!isCurrentScope()) return;
+      clearPendingPersistTimer();
+      contentOverlayRef.current = null;
       const previous = stateRef.current.draft;
       const next = update(previous);
       const nextState = { ...stateRef.current, draft: next };
@@ -372,7 +433,7 @@ export function useDraftConfigControl(params: {
       persistDraft(next);
       lastPersistedDraftRef.current = next;
     },
-    [isCurrentScope, persistDraft],
+    [clearPendingPersistTimer, isCurrentScope, persistDraft],
   );
   const updateDraftConfig = useCallback(
     (update: (current: Partial<SessionConfigState>) => Partial<SessionConfigState>) => {
@@ -422,14 +483,51 @@ export function useDraftConfigControl(params: {
 
   const updateComposerContent = useCallback(
     (content: Pick<V4ComposerDraft, "text" | "editorStateJson" | "mention">) => {
-      updateComposerDraft((current) => ({
-        ...current,
+      // 纯正文输入仅影响草稿文本/富文本节点，不改 mode/modelSelection；
+      // 跳过顶层 SessionPane 的 setStoredState 与同步 localStorage+Zod 写盘，
+      // 改为同步维护 stateRef/overlay 并在防抖或失活边界落盘，消除逐字卡顿。
+      if (!isCurrentScope()) return;
+      const previous = stateRef.current.draft;
+      const next: V4ComposerDraft = {
+        ...previous,
         editorStateJson: undefined,
         mention: undefined,
         ...content,
-      }));
+      };
+      const nextState = { ...stateRef.current, draft: next };
+      stateRef.current = nextState;
+      // 仍要提交一次渲染：`composerDraft` 的消费方（发送按钮/编辑态/测试）读的是返回值，
+      // 只改 ref 不会更新它们。逐字卡顿来自同步写盘与 Zod，不是这一次渲染。
+      setStoredState(nextState);
+      contentOverlayRef.current = {
+        scopeKey,
+        content: {
+          text: next.text,
+          editorStateJson: next.editorStateJson,
+          mention: next.mention,
+        },
+      };
+      lastPersistedDraftRef.current = next;
+      clearPendingPersistTimer();
+      const flush = () => {
+        persistDraft(next);
+      };
+      if (typeof setTimeout !== "function") {
+        flush();
+        return;
+      }
+      pendingPersistRef.current = {
+        scopeKey,
+        timerId: setTimeout(() => {
+          if (pendingPersistRef.current?.scopeKey === scopeKey) {
+            pendingPersistRef.current = null;
+          }
+          flush();
+        }, DRAFT_CONTENT_PERSIST_DEBOUNCE_MS),
+        flush,
+      };
     },
-    [updateComposerDraft],
+    [clearPendingPersistTimer, isCurrentScope, persistDraft, scopeKey],
   );
   const replaceComposerDraft = useCallback(
     (replacement: Omit<V4ComposerDraft, "updatedAt">) => {
@@ -443,6 +541,7 @@ export function useDraftConfigControl(params: {
       if (!isCurrentScope() || scopeId !== V4_DRAFT_SCOPE_ROOT) return;
       const targetSessionId = createdSessionId.trim();
       if (!targetSessionId) return;
+      clearPendingPersistTimer();
       // 首发 Snapshot 可能迟到：空正文只在内存交接配置，有新文字则先写目标再删来源。
       const written = persistV4ComposerDraft(
         workspacePath,
@@ -456,7 +555,14 @@ export function useDraftConfigControl(params: {
       setStoredState(next);
       clearV4ComposerDraft(workspacePath, workspaceIdentity, V4_DRAFT_SCOPE_ROOT, rootScope);
     },
-    [scopeId, isCurrentScope, workspaceIdentity, workspacePath, rootScope],
+    [
+      clearPendingPersistTimer,
+      scopeId,
+      isCurrentScope,
+      workspaceIdentity,
+      workspacePath,
+      rootScope,
+    ],
   );
 
   // ── workspace 目录水合（见文件头说明）──

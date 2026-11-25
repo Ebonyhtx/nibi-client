@@ -150,11 +150,15 @@ impl Transcript {
                     self.push(Body::Peer(Box::new(row)), now_ms);
                 }
             }
-            // 插话显示成用户行；工具边界并入的后台通知（`task-notification`，L18）与开回合的通知 meta
-            // 消息一样不显示。
+            // 插话显示成用户行；工具边界并入的后台通知（`task-notification`，L18）、子代理的
+            // coordinator 回复（`subagent_message`）与 coordinator 的中途消息（`coordinator`）不显示成
+            // 人类输入。
             Message::Attachment(attachment)
                 if attachment.source == "queued_command"
-                    && attachment.data["commandMode"] != "task-notification" =>
+                    && !matches!(
+                        attachment.data["commandMode"].as_str(),
+                        Some("task-notification" | "subagent_message" | "coordinator" | PEER_SOURCE)
+                    ) =>
             {
                 let text = attachment.data["prompt"].as_str().unwrap_or_default();
                 self.push(Body::User { text: text.into() }, now_ms);

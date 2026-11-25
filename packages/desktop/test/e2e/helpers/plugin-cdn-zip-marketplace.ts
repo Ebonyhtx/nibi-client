@@ -3,11 +3,16 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
+import { DEFAULT_PLUGIN_MARKETPLACES, NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
 
 export const PLUGIN_CDN_ZIP_MARKETPLACE_SPEC = "plugin-cdn-zip-marketplace-install.test.ts";
 export const PLUGIN_STORE_AUTO_REFRESH_THROTTLED_SPEC =
   "plugin-store-auto-refresh-throttled.test.ts";
 export const PLUGIN_STORE_AUTO_REFRESH_ON_ENTER_SPEC = "plugin-store-auto-refresh-on-enter.test.ts";
+// 官方市场源从产品默认定义派生，避免 fixture 自己写死一个过期 URL（曾残留上游 CDN）。
+const OFFICIAL_MARKETPLACE_SOURCE =
+  DEFAULT_PLUGIN_MARKETPLACES.find((item) => item.id === NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID)
+    ?.source ?? "https://api.nibistudio.cn/plugins/marketplace.json";
 // 固定未来时间阻止正式离线用例启动时自动刷新真实官方 CDN。
 export const PLUGIN_CDN_ZIP_OFFLINE_LAST_UPDATED = "2099-01-01T00:00:00.000Z";
 // 远古时间让「进入商店页即刷新官方市场」用例必然落在节流窗口之外（且 pluginCount>0，
@@ -136,7 +141,7 @@ export function seedPluginCdnZipMarketplaceFixture(input: {
         id: PLUGIN_CDN_ZIP_MARKETPLACE_ID,
         source: {
           source: "url",
-          url: "https://cdn-zcode.z.ai/nibi/official-plugin/marketplace.json",
+          url: OFFICIAL_MARKETPLACE_SOURCE,
         },
         name: PLUGIN_CDN_ZIP_MARKETPLACE_NAME,
         description: manifest.description,

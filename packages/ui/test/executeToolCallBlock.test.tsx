@@ -56,7 +56,8 @@ describe("ExecuteToolCallBlock", () => {
       ),
     );
 
-    expect(html).toContain("输出结果");
+    expect(html).toContain('data-testid="execute-detail"');
+    expect(html).toContain('data-testid="bash-result-output"');
     expect(html).toContain("packages installed successfully");
     expect(html).not.toContain("&quot;stdout&quot;");
     expect(html).not.toContain("&quot;exitCode&quot;");

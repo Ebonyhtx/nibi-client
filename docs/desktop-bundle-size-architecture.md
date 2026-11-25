@@ -52,7 +52,7 @@
 
 - `scripts/build-desktop-agent-cli.mjs` 构建 `apps/nibi-cli/packages/cli/dist/nibi.cjs`，并构建、校验 node-repl-host、Browser Use client 和模拟器等 Dev 必需的官方插件 runtime。`pnpm dev:desktop` 在 `pre-dev` 后执行该脚本，开发态 resolver 优先直接使用 workspace 内的 bundle；`stage:remote-assets` 也通过它取得 Agent bundle。
 - 桌面打包的 `prepare:agent-bundle` 将 `nibi.cjs` 和官方插件 seed 资源写入 `packages/desktop/bundled-agents/<platform>/nibi/`，再由 electron-builder 复制到安装包。
-- `scripts/download-glm.mjs` 与 desktop `prepare:glm` 仅保留为手动兼容兜底，不进入默认 Dev、桌面打包或 remote 资产准备链路。
+- `scripts/download-glm.mjs` 与 desktop `prepare:glm` 已删除；默认链路只走 `prepare:agent-bundle`。
 
 ## 哪些资源禁止进入安装包
 

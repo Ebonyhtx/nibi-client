@@ -41,7 +41,7 @@ describe("legacy provider visibility", () => {
           .readTree()
           .tasks.map((task) => task.taskId)
           .sort(),
-      ).toEqual(["current-import", "glm-active", "glm-archived", "glm-pinned"]);
+      ).toEqual(["current-import"]);
       expect(repository.readTree().tasks.every((task) => task.hostId === hostId)).toBe(true);
       const tree = repository.readTree();
       const importedProjectId = tree.tasks.find(

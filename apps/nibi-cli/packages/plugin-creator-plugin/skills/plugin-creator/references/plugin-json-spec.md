@@ -1,18 +1,24 @@
 # NIBI plugin and marketplace reference
 
-A plugin uses `.nibi-plugin/plugin.json`. Its `name` is its stable identifier; this scaffold uses lower-case hyphenated names, at most 64 characters, and initial version `0.1.0`.
+A plugin uses a root `plugin.json` that follows Agent Plugins 1.0.0. Its `name` is its stable identifier; this scaffold uses lower-case hyphenated names, at most 64 characters, and initial version `0.1.0`. NIBI-specific components live under `extensions["com.nibistudio.nibi"]`.
 
 ```json
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "my-plugin",
   "version": "0.1.0",
   "description": "The implemented workflow",
   "author": { "name": "Your team" },
-  "skills": "./skills"
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1",
+      "skills": "./skills"
+    }
+  }
 }
 ```
 
-Optional components: `skills` and `commands` point to directories; `hooks` points to `hooks/hooks.json`; `mcpServers` can point to `.mcp.json` or contain the server configuration. Only declare real resources. Paths stay within the plugin root. Use `${NIBI_PLUGIN_ROOT}` in MCP arguments and hook commands for the runtime plugin location; the plugin loader only scans `.nibi-plugin/plugin.json` and does not expand legacy `${CLAUDE_PLUGIN_ROOT}` in MCP configuration. The loader handles the token; shell scripts must not guess the install cache path.
+Optional components live in the NIBI extension: `skills` and `commands` point to directories; `hooks` points to `hooks/hooks.json`. MCP servers belong in the root `mcp.json` (`{ "mcpServers": { ... } }`). Only declare real resources. Paths stay within the plugin root. Use `${NIBI_PLUGIN_ROOT}` in MCP arguments and hook commands for the runtime plugin location. `${CLAUDE_PLUGIN_ROOT}` / `${ZCODE_PLUGIN_ROOT}` are still expanded when reading foreign plugins, but new NIBI plugins should use the NIBI token. The loader handles the token; shell scripts must not guess the install cache path.
 
 Skills contain `<name>/SKILL.md` with `name` and `description` YAML frontmatter. Commands are Markdown documents. The generator provides minimal examples for skills, commands, MCP and SessionStart hooks. Implement the actual requested behavior before reporting success.
 
@@ -46,7 +52,8 @@ Use this development layout. When Node is already available, `upsert-dev-marketp
 <workspace>/plugins/
   marketplace.json       name: dev-<workspace>-<canonical-path-hash>
   my-plugin/
-    .nibi-plugin/plugin.json
+    plugin.json
+    mcp.json            (only when the plugin has MCP servers)
     skills/my-plugin/SKILL.md
 ```
 

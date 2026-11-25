@@ -295,7 +295,7 @@ function AssistantPreviewCardRow({
     <OpenSplitButton
       renderCard={(button, cardAction) => (
         <div
-          className="relative flex w-full items-center gap-3 rounded-xl border border-card-border bg-card p-3 pr-4 text-foreground"
+          className="group/preview-card relative flex w-full items-center gap-3 rounded-xl border border-card-border bg-card p-3 pr-4 text-foreground shadow-[var(--nibi-shadow-card)] transition-[border-color,background-color,box-shadow,translate] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0"
           data-preview-card-title={card.title}
           data-nibi-stream-animate="true"
           style={
@@ -314,9 +314,9 @@ function AssistantPreviewCardRow({
             aria-labelledby={titleId}
             disabled={!cardAction.canPreview}
             onClick={cardAction.preview}
-            className="absolute inset-0 z-0 cursor-pointer rounded-xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-input-border-focused disabled:cursor-default"
+            className="absolute inset-0 z-0 cursor-pointer rounded-xl border-0 bg-transparent p-0 outline-none focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-default"
           />
-          <div className="pointer-events-none relative z-10 flex size-11 shrink-0 items-center justify-center rounded-md bg-background text-foreground-subtle">
+          <div className="pointer-events-none relative z-10 flex size-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-surface/80 text-foreground-subtle shadow-2xs">
             {!renderAsFile && card.type === "website" ? (
               <GlobeIcon className="size-6" />
             ) : descriptor ? (

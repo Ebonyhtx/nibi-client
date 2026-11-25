@@ -515,9 +515,9 @@ async fn delivering_moves_the_foreground_only_while_an_input_waits() {
         memory.moved(),
         [BackgroundReason::DeliverMessage, BackgroundReason::User]
     );
-    // 第一个请求放行后插话开下一个回合（没有工具边界），再放行一次。
+    // 文本轮收口：插话并入同一回合（Node 的 active-loop 只被 guide 输入拉长回合），
+    // 放行两次（两次请求）之后回合才结束。
     gate.notify_one();
-    until(&mut events, finished).await;
     gate.notify_one();
     until(&mut events, finished).await;
 }

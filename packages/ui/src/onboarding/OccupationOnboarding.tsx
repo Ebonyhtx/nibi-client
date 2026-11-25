@@ -1,11 +1,16 @@
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useOnboardingTelemetry } from "@/onboarding/useOnboardingTelemetry.js";
 import { OnboardingHeader } from "@/onboarding/OnboardingHeader.js";
-import { OccupationOnboardingVisual } from "@/onboarding/OccupationOnboardingVisual.js";
 import { occupations, type OccupationValue } from "@/onboarding/occupationOptions.js";
 import { OnboardingModeSelector } from "@/onboarding/OnboardingModeSelector.js";
 import { OnboardingOccupationGrid } from "@/onboarding/OnboardingOccupationGrid.js";
 import { useOnboardingTrigger } from "@/onboarding/useOnboardingTrigger.js";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+
+const OccupationOnboardingVisual = lazy(() =>
+  import("@/onboarding/OccupationOnboardingVisual.js").then((module) => ({
+    default: module.OccupationOnboardingVisual,
+  })),
+);
 import { useSettings } from "@/hooks/useSettingService.js";
 import { useOnboardingRecordService } from "@/hooks/useOnboardingRecordService.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
@@ -329,7 +334,7 @@ export function OccupationOnboarding({
                         .map((key) => (
                           <label
                             key={key}
-                            className="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 rounded-xl border border-card-border bg-card dark:bg-surface/40 p-5 text-ui-base transition-colors hover:bg-surface-hover"
+                            className="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 rounded-xl border border-card-border bg-card p-5 text-ui-base shadow-[var(--nibi-shadow-card)] transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:transition-none"
                           >
                             <Checkbox
                               checked={
@@ -395,7 +400,7 @@ export function OccupationOnboarding({
                   <div className="flex w-full gap-3">
                     <Button
                       disabled={saving || (step === 0 && !occupation)}
-                      className="h-11 flex-1 rounded-xl px-5 text-ui-base"
+                      className="h-11 flex-1 rounded-xl px-5 text-ui-base shadow-[var(--nibi-shadow-primary-btn)]"
                       onClick={() => {
                         if (!preferences) setStep(step === 0 ? 1 : 2);
                         else void save();
@@ -409,10 +414,12 @@ export function OccupationOnboarding({
             </div>
           </div>
         </div>
-        <OccupationOnboardingVisual
-          isMacDesktop={isMacDesktop}
-          isWindowsDesktop={isWindowsDesktop}
-        />
+        <Suspense fallback={null}>
+          <OccupationOnboardingVisual
+            isMacDesktop={isMacDesktop}
+            isWindowsDesktop={isWindowsDesktop}
+          />
+        </Suspense>
       </div>
     </main>
   );

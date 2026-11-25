@@ -4747,7 +4747,6 @@ const enUS: Record<string, string> = {
   "settings.skills.delete.title": "Delete skill",
   "settings.skills.delete.description":
     'Delete "{name}"? This removes the skill folder from disk and cannot be undone.',
-  "settings.skills.agent.glm": "NIBI Agent",
   "settings.skills.agent.unknown": "Unknown source",
   "settings.skills.create.open": "New skill",
   "settings.skills.create.taskCreateFailed":
@@ -5107,6 +5106,7 @@ const enUS: Record<string, string> = {
   "settings.plugins.detail.updateAvailable": "Update available → v{version}",
   "settings.plugins.detail.versionChanged": "A different version is available",
   "settings.plugins.detail.updateNewSessionsNote": "Takes effect in new sessions",
+  "settings.plugins.effect.newSession": "Plugin changes take effect in new sessions",
   "settings.plugins.checkForUpdates": "Check for updates",
   "settings.plugins.checkForUpdates.found": "Found {count} plugin update(s) available",
   "settings.plugins.checkForUpdates.none": "All installed plugins are up to date",
@@ -5123,14 +5123,62 @@ const enUS: Record<string, string> = {
   "settings.plugins.uninstall.confirmDescription":
     "This removes the plugin's cached files, its data directory, and any saved configuration. This cannot be undone.",
   "settings.plugins.uninstall.confirm": "Uninstall",
+  "settings.plugins.consent.title": "Allow {name} to run?",
+  "settings.plugins.consent.description":
+    "This plugin needs the following capabilities. Only allow plugins you trust.",
+  "settings.plugins.consent.confirm": "Allow and enable",
+  "settings.plugins.consent.permission.process":
+    "Run local commands and start helper processes",
+  "settings.plugins.consent.permission.code": "Run the plugin's extension code",
+  "settings.plugins.consent.capability.sessionsRead": "Read sessions in this workspace",
+  "settings.plugins.consent.capability.filesRead": "Read files in this workspace",
+  "settings.plugins.consent.capability.uiView": "Open the plugin's own panel",
+  "settings.plugins.consent.capability.settingsOwn": "Read and write the plugin's own settings",
+  "settings.plugins.consent.capability.notificationsShow": "Show plugin notifications",
+  "settings.plugins.consent.permission.network": "Access the network",
+  "settings.plugins.consent.permission.filesystemRead": "Read files in your workspace",
+  "settings.plugins.consent.permission.filesystemWrite": "Write files in your workspace",
+  "settings.plugins.consent.permission.fullAccess":
+    "Request full access (not granted to community or local plugins)",
+  "settings.plugins.consent.permission.unknown": "An additional capability",
+  "settings.plugins.detail.permissions": "Permissions",
+  "settings.plugins.detail.revokeConsent": "Revoke permission",
+  "settings.plugins.detail.partialSupport":
+    "Some declared capabilities are not available in this version.",
   "settings.plugins.detail.empty": "Select a plugin to view details.",
   "settings.plugins.detail.enabled": "Enabled",
   "settings.plugins.detail.disabled": "Disabled",
+  "settings.plugins.detail.blocked": "Disabled for security",
+  "settings.plugins.detail.blockedReason": "Reason",
+  "settings.plugins.detail.codeBlocked": "Code is disabled; declarative features still work",
+  "settings.plugins.detail.codeBlockedReason": "Reason",
+  "settings.plugins.detail.packageHash": "Content fingerprint",
+  "settings.plugins.audit.title": "Recent activity",
+  "settings.plugins.audit.loading": "Loading activity…",
+  "settings.plugins.audit.empty": "No activity yet",
+  "settings.plugins.audit.unavailable": "Activity could not be read",
+  "settings.plugins.audit.type.capabilityInvoked": "Used a capability",
+  "settings.plugins.audit.type.capabilityDenied": "Capability denied",
+  "settings.plugins.audit.type.consentGranted": "Permissions granted",
+  "settings.plugins.audit.type.consentRevoked": "Permissions revoked",
+  "settings.plugins.audit.type.consentRequired": "Permissions must be confirmed again",
+  "settings.plugins.audit.type.grantsUpdated": "Capability grants updated",
+  "settings.plugins.audit.type.grantsRevoked": "Capability grants revoked",
+  "settings.plugins.audit.capability.sessionsRead": "Read sessions",
+  "settings.plugins.audit.capability.filesRead": "Read workspace files",
+  "settings.plugins.audit.capability.uiView": "Opened the plugin UI",
+  "settings.plugins.audit.capability.settingsOwn": "Read or wrote its own settings",
+  "settings.plugins.audit.capability.notificationsShow": "Sent a notification",
   "settings.plugins.detail.notInstalled": "Not installed",
   "settings.plugins.detail.components": "Components",
   "settings.plugins.detail.description": "Description",
   "settings.plugins.detail.source": "Source",
   "settings.plugins.detail.sourceFrom": "From {source}",
+  "settings.plugins.detail.origin.builtin": "Built-in",
+  "settings.plugins.detail.origin.official": "Official marketplace",
+  "settings.plugins.detail.origin.community": "Community",
+  "settings.plugins.detail.origin.local": "Local install",
+  "settings.plugins.detail.origin.external": "External source",
   "settings.plugins.detail.details": "Details",
   "settings.plugins.detail.warnings": "Warnings",
   "settings.plugins.detail.items": "{count} items",
@@ -5178,6 +5226,10 @@ const enUS: Record<string, string> = {
   "settings.plugins.marketplace.componentsRetry": "Retry",
   "settings.plugins.store.componentsAfterInstall":
     "Components are listed after the plugin is installed.",
+  "settings.plugins.store.declaration.codeRuntime":
+    "Includes executable code that runs after installation.",
+  "settings.plugins.store.declaration.note":
+    "Declared by this plugin package; nothing runs before install.",
   "settings.plugins.marketplace.componentsEmpty":
     "This plugin doesn't declare components, or they couldn't be read.",
   "settings.plugins.config.title": "Configuration",
@@ -8041,6 +8093,12 @@ const enUS: Record<string, string> = {
   ...requestSecurityMessagesEnUS,
   "settings.plugins.error.membershipRequired":
     "This is a members-only plugin. Get membership and try again.",
+  "settings.plugins.error.sourcePathMissing":
+    "Marketplace source path does not exist: {detail}",
+  "settings.plugins.error.sourceUnsupported": "Unsupported plugin source: {detail}",
+  "settings.plugins.error.sourceNotJson": "Marketplace file must be a .json file: {detail}",
+  "settings.plugins.error.sourceNotFileOrDir":
+    "Marketplace source path is not a file or directory: {detail}",
   "settings.plugins.membership.title": "NIBI Membership",
   "settings.plugins.membership.badge": "Members only",
   "settings.plugins.membership.description":

@@ -94,6 +94,9 @@ export const parseGlobalArgs = (argv: string[]) =>
       available: {
         type: "boolean",
       },
+      "accept-permissions": {
+        type: "boolean",
+      },
       "keep-data": {
         type: "boolean",
       },

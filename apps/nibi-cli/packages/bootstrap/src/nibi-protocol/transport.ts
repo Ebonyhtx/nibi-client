@@ -43,6 +43,8 @@ const SESSION_LIFECYCLE_CONCURRENT_METHODS = new Set<string>([
 // 不会与安装跨 await 的读改写交错。
 const PLUGIN_READ_IMMEDIATE_METHODS = new Set<string>([
   nibiProtocolMethods.pluginsDescribe,
+  // 审计查询是纯本地只读投影：不需要排在安装/更新之后。
+  nibiProtocolMethods.pluginsAudit,
   nibiProtocolMethods.pluginsList,
   nibiProtocolMethods.pluginsOverview,
 ]);

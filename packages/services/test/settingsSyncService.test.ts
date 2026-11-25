@@ -38,7 +38,7 @@ function writePlugin(
   rootPath: string,
   folder: string,
   manifest: Record<string, unknown>,
-  manifestDir = ".nibi-plugin",
+  manifestDir = "",
 ): string {
   const pluginDir = join(rootPath, folder);
   mkdirSync(join(pluginDir, manifestDir), { recursive: true });
@@ -597,7 +597,7 @@ describe("settingsSyncService plugins import", () => {
         version: "1.2.3",
       },
     ]);
-    expect(existsSync(join(importedPath, ".nibi-plugin", "plugin.json"))).toBe(true);
+    expect(existsSync(join(importedPath, "plugin.json"))).toBe(true);
     expect(lstatSync(importedPath).isSymbolicLink()).toBe(true);
     expect(config.plugins?.dirs).toEqual([importedPath]);
   });
@@ -635,12 +635,12 @@ describe("settingsSyncService plugins import", () => {
     ) as { plugins?: { dirs?: string[] } };
     expect(result.successCount).toBe(1);
     expect(lstatSync(importedPath).isSymbolicLink()).toBe(false);
-    expect(existsSync(join(importedPath, ".nibi-plugin", "plugin.json"))).toBe(true);
+    expect(existsSync(join(importedPath, "plugin.json"))).toBe(true);
     expect(config.plugins?.dirs).toEqual([importedPath]);
     expect(existsSync(join(home, ".nibi", "plugins", "writer-plugin"))).toBe(false);
   });
 
-  it("does not import plugins that only carry a legacy manifest", async () => {
+  it("imports plugins that only carry a readable legacy manifest", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;
@@ -668,8 +668,12 @@ describe("settingsSyncService plugins import", () => {
       ],
     });
 
-    expect(result.successCount).toBe(0);
-    expect(existsSync(join(workspacePath, ".nibi", "plugins", "legacy-writer"))).toBe(false);
+    expect(result.successCount).toBe(1);
+    expect(
+      existsSync(
+        join(workspacePath, ".nibi", "plugins", "legacy-writer", ".claude-plugin", "plugin.json"),
+      ),
+    ).toBe(true);
   });
 
   it("skips plugin imports when target directory or same plugin id exists", async () => {

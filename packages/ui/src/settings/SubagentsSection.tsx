@@ -251,6 +251,8 @@ export function resolveSubagentThoughtOptionState(params: {
         providerId: modelSelection.providerId,
         modelId: modelSelection.modelId,
         currentValue: explicitThoughtLevel,
+        // 非法历史档位要原样显示，配合 thoughtLevelInvalid 提示与禁用保存。
+        preserveInvalidCurrentValue: true,
       })
     : null;
   if (metadataOption) {

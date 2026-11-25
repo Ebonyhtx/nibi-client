@@ -42,13 +42,13 @@ describe("marketplace store listing", () => {
             displayName: "Example Plugin",
             displayName_i18n: { "zh-CN": "示例插件" },
             version: "0.1.1",
-            author: { name: "Z.ai", url: "https://z.ai" },
+            author: { name: "Example Studio", url: "https://example.com" },
             category: "template",
-            icon: "https://cdn-zcode.z.ai/icons/example.png",
-            homepage: "https://z.ai/plugins/example",
-            privacyPolicy: "https://z.ai/privacy",
-            termsOfService: "https://z.ai/terms",
-            heroImage: "https://cdn-zcode.z.ai/hero/example.png",
+            icon: "https://cdn.example.com/icons/example.png",
+            homepage: "https://example.com/plugins/example",
+            privacyPolicy: "https://example.com/privacy",
+            termsOfService: "https://example.com/terms",
+            heroImage: "https://cdn.example.com/hero/example.png",
             examplePrompts: ["Try the example"],
             examplePrompts_i18n: { "zh-CN": ["试试这个示例"] },
             requiresPaidPlan: true,
@@ -84,14 +84,14 @@ describe("marketplace store listing", () => {
       displayName: "Example Plugin",
       displayNameI18n: { "zh-CN": "示例插件" },
       descriptionI18n: { "zh-CN": "一个最小模板插件" },
-      icon: "https://cdn-zcode.z.ai/icons/example.png",
+      icon: "https://cdn.example.com/icons/example.png",
       category: "template",
-      author: "Z.ai",
-      authorUrl: "https://z.ai",
-      homepage: "https://z.ai/plugins/example",
-      privacyPolicy: "https://z.ai/privacy",
-      termsOfService: "https://z.ai/terms",
-      heroImage: "https://cdn-zcode.z.ai/hero/example.png",
+      author: "Example Studio",
+      authorUrl: "https://example.com",
+      homepage: "https://example.com/plugins/example",
+      privacyPolicy: "https://example.com/privacy",
+      termsOfService: "https://example.com/terms",
+      heroImage: "https://cdn.example.com/hero/example.png",
       examplePrompts: ["Try the example"],
       examplePromptsI18n: { "zh-CN": ["试试这个示例"] },
       requiresPaidPlan: true,
@@ -106,9 +106,9 @@ describe("marketplace store listing", () => {
 
   it("normalizes author from string and object forms", () => {
     expect(normalizeAuthorValue("Acme")).toEqual({ name: "Acme" });
-    expect(normalizeAuthorValue({ name: "Z.ai", url: "https://z.ai" })).toEqual({
-      name: "Z.ai",
-      url: "https://z.ai",
+    expect(normalizeAuthorValue({ name: "Example Studio", url: "https://example.com" })).toEqual({
+      name: "Example Studio",
+      url: "https://example.com",
     });
     expect(normalizeAuthorValue("   ")).toBeUndefined();
     expect(normalizeAuthorValue(42)).toBeUndefined();
@@ -165,9 +165,9 @@ describe("marketplace store listing", () => {
   it("returns manifest display metadata from describeMarketplacePlugin for installed plugins", async () => {
     const storageRoot = await makeStorageRoot("nibi-describe-metadata-");
     const pluginRoot = join(storageRoot, "cache", "hello-market", "hello", "1.2.3");
-    await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+    await mkdir(join(pluginRoot), { recursive: true });
     await writeFile(
-      join(pluginRoot, ".nibi-plugin", "plugin.json"),
+      join(pluginRoot, "plugin.json"),
       JSON.stringify({
         name: "hello",
         version: "1.2.3",

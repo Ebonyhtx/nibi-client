@@ -165,7 +165,7 @@ function makeUserMessage(params: {
       sessionId: params.sessionId,
       role: "user",
       time: { created: 30 },
-      agent: "glm",
+      agent: "nibi-agent",
       model: { providerId: "glm", modelId: "glm-4.6" },
     },
     parts: params.parts ?? [
@@ -191,7 +191,7 @@ function makeAssistantAgentToolMessage(params: {
       sessionId: params.sessionId,
       role: "assistant",
       time: { created: 40, completed: 50 },
-      agent: "glm",
+      agent: "nibi-agent",
       model: { providerId: "glm", modelId: "glm-4.6" },
     },
     parts: [
@@ -288,7 +288,7 @@ function createAgentMock() {
                     completed: message.timestamp ?? 30 + index,
                   },
                   parentMessageId: `msg_import_${Math.max(0, index - 1)}`,
-                  agent: "glm",
+                  agent: "nibi-agent",
                   model: { providerId: "glm", modelId: "glm-4.6" },
                   path: {
                     cwd: params.workspacePath,
@@ -3277,7 +3277,7 @@ describe("Nibi legacy task compat task index", () => {
             sessionId: task.taskId,
             role: "assistant",
             time: { created: 40, completed: 50 },
-            agent: "glm",
+            agent: "nibi-agent",
             model: { providerId: "glm", modelId: "glm-4.6" },
           },
           parts: [
@@ -3402,7 +3402,7 @@ describe("Nibi legacy task compat task index", () => {
               sessionId: task.taskId,
               role: "assistant",
               time: { created: 40, completed: 50 },
-              agent: "glm",
+              agent: "nibi-agent",
               model: { providerId: "glm", modelId: "glm-4.6" },
             },
             parts: [

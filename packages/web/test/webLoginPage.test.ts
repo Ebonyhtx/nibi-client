@@ -13,6 +13,8 @@ describe("手机远控登录页", () => {
     expect(html).toContain(
       lang === "zh-CN" ? "登录后继续使用 Web 远程控制" : "Sign In To Continue",
     );
+    expect(html).toContain("env(safe-area-inset-top)");
+    expect(html).toContain("min-h-dvh");
   });
 
   it.each(["zh-CN", "en-US"] as const)("%s 只显示 NIBI 账号入口", (lang) => {

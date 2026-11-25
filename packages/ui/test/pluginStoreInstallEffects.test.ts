@@ -54,6 +54,7 @@ vi.mock("@/settings/PluginStoreListView.js", () => ({
   },
 }));
 vi.mock("@/settings/PluginUninstallConfirmDialog.js", () => ({
+  PluginConsentDialog: () => null,
   PluginUninstallConfirmDialog: () => null,
 }));
 vi.mock("@/settings/PluginStoreSourcesDialog.js", () => ({ PluginStoreSourcesDialog: () => null }));

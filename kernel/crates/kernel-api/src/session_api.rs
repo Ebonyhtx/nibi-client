@@ -38,14 +38,17 @@ pub enum TurnExecutionKind {
 
 /// 合成输入开的轮的来源（Node `TurnStarted.inputSource`，contracts session.events.ts 的
 /// `SyntheticUserMessageSource` 子集）：投影据它在轮头行派生 `origin`（Node `turnHeaderOrigin`
-/// 的同一张表——`background_task` → `backgroundResult`；真人输入缺席，origin 是 `userInput`）。
-/// 同伴消息的 `subagent_message` 在 Node 的表里落默认 `userInput`，内核不给它这个标记。
+/// 的同一张表——`background_task` → `backgroundResult`；`subagent_message` 缺省 `userInput`，
+/// 它的 carrier 是 model-only）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TurnInputSource {
     /// 后台任务通知（`<task-notification>` 信封开的 model-only 轮；shell / 子代理 / 工作流 run
     /// 的完成与提问通知都走它）。
     BackgroundTask,
+    /// 子代理的 coordinator 回复（`<subagent-message>` carrier 开的 model-only 轮，
+    /// docs/subagent-respond-to-coordinator.md）。
+    SubagentMessage,
 }
 
 /// 运行中提交的输入怎样投递（工具边界吸收排队消息）。
@@ -812,6 +815,12 @@ pub trait SessionHandle: Send + Sync {
         Err(KernelError::Unsupported {
             what: "subagents".to_owned(),
         })
+    }
+
+    /// 已持久化的子代理调用关联（[`crate::agents::SubagentLink`]）：冷投影据此恢复父会话 timeline 的
+    /// `subagent` 行与右侧会话入口；只含本会话直接发起的调用。默认没有。
+    async fn subagent_links(&self) -> Result<Vec<crate::agents::SubagentLink>, KernelError> {
+        Ok(Vec::new())
     }
 
     /// 子代理的状态有变化时产生一项（多次变化可能合并成一项）；收到后重取 [`SessionHandle::subagents`]

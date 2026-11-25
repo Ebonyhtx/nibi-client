@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#171716" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#171614" />
+    <meta name="color-scheme" content="light dark" />
     <!-- Bugfix: Chrome dev 下可能不发 favicon 网络请求；内嵌小尺寸 App 图标，避免标签页回退到默认图标。 -->
     <link
       rel="icon"
@@ -23,7 +23,7 @@
         const PREFS_KEY = "nibi:prefs";
         const DEFAULT_THEME = "nibi-light";
         const BROWSER_THEME_COLORS = {
-          dark: "#171716",
+          dark: "#171614",
           light: "#f9f2e4",
         };
         const BOOTSTRAP_SNAPSHOT_KEY = "nibi:web-remote-control:bootstrap-shell";
@@ -58,7 +58,7 @@
                   typeof snapshot.background === "string"
                     ? snapshot.background
                     : normalizedTheme === "dark"
-                      ? "#171716"
+                      ? "#171614"
                       : "#f9f2e4",
                 );
                 document.documentElement.style.setProperty(
@@ -66,8 +66,8 @@
                   typeof snapshot.foreground === "string"
                     ? snapshot.foreground
                     : normalizedTheme === "dark"
-                      ? "#e2e8f0"
-                      : "#334155",
+                      ? "#e0dad0"
+                      : "#1c2f4e",
                 );
                 if (typeof snapshot.border === "string") {
                   document.documentElement.style.setProperty(
@@ -126,8 +126,8 @@
       }
 
       body {
-        background: var(--nibi-bootstrap-bg, var(--color-background, #171716));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e2e8f0));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #171614));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e0dad0));
         font-family:
           Inter,
           -apple-system,
@@ -138,7 +138,7 @@
 
       html[data-nibi-bootstrap-theme="light"] body {
         background: var(--nibi-bootstrap-bg, var(--color-background, #f9f2e4));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #334155));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1c2f4e));
       }
 
       html[data-nibi-browser-theme-surface],
@@ -146,7 +146,7 @@
       html[data-nibi-browser-theme-surface] #root {
         /* 修复原因：共享 UI 样式为 Electron vibrancy 强制透明根背景；浏览器入口必须用语义背景
            覆盖该桌面专属行为，否则浏览器工具栏、overscroll 和页面画布会回退为系统白色。 */
-        background: var(--color-background, var(--nibi-bootstrap-bg, #171716)) !important;
+        background: var(--color-background, var(--nibi-bootstrap-bg, #171614)) !important;
       }
 
       html[data-nibi-browser-theme-surface="light"],
@@ -162,13 +162,13 @@
         width: 100%;
         height: 100%;
         /* Bugfix: UI 全局样式会把 body/#root 置为透明，预渲染壳必须自己承接主题背景，否则深色主题会露出浏览器白底。 */
-        background: var(--nibi-bootstrap-bg, var(--color-background, #171716));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e2e8f0));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #171614));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e0dad0));
       }
 
       html[data-nibi-bootstrap-theme="light"] .nibi-boot-loading {
         background: var(--nibi-bootstrap-bg, var(--color-background, #f9f2e4));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #334155));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1c2f4e));
       }
 
       .nibi-boot-loading__logo {

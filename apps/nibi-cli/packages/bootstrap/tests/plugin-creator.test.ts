@@ -20,7 +20,7 @@ describe("bundled Plugin Creator", () => {
       listing: { displayName_i18n: { "zh-CN": "插件创建器" } },
     });
     const root = fileURLToPath(new URL("../../plugin-creator-plugin/", import.meta.url));
-    const manifest = JSON.parse(await readFile(join(root, ".nibi-plugin/plugin.json"), "utf8"));
+    const manifest = JSON.parse(await readFile(join(root, "plugin.json"), "utf8"));
     expect(manifest.version).toBe(definition?.version);
     for (const path of definition?.requiredSeedPaths ?? []) await access(join(root, path));
     const skill = await readFile(join(root, "skills/plugin-creator/SKILL.md"), "utf8");

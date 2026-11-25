@@ -408,7 +408,7 @@ it("离线输入栏优先显示禁发送原因，不让不可用模型控件挤�
           workspacePath: "/workspace",
           sessionId: null,
           snapshot: null,
-          provider: "glm",
+          provider: "nibi-agent",
           draftMode: "build",
           draftConfig: {},
           composerDraft: { text: "草稿", updatedAt: 1 },

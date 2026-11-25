@@ -2,7 +2,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve, win32 } from "node:path";
-import type { ConnectOptions } from "@nibi/server/remote";
 import { listSSHConfigAliasesFromLocalConfig } from "@nibi/services/node";
 import { DEV_HELPER_APP_NAME, HELPER_APP_NAME } from "@nibi/cua/broker/helperConstants";
 import {
@@ -156,12 +155,13 @@ export function getCredentialsDir() {
   return getAppConfigDir();
 }
 
-export type RemoteAssetDirs = Pick<
-  ConnectOptions,
-  "mockCdnDir" | "remoteCdnBaseUrl" | "remoteCdnBaseUrls" | "remoteCacheDir"
-> & {
+export interface RemoteAssetDirs {
+  mockCdnDir?: string;
+  remoteCdnBaseUrl?: string;
+  remoteCdnBaseUrls?: string[];
+  remoteCacheDir?: string;
   sourceServerArtifactPolicy?: SourceServerArtifactPolicy;
-};
+}
 type LocalRuntimeEnv = Record<string, string | undefined>;
 
 export async function isDockerDaemonAvailable(): Promise<boolean> {
@@ -570,7 +570,7 @@ export function resolveDynamicWorkflowModeHostEnv(options: {
 export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>) {
   const agentBinaryPath = resolveBundledNibiAgentBinaryPath();
   const larkCliBinaryPath = resolveBundledLarkCliBinaryPath();
-  const resolvedGlmBinaryPath = resolveHostProcessBinaryEnv(
+  const resolvedAgentBinaryPath = resolveHostProcessBinaryEnv(
     "NIBI_AGENT_BINARY_PATH",
     hostProcessLocalEnv,
     agentBinaryPath,
@@ -665,7 +665,7 @@ export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>)
     ...(bundledCuaHelperAppPath
       ? { [NIBI_CUA_BUNDLED_HELPER_APP_PATH_ENV]: bundledCuaHelperAppPath }
       : {}),
-    ...(resolvedGlmBinaryPath ? { NIBI_AGENT_BINARY_PATH: resolvedGlmBinaryPath } : {}),
+    ...(resolvedAgentBinaryPath ? { NIBI_AGENT_BINARY_PATH: resolvedAgentBinaryPath } : {}),
     ...(resolvedLarkCliBinaryPath ? { NIBI_LARK_CLI_BINARY: resolvedLarkCliBinaryPath } : {}),
   };
 }

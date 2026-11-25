@@ -144,3 +144,14 @@ Follow-up repair plan:
 - Gate only the heavy PreviewPane body. A code-viewer tab may render `PreviewPaneContent` only when its tab is active, the side pane is logically visible, and the side pane has enough viewport-intersecting inline width.
 - Preserve scroll metrics with a lightweight spacer while the heavy body is deferred, then restore `scrollTop` when the pane becomes visible again.
 - Skip auto-loading adjacent file chunks while the heavy body is deferred; otherwise an empty body can look like an under-filled viewport and trigger unnecessary hidden reads.
+
+## 2026-11-25 Long-session / multi-session render stability
+
+The remaining streaming cost was dominated by derived objects changing identity on every frame, which invalidated every memoized turn below the timeline. Fixes landed with tests:
+
+- **Per-timeline plugin-UI derivation cache.** `deriveLogicalUiInstances` used a module-level single slot. The main pane, subagent side pane and selection side chat mount timelines simultaneously, so each call overwrote the slot and every timeline missed; the derivation (and therefore `pluginUiPinResolver`) changed every frame and invalidated all completed-turn render units. `createPluginUiDerivationCache()` now gives each timeline its own cache; `ConversationTimeline` holds one per instance.
+- **Per-turn pin signature.** `ConversationTurnRenderUnitCache` compared the pin resolver by function identity. One plugin widget update replaced the resolver and invalidated every turn. The cache now stores a signature of the resolved pin values for the turn's own plugin rows, so only turns containing a changed row rebuild.
+- **Stable workflow joins.** `buildWorkflowRunByToolCallId` / `buildWorkflowRunByRunId` / pending-question joins are wrapped in `useStableReadonlyMap` with value comparisons, and empty `backgroundWorks` / `workflowRuns` props use stable sentinels instead of `?? []`, so streaming text no longer breaks the status-panel memo or row context identity.
+- **Shared second clock.** The status panel's three sections, background-task elapsed clock, remote connection progress and timeline running clock now share one process-wide 1s interval that pauses while `document.hidden`; previously every pane mounted its own timers.
+- **Session keep-warm.** `SessionDataLayer` keeps released sessions warm for 120s (was 30s) with a hard cap of 4 released sessions, evicting the oldest. Switching back to a recently viewed running session renders the cached snapshot instead of a cold subscribe/loading flash.
+- **Lease acquisition in a layout effect.** Session switching acquires the new lease before paint, avoiding a one-frame empty binding commit when changing sessions.

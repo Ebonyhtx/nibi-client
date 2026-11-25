@@ -1,14 +1,17 @@
 //! 投影的纯函数测试：合成的内核事件 → App 的行与状态。
 
+use nibi_kernel_api::agents::SubagentLink;
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{
-    CommandId, EnvironmentId, InteractionId, MessageId, SessionId, ToolUseId, TraceId, TurnId,
+    AgentId, CommandId, EnvironmentId, InteractionId, MessageId, SessionId, ToolUseId, TraceId,
+    TurnId,
 };
 use nibi_kernel_api::message::{
     AssistantMessage, Message, UserMessage, UserOrigin, TASK_NOTIFICATION_SOURCE,
 };
 use nibi_kernel_api::model::BlockDelta;
 use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::session_api::SubagentPhase;
 use nibi_kernel_api::store::{SessionKind, SessionLaunchTurn, SessionMeta, SessionModelTurn};
 use nibi_kernel_api::testing::selection;
 use serde_json::json;
@@ -1504,4 +1507,352 @@ fn a_cold_open_restores_the_worktree_marker_at_the_first_turn_top() {
     assert!(marker < header);
     assert_eq!(rows[marker]["lane"], "lightBoundary");
     assert_eq!(rows[marker]["marker"]["sha"], "abc123");
+}
+
+fn subagent_event(phase: SubagentPhase, parent: &str, status: &str) -> KernelEvent {
+    KernelEvent::Subagent {
+        agent: AgentId::new("agent_1"),
+        phase,
+        child: SessionId::new("child_1"),
+        parent_tool_use: ToolUseId::new(parent),
+        agent_type: "Explore".to_owned(),
+        background: true,
+        status: status.to_owned(),
+        error: None,
+    }
+}
+
+#[test]
+fn a_subagent_spawn_and_done_become_a_paired_row() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: Some(CommandId::new("c1")),
+    });
+    feed.apply(KernelEvent::ToolStarted {
+        tool_use: ToolUseId::new("tool_1"),
+        name: "Agent".to_owned(),
+        input: json!({"description": "Run explore", "subagent_type": "Explore"}),
+    });
+    let spawned = feed.apply(subagent_event(SubagentPhase::Spawned, "tool_1", "running"));
+    assert_eq!(
+        ops(&spawned),
+        ["row.appended(subagent)", "state(backgroundWorks,revision)"]
+    );
+    assert_eq!(spawned[1]["patch"]["backgroundWorks"][0]["workId"], "agent_1");
+    assert_eq!(spawned[1]["patch"]["backgroundWorks"][0]["status"], "running");
+    let row = &spawned[0]["row"];
+    assert_eq!(row["kind"], "subagent");
+    assert_eq!(row["turnId"], "turn_1");
+    assert_eq!(row["parentToolCallId"], "tool_1");
+    assert_eq!(row["childSessionId"], "child_1");
+    assert_eq!(row["subagentType"], "Explore");
+    assert_eq!(row["status"], "running");
+    assert_eq!(row["summaryText"], "Run explore");
+    assert_eq!(row["backgrounded"], true);
+    assert_eq!(row["workId"], "agent_1");
+    let done = feed.apply(subagent_event(SubagentPhase::Done, "tool_1", "completed"));
+    assert_eq!(
+        ops(&done),
+        ["row.upserted(subagent)", "state(backgroundWorks,revision)"]
+    );
+    // 终态之后后台工作面清空。
+    assert_eq!(done[1]["patch"]["backgroundWorks"], json!([]));
+    assert_eq!(done[0]["row"]["status"], "success");
+    assert!(done[0]["row"]["endedAt"].is_u64());
+}
+
+#[test]
+fn a_resumed_subagent_spawn_keeps_the_original_anchor() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: Some(CommandId::new("c1")),
+    });
+    feed.apply(KernelEvent::ToolStarted {
+        tool_use: ToolUseId::new("tool_1"),
+        name: "Agent".to_owned(),
+        input: json!({"description": "Run explore"}),
+    });
+    feed.apply(subagent_event(SubagentPhase::Spawned, "tool_1", "running"));
+    // 续跑（SendMessage）没有对应调用：agent id 占位不能被当成新的父工具调用。
+    let resumed = feed.apply(subagent_event(
+        SubagentPhase::Spawned,
+        "agent_1",
+        "running",
+    ));
+    assert_eq!(ops(&resumed), ["state(backgroundWorks,revision)"]);
+    let killed = feed.apply(subagent_event(SubagentPhase::Done, "agent_1", "killed"));
+    // 续跑事件的父调用是 SendMessage；终态仍回写到原 Agent 行（tool_1）。
+    assert_eq!(
+        ops(&killed),
+        [
+            "row.upserted(subagent)",
+            "row.upserted(toolCall)",
+            "state(backgroundWorks,revision)"
+        ]
+    );
+    let parent = killed
+        .iter()
+        .find(|op| op["row"]["kind"] == "toolCall")
+        .expect("parent tool row upsert");
+    assert_eq!(parent["row"]["status"], "cancelled");
+    assert_eq!(killed[0]["row"]["parentToolCallId"], "tool_1");
+    assert_eq!(killed[0]["row"]["status"], "cancelled");
+}
+
+#[test]
+fn a_subagent_without_a_local_parent_call_is_ignored() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: Some(CommandId::new("c1")),
+    });
+    let spawned = feed.apply(subagent_event(
+        SubagentPhase::Spawned,
+        "tool_missing",
+        "running",
+    ));
+    assert_eq!(ops(&spawned), ["state(backgroundWorks,revision)"]);
+    assert_eq!(spawned[0]["patch"]["backgroundWorks"], json!([]));
+}
+
+/// 冷投影：持久化的 `SubagentLinked`（tool part metadata）补回 subagent 行；终态取通知的
+/// `<status>`，标题取父 Agent 工具 input。
+#[test]
+fn the_cold_projection_restores_subagent_rows_from_persisted_links() {    let messages = vec![
+        user("msg_u1", "go"),
+        assistant(
+            "msg_a1",
+            vec![ContentBlock::ToolUse {
+                id: ToolUseId::new("tool_1"),
+                name: "Agent".to_owned(),
+                input: json!({
+                    "description": "Run explore",
+                    "subagent_type": "Explore",
+                    "run_in_background": true
+                }),
+            }],
+        ),
+        Message::User(UserMessage {
+            id: MessageId::new("msg_r1"),
+            content: vec![ContentBlock::ToolResult {
+                tool_use_id: ToolUseId::new("tool_1"),
+                content: vec![ToolResultContent::Text {
+                    text: "Async agent launched successfully. (metadata)".to_owned(),
+                }],
+                is_error: false,
+            }],
+            origin: UserOrigin::ToolResult {
+                assistant: MessageId::new("msg_a1"),
+            },
+        }),
+        Message::User(UserMessage {
+            id: MessageId::new("msg_n1"),
+            content: vec![ContentBlock::Text {
+                text: "<task-notification>\n<tool-use-id>tool_1</tool-use-id>\n<status>completed</status>\n</task-notification>"
+                    .to_owned(),
+            }],
+            origin: UserOrigin::Meta {
+                source: TASK_NOTIFICATION_SOURCE.to_owned(),
+                origin_meta: None,
+            },
+        }),
+    ];
+    let cold = view(messages);
+    let links = vec![SubagentLink {
+        tool_use: ToolUseId::new("tool_1"),
+        agent: AgentId::new("agent_1"),
+        child: SessionId::new("child_1"),
+        agent_type: "Explore".to_owned(),
+    }];
+    let mut projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    projection.seed_subagent_rows(&cold, &links, 2000);
+    let snapshot = projection.snapshot(0, "epoch");
+    let rows = snapshot["rows"]["window"].as_array().expect("rows");
+    let tool_at = rows
+        .iter()
+        .position(|row| row["kind"] == "toolCall")
+        .expect("tool row");
+    let subagent_at = rows
+        .iter()
+        .position(|row| row["kind"] == "subagent")
+        .expect("subagent row");
+    assert_eq!(subagent_at, tool_at + 1, "{rows:?}");
+    let tool = &rows[tool_at];
+    let subagent = &rows[subagent_at];
+    assert_eq!(subagent["turnId"], tool["turnId"]);
+    assert_eq!(subagent["parentToolCallId"], "tool_1");
+    assert_eq!(subagent["childSessionId"], "child_1");
+    assert_eq!(subagent["subagentType"], "Explore");
+    assert_eq!(subagent["status"], "success");
+    assert_eq!(subagent["summaryText"], "Run explore");
+    assert_eq!(subagent["backgrounded"], true);
+    assert_eq!(subagent["workId"], "agent_1");
+}
+
+/// 失败的后台子代理终态要回写到父 Agent 工具行（BG26）：卡片 status=error，
+/// error.message 是 provider 原文，而不是停在启动 ACK 的 success。
+#[test]
+fn a_failed_background_subagent_marks_the_parent_agent_row() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: Some(CommandId::new("c1")),
+    });
+    feed.apply(KernelEvent::ToolStarted {
+        tool_use: ToolUseId::new("tool_1"),
+        name: "Agent".to_owned(),
+        input: json!({"description": "Run explore", "subagent_type": "Explore"}),
+    });
+    feed.apply(subagent_event(SubagentPhase::Spawned, "tool_1", "running"));
+    let done = feed.apply(KernelEvent::Subagent {
+        agent: AgentId::new("agent_1"),
+        phase: SubagentPhase::Done,
+        child: SessionId::new("child_1"),
+        parent_tool_use: ToolUseId::new("tool_1"),
+        agent_type: "Explore".to_owned(),
+        background: true,
+        status: "failed".to_owned(),
+        error: Some("Requests are too frequent. Request id: abc".to_owned()),
+    });
+    let tool = done
+        .iter()
+        .find(|op| op["row"]["kind"] == "toolCall")
+        .expect("parent tool row upsert");
+    assert_eq!(tool["row"]["status"], "error");
+    assert_eq!(tool["row"]["error"]["code"], "subagent_failed");
+    assert_eq!(
+        tool["row"]["error"]["message"],
+        "Requests are too frequent. Request id: abc"
+    );
+    let subagent = done
+        .iter()
+        .find(|op| op["row"]["kind"] == "subagent")
+        .expect("subagent row upsert");
+    assert_eq!(subagent["row"]["status"], "failed");
+    assert_eq!(
+        subagent["row"]["summaryText"],
+        "Requests are too frequent. Request id: abc"
+    );
+}
+
+/// 冷恢复同样用通知里的 `<error>` 把父 Agent 行回写成 error（BG26 的 restored 阶段）。
+#[test]
+fn the_cold_projection_marks_a_failed_background_parent_row() {
+    let messages = vec![
+        user("msg_u1", "go"),
+        assistant(
+            "msg_a1",
+            vec![ContentBlock::ToolUse {
+                id: ToolUseId::new("tool_1"),
+                name: "Agent".to_owned(),
+                input: json!({
+                    "description": "Run explore",
+                    "subagent_type": "Explore",
+                    "run_in_background": true
+                }),
+            }],
+        ),
+        Message::User(UserMessage {
+            id: MessageId::new("msg_r1"),
+            content: vec![ContentBlock::ToolResult {
+                tool_use_id: ToolUseId::new("tool_1"),
+                content: vec![ToolResultContent::Text {
+                    text: "Async agent launched successfully. (metadata)".to_owned(),
+                }],
+                is_error: false,
+            }],
+            origin: UserOrigin::ToolResult {
+                assistant: MessageId::new("msg_a1"),
+            },
+        }),
+        Message::User(UserMessage {
+            id: MessageId::new("msg_n1"),
+            content: vec![ContentBlock::Text {
+                text: "<task-notification>\n<tool-use-id>tool_1</tool-use-id>\n<status>failed</status>\n<error>Requests are too frequent. Request id: abc</error>\n</task-notification>"
+                    .to_owned(),
+            }],
+            origin: UserOrigin::Meta {
+                source: TASK_NOTIFICATION_SOURCE.to_owned(),
+                origin_meta: None,
+            },
+        }),
+    ];
+    let cold = view(messages);
+    let links = vec![SubagentLink {
+        tool_use: ToolUseId::new("tool_1"),
+        agent: AgentId::new("agent_1"),
+        child: SessionId::new("child_1"),
+        agent_type: "Explore".to_owned(),
+    }];
+    let mut projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    projection.seed_subagent_rows(&cold, &links, 2000);
+    let snapshot = projection.snapshot(0, "epoch");
+    let rows = snapshot["rows"]["window"].as_array().expect("rows");
+    let tool = rows
+        .iter()
+        .find(|row| row["kind"] == "toolCall")
+        .expect("tool row");
+    assert_eq!(tool["status"], "error");
+    assert_eq!(tool["error"]["code"], "subagent_failed");
+    assert_eq!(
+        tool["error"]["message"],
+        "Requests are too frequent. Request id: abc"
+    );
+    let subagent = rows
+        .iter()
+        .find(|row| row["kind"] == "subagent")
+        .expect("subagent row");
+    assert_eq!(subagent["status"], "failed");
+}
+
+/// fresh 子会话的首轮没有上一轮可比：Node 落 source-less 的「正在使用」标记；主会话首轮静默。
+#[test]
+fn a_fresh_subagent_session_shows_the_initial_model_marker_cold() {
+    let mut cold = view(vec![user("msg_u1", "child task")]);
+    cold.meta.kind = SessionKind::Subagent;
+    cold.model_turns = vec![SessionModelTurn {
+        message: MessageId::new("msg_u1"),
+        selection: pick("fixture", "scripted", Some("high")),
+        started_at_ms: Some(2_000),
+        ended_at_ms: None,
+        active_ms: None,
+    }];
+    let projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    let snapshot = projection.snapshot(0, "epoch");
+    let rows = snapshot["rows"]["window"].as_array().expect("rows");
+    let marker = rows
+        .iter()
+        .find(|row| row["kind"] == "timelineMarker" && row["marker"]["type"] == "modelChange")
+        .expect("initial model marker");
+    assert_eq!(marker["marker"]["toProvider"], "fixture");
+    assert_eq!(marker["marker"]["toModel"], "scripted");
+    assert_eq!(marker["marker"]["toThought"], "high");
+    assert!(marker["marker"].get("fromProvider").is_none());
+
+    let main = view(vec![user("msg_u1", "main task")]);
+    let projection = Projection::from_view(&main, Followup::Queue, Vec::new());
+    let snapshot = projection.snapshot(0, "epoch");
+    let rows = snapshot["rows"]["window"].as_array().expect("rows");
+    assert!(
+        !rows.iter().any(|row| row["marker"]["type"] == "modelChange"),
+        "{rows:?}"
+    );
 }

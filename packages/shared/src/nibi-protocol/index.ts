@@ -2872,9 +2872,54 @@ export const nibiPluginUiSurfaceSchema = z
     server: nonEmptyString,
     resourceUri: nonEmptyString.max(2048),
     availability: z.literal("session"),
+    slot: z.enum(["composer.status", "nav.primary"]).optional(),
   })
   .strict();
 export type NibiPluginUiSurface = z.infer<typeof nibiPluginUiSurfaceSchema>;
+
+export const nibiPluginPermissionProfileSchema = z
+  .object({
+    requested: z.array(z.string()),
+    required: z.array(z.string()),
+  })
+  .strict();
+export type NibiPluginPermissionProfile = z.infer<typeof nibiPluginPermissionProfileSchema>;
+
+export const nibiPluginTrustLevelSchema = z.enum(["builtin", "official", "community", "local"]);
+export type NibiPluginTrustLevel = z.infer<typeof nibiPluginTrustLevelSchema>;
+
+// 派生的插件来源：信任等级 + 外来适配器生态。只供展示/诊断，不参与身份或门禁。
+// external 只接受已知适配器，避免把任意字符串当来源展示。
+export const nibiPluginOriginSchema = z
+  .string()
+  .regex(/^(?:builtin|official|community|local|external:(?:claude|codex|zcode|dsh))$/);
+export type NibiPluginOrigin = z.infer<typeof nibiPluginOriginSchema>;
+
+/**
+ * 完整性门禁原因。`code` 用字符串而不是枚举：诊断码会随安全规则增加，
+ * 协议层强制枚举会让「新 Host + 旧客户端」整页解析失败（plugins schema 是 .strict()）。
+ */
+export const nibiPluginGateReasonSchema = z
+  .object({
+    code: nonEmptyString,
+    message: z.string(),
+  })
+  .strict();
+export type NibiPluginGateReason = z.infer<typeof nibiPluginGateReasonSchema>;
+
+export const nibiPluginCapabilityGrantSchema = z
+  .object({
+    id: nonEmptyString,
+    scope: z.enum(["workspace", "project", "host"]),
+  })
+  .strict();
+export const nibiPluginCapabilitiesSchema = z
+  .object({
+    requested: z.array(nibiPluginCapabilityGrantSchema),
+    granted: z.array(nibiPluginCapabilityGrantSchema),
+  })
+  .strict();
+export type NibiPluginCapabilities = z.infer<typeof nibiPluginCapabilitiesSchema>;
 
 export const nibiPluginInfoSchema = z
   .object({
@@ -2885,6 +2930,8 @@ export const nibiPluginInfoSchema = z
     enabled: z.boolean(),
     source: nonEmptyString,
     marketplace: nonEmptyString,
+    // 派生的来源（信任等级 + 适配器生态），只供详情页展示/诊断；旧 Host 不下发时省略。
+    origin: nibiPluginOriginSchema.optional(),
     // manifest（plugin.json）的作者/主页回退字段；商店 listing 缺失时详情页信息区用它兜底。
     author: z.string().optional(),
     authorUrl: z.string().optional(),
@@ -2913,11 +2960,26 @@ export const nibiPluginInfoSchema = z
     hostMcpServerNames: z.array(z.string()).optional(),
     mcpServerNames: z.array(z.string()),
     hookDetails: z.array(nibiPluginHookDetailSchema).optional(),
+    // 权限请求值与运行时实际 required；required 非空且来源非官方时需要用户同意。
+    permissions: nibiPluginPermissionProfileSchema.optional(),
+    // NIBI Extension 能力：requested 为清单声明，granted 为已持久化授权。
+    capabilities: nibiPluginCapabilitiesSchema.optional(),
+    // 扩展代码入口只暴露存在性；路径保留在本地清单，不进协议。
+    hasCodeRuntime: z.boolean().optional(),
+    // 兼容性只报「是否部分可用」与组件键，不含生态名；UI 只在功能不可用时显示一行原因。
+    compatibility: z.enum(["full", "partial", "detected"]).optional(),
+    skippedComponents: z.array(z.string()).optional(),
     rootPath: z.string(),
     userConfig: z.record(z.string(), nibiPluginUserConfigOptionSchema).optional(),
     configuredOptions: z.record(z.string(), nibiPluginOptionValueSchema).optional(),
     // 缺省表示 package 可用；missing 用于保留已声明但目标 Host 尚未物化的配置行。
     packageStatus: z.literal("missing").optional(),
+    // 完整性门禁（撤销/原生模块/包 hash）拦下的原因。有值时 UI 显示「已停用/已撤销」；
+    // codeBlockedReason 只挡扩展代码，声明式组件仍可用（两者语义不同，不能合并）。
+    blockedReason: nibiPluginGateReasonSchema.optional(),
+    codeBlockedReason: nibiPluginGateReasonSchema.optional(),
+    // 发现时的包内容 hash；同意记录按它绑定，同版本换内容需要重新确认。
+    packageHash: z.string().optional(),
     rootSource: nibiPluginScopeSchema.optional(),
     enabledSource: nibiPluginScopeSchema.optional(),
     optionSources: z.record(z.string(), nibiPluginScopeSchema).optional(),
@@ -3456,6 +3518,24 @@ export const nibiPluginsSetEnabledResultSchema = z
   .strict();
 export type NibiPluginsSetEnabledResult = z.infer<typeof nibiPluginsSetEnabledResultSchema>;
 
+export const nibiPluginsConsentParamsSchema = z
+  .object({
+    workspace: nibiWorkspaceRefSchema,
+    pluginId: nonEmptyString,
+    granted: z.boolean(),
+  })
+  .strict();
+export const nibiPluginsConsentResultSchema = z
+  .object({
+    pluginId: nonEmptyString,
+    granted: z.boolean(),
+    permissions: z.array(z.string()),
+    capabilities: nibiPluginCapabilitiesSchema.optional(),
+    version: nonEmptyString,
+  })
+  .strict();
+export type NibiPluginsConsentResult = z.infer<typeof nibiPluginsConsentResultSchema>;
+
 // 商店信息（Store Listing）：目录条目携带的展示性元数据（显示名/icon/分类/作者/链接/hero/
 // 示例提示词），全部可选，UI 缺失时按降级矩阵处理（字母头像/隐藏区块/省略信息行）。
 // i18n 采用 `<字段>I18n` map，locale 解析复用 shared 的 plugin-display-name helper。
@@ -3765,6 +3845,46 @@ export type NibiPluginsValidateResult = z.infer<typeof nibiPluginsValidateResult
 
 // plugins/describe：按需枚举单个插件的组件「名称 + 描述」。
 // 已安装插件读本地缓存目录；未安装候选按需解析/临时 clone 源后枚举再清理。
+export const nibiPluginDescribeDeclarationSchema = z
+  .object({
+    permissions: nibiPluginPermissionProfileSchema,
+    capabilities: nibiPluginCapabilitiesSchema,
+    // 扩展代码入口只暴露存在性；路径保留在本地清单，不进协议。
+    hasCodeRuntime: z.boolean(),
+    trust: nibiPluginTrustLevelSchema,
+  })
+  .strict();
+export type NibiPluginDescribeDeclaration = z.infer<typeof nibiPluginDescribeDeclarationSchema>;
+
+// plugins/audit：插件权限/能力审计的「最近 N 条」只读视图。
+// 审计文件本身在本地（plugin-audit.ndjson），这里只暴露用户可读的摘要字段：
+// 不含本机路径、不含会话内容、不含参数值。
+export const nibiPluginsAuditParamsSchema = z
+  .object({
+    workspace: nibiWorkspaceRefSchema,
+    pluginId: nonEmptyString.optional(),
+    limit: z.number().int().positive().max(100).optional(),
+  })
+  .strict();
+export type NibiPluginsAuditParams = z.infer<typeof nibiPluginsAuditParamsSchema>;
+
+export const nibiPluginAuditEventSchema = z
+  .object({
+    at: z.string(),
+    type: z.string(),
+    pluginId: nonEmptyString,
+    capability: z.string().optional(),
+    version: z.string().optional(),
+    permissions: z.array(z.string()).optional(),
+  })
+  .strict();
+export type NibiPluginAuditEvent = z.infer<typeof nibiPluginAuditEventSchema>;
+
+export const nibiPluginsAuditResultSchema = z
+  .object({ events: z.array(nibiPluginAuditEventSchema) })
+  .strict();
+export type NibiPluginsAuditResult = z.infer<typeof nibiPluginsAuditResultSchema>;
+
 export const nibiPluginsDescribeParamsSchema = z
   .object({
     workspace: nibiWorkspaceRefSchema,
@@ -3786,6 +3906,8 @@ export const nibiPluginsDescribeResultSchema = z
       })
       .strict()
       .optional(),
+    // 安装前由插件包清单推导的声明；来源不可解析时缺省，UI 不渲染占位。
+    declaration: nibiPluginDescribeDeclarationSchema.optional(),
   })
   .strict();
 export type NibiPluginsDescribeResult = z.infer<typeof nibiPluginsDescribeResultSchema>;
@@ -4129,6 +4251,7 @@ export const nibiProtocolMethods = {
   workflowsForRun: "workflows/forRun",
   pluginsResolveSuggestedReference: "plugins/resolveSuggestedReference",
   pluginsSetEnabled: "plugins/setEnabled",
+  pluginsConsent: "plugins/consent",
   pluginsOverview: "plugins/overview",
   pluginsMarketplaceAdd: "plugins/marketplace/add",
   pluginsMarketplaceRemove: "plugins/marketplace/remove",
@@ -4142,6 +4265,7 @@ export const nibiProtocolMethods = {
   pluginsResetConfig: "plugins/resetConfig",
   pluginsValidate: "plugins/validate",
   pluginsDescribe: "plugins/describe",
+  pluginsAudit: "plugins/audit",
   automationCreate: "automation/create",
   // App-exclusive 会话控制：agent（Node/Rust 内核）→ Host 的反向请求。
   appControlListProjects: "appControl/listProjects",

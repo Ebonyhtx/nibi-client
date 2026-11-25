@@ -32,10 +32,10 @@ export function createCustomAboutDialogHtml(input: CustomAboutDialogHtmlInput): 
       :root {
         color-scheme: light dark;
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-        --startup-page-bg: #f4f4f5;
-        --about-primary: #0a0a0a;
-        --about-primary-foreground: #fafafa;
-        --about-primary-active: color-mix(in oklab, var(--about-primary) 80%, transparent);
+        --startup-page-bg: #f9f2e4;
+        --about-primary: #ae5413;
+        --about-primary-foreground: #fff9ef;
+        --about-primary-active: #96470f;
       }
 
       * {
@@ -77,7 +77,7 @@ export function createCustomAboutDialogHtml(input: CustomAboutDialogHtmlInput): 
         border: 0;
         border-radius: 0;
         background: transparent;
-        color: #1d1d1f;
+        color: #1c2f4e;
         box-shadow: none;
         -webkit-app-region: drag;
       }
@@ -121,7 +121,7 @@ export function createCustomAboutDialogHtml(input: CustomAboutDialogHtmlInput): 
         line-height: 1.2;
         font-weight: 400;
         letter-spacing: 0;
-        color: #303033;
+        color: #5f574d;
       }
 
 
@@ -147,18 +147,18 @@ export function createCustomAboutDialogHtml(input: CustomAboutDialogHtmlInput): 
 
       @media (prefers-color-scheme: dark) {
         :root {
-          --startup-page-bg: #171717;
-          --about-primary: #fafafa;
-          --about-primary-foreground: #0a0a0a;
-          --about-primary-active: color-mix(in oklab, var(--about-primary) 80%, transparent);
+          --startup-page-bg: #171614;
+          --about-primary: #e8c491;
+          --about-primary-foreground: #171614;
+          --about-primary-active: #d9b078;
         }
 
         .about-card {
-          color: #e8e8e8;
+          color: #f3ede2;
         }
 
         .meta {
-          color: #e2e2e2;
+          color: #b9ad9a;
         }
       }
     </style>

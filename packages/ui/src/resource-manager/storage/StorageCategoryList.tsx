@@ -31,7 +31,7 @@ export function StorageCategoryList({
 }) {
   const { intl } = useNibiIntl();
   return (
-    <div className="overflow-hidden rounded-xl border border-card-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
       {categories.map((category) => {
         const Icon = STORAGE_CATEGORY_ICONS[category.id];
         const cleanable = category.cleanability !== "none" && category.bytes > 0;
@@ -39,7 +39,7 @@ export function StorageCategoryList({
         return (
           <div
             key={category.id}
-            className="flex items-center gap-3 border-t border-border px-4 py-3 first:border-t-0"
+            className="flex items-center gap-3 border-t border-border px-4 py-3 transition-colors first:border-t-0 hover:bg-hover/40"
           >
             <button
               type="button"

@@ -135,8 +135,9 @@ impl Ending {
     fn summary(self, error: Option<&str>) -> String {
         match self {
             Self::Completed => "finished".to_owned(),
+            // 与 Node completion-notification 同形：`failed. <provider 原文>`。
             Self::Failed => format!(
-                "failed: {}",
+                "failed. {}",
                 error
                     .filter(|error| !error.is_empty())
                     .unwrap_or("Unknown error")
@@ -175,6 +176,14 @@ pub(crate) fn envelope(
             texts::notification_result(),
             &[("result", &escape(&report.text))],
         ));
+    }
+    // 失败原因单独成块（Node local_agent 同形）：父模型与失败 hover 都看到 provider 原文。
+    // 只有 Failed 且确有错误时出现；完成与停止不带 `<error>`。
+    if ending == Ending::Failed
+        && let Some(error) = error.filter(|error| !error.is_empty())
+    {
+        body.push('\n');
+        body.push_str(&format!("<error>{}</error>", escape(error)));
     }
     // 用量：完成时有；停放时被停止也有；失败也有（K4：失败通知要带 usage，不能只有
     // error/agentId/duration）。只有运行中被 TaskStop 停止（没有收尾用量）不写。

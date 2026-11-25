@@ -2,8 +2,8 @@
 //! 候选目录由入口层给出（`--plugin-dir`、Node 配置的 `plugins.dirs`、内置缓存与已安装插件），文件经执行
 //! 环境端口读；来源与启用判定见 [`select`]。市场与安装未覆盖。
 //!
-//! manifest 只认 NIBI 自有清单目录 `.nibi-plugin/plugin.json`；旧格式（`.claude-plugin`、
-//! `.codex-plugin`）不再参与发现。`--plugin-dir` 没有 manifest 时插件名取目录名。
+//! manifest：Agent Plugins 根 `plugin.json` + `extensions["com.nibistudio.nibi"]`。
+//! `--plugin-dir` 没有 manifest 时插件名取目录名。
 
 mod reference;
 mod select;
@@ -26,8 +26,15 @@ pub use self::select::{
     Skipped, load_all,
 };
 
-/// manifest 的位置：NIBI 自有格式唯一。
-const MANIFESTS: [&str; 1] = [".nibi-plugin/plugin.json"];
+/// 原生/兼容清单位置：Agent Plugins 根清单优先，其次 Claude/Codex/ZCode 的旧目录；
+/// 外来目录只读，不复制、不改写。
+const MANIFESTS: [&str; 4] = [
+    "plugin.json",
+    ".claude-plugin/plugin.json",
+    ".codex-plugin/plugin.json",
+    ".zcode-plugin/plugin.json",
+];
+const NIBI_PLUGIN_EXTENSION_KEY: &str = "com.nibistudio.nibi";
 
 /// 内置 `visualize@nibi-official` 的稳定 id（Node `visualize-skill-gate.ts` 的 `VISUALIZE_PLUGIN_ID`）。
 /// 它提供对话内视图，只有带内联视图宿主的协议前端才注入它的 skill 根。
@@ -38,6 +45,40 @@ enum Manifest {
     Missing,
     Invalid(String),
     Found(Value),
+}
+
+/// 把 Agent Plugins 根清单摊平成现有组件读取的扁平形状。
+///
+/// 根保留身份/元数据；NIBI 组件在 `extensions["com.nibistudio.nibi"]`。
+fn flatten_manifest(value: Value) -> Value {
+    let Some(extensions) = value.get("extensions").and_then(Value::as_object) else {
+        return value;
+    };
+    let Some(extension) = extensions
+        .get(NIBI_PLUGIN_EXTENSION_KEY)
+        .and_then(Value::as_object)
+    else {
+        return value;
+    };
+    let mut flattened = extension.clone();
+    for key in [
+        "name",
+        "version",
+        "description",
+        "author",
+        "homepage",
+        "repository",
+        "license",
+        "keywords",
+    ] {
+        if let Some(item) = value.get(key) {
+            flattened.insert(key.to_owned(), item.clone());
+        }
+    }
+    if let Some(description) = extension.get("descriptionI18n") {
+        flattened.insert("description_i18n".to_owned(), description.clone());
+    }
+    Value::Object(flattened)
 }
 
 /// 插件里的一个 agent 文件（agents.md §3 按插件规则解析）。
@@ -289,7 +330,7 @@ impl Reader<'_> {
             let path = join(dir, candidate);
             if self.kind(&path).await == Some(FileKind::File) {
                 return match self.parse(&path).await {
-                    Ok(value) => Manifest::Found(value),
+                    Ok(value) => Manifest::Found(flatten_manifest(value)),
                     Err(error) => Manifest::Invalid(format!("{path}: {error}")),
                 };
             }
@@ -297,11 +338,14 @@ impl Reader<'_> {
         Manifest::Missing
     }
 
-    /// MCP 服务器声明：`.mcp.json` 与 manifest 的 `mcpServers`（内联对象，或指向 JSON 文件的路径）；每张
-    /// 表已去掉外层的 `mcpServers`。
+    /// MCP 服务器声明：根 `mcp.json`（旧 `.mcp.json` 兜底）与 manifest 的 `mcpServers`
+    /// （内联对象，或指向 JSON 文件的路径）；每张表已去掉外层的 `mcpServers`。
     async fn mcp_tables(&self, dir: &str, manifest: &Value) -> Vec<Value> {
         let mut tables = Vec::new();
-        let default = join(dir, ".mcp.json");
+        let mut default = join(dir, "mcp.json");
+        if self.kind(&default).await != Some(FileKind::File) {
+            default = join(dir, ".mcp.json");
+        }
         if self.kind(&default).await == Some(FileKind::File)
             && let Some(file) = self.json(&default).await
         {
@@ -366,8 +410,8 @@ impl Reader<'_> {
             }
             servers.extend(found.into_iter().map(|mut server| {
                 if let McpTransportConfig::Stdio { env, .. } = &mut server.transport {
-                    // 插件变量只认 NIBI_*；CLAUDE_PLUGIN_* 的兼容读取留在 hooks/commands/agents
-                    // 的旧配置兼容层，不再注入插件 MCP 子进程。
+                    // 插件变量只注入 NIBI_* 名字；CLAUDE_PLUGIN_* / ZCODE_PLUGIN_* 只做
+                    // 清单模板的只读展开（见 resolve_variable），不写进子进程环境。
                     env.entry(vars::NIBI_PLUGIN_ROOT.to_owned())
                         .or_insert_with(|| variables.root.to_owned());
                     if let Some(data) = variables.data {
@@ -795,16 +839,16 @@ fn resolve_variable(
     allow_sensitive: bool,
 ) -> Result<Option<String>, String> {
     match name {
-        vars::NIBI_PLUGIN_ROOT => {
+        vars::NIBI_PLUGIN_ROOT | vars::CLAUDE_PLUGIN_ROOT | vars::ZCODE_PLUGIN_ROOT => {
             return Ok(Some(variables.root.to_owned()));
         }
-        vars::NIBI_PLUGIN_DATA => {
+        vars::NIBI_PLUGIN_DATA | vars::CLAUDE_PLUGIN_DATA | vars::ZCODE_PLUGIN_DATA => {
             let data = variables
                 .data
                 .ok_or_else(|| format!("Missing plugin variable: {name}"))?;
             return Ok(Some(data.to_owned()));
         }
-        vars::CLAUDE_PROJECT_DIR | vars::NIBI_PROJECT_DIR => {
+        vars::CLAUDE_PROJECT_DIR | vars::NIBI_PROJECT_DIR | vars::ZCODE_PROJECT_DIR => {
             return Ok(Some(variables.project.to_owned()));
         }
         vars::CLAUDE_CODE_SESSION_ID | vars::CLAUDE_SESSION_ID | vars::NIBI_SESSION_ID => {

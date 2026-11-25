@@ -1,4 +1,4 @@
-import { TID_V4_SUBAGENT_OPEN_SIDE_PANE } from "@nibi/shared/test-ids";
+import { TID_TOOL_SUMMARY_TRIGGER, TID_V4_SUBAGENT_OPEN_SIDE_PANE } from "@nibi/shared/test-ids";
 import { clearAppData } from "../helpers/desktop-app.js";
 import { waitForUpstreamRequest } from "../helpers/conversation-session-network.js";
 import {
@@ -72,9 +72,34 @@ describe("会话区 background subagent 429 错误展示 E2E", () => {
       90000,
     );
     await waitForV4TimelineContaining(PARENT_DONE, 90000);
-    await waitForConversationReportInventory(telemetryCapture, {
-      message_completion: 2,
-    });
+    try {
+      await waitForConversationReportInventory(telemetryCapture, {
+        message_completion: 2,
+      });
+    } catch (error) {
+      // 失败时带出实际 inventory 与 net.fetch 调用数，区分“没有上报端点/没发请求”与
+      // “发了但 inventory 少一条”。
+      const actual = await readConversationReportRequests(telemetryCapture);
+      const counts: Record<string, number> = {};
+      for (const report of actual) {
+        const name = String(report.element_name);
+        counts[name] = (counts[name] ?? 0) + 1;
+      }
+      const netFetchCalls = telemetryCapture.telemetryFetch.mock.calls.length;
+      const targets = telemetryCapture.telemetryFetch.mock.calls.slice(0, 6).map((call) => {
+        const input = call[0] as string | URL | { url?: string } | undefined;
+        return typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : (input?.url ?? String(input));
+      });
+      throw new Error(
+        `最终 /event/report 没有达到最低事件集合 {"message_completion":2}; ` +
+          `actual=${JSON.stringify(counts)}; netFetchCalls=${netFetchCalls}; targets=${JSON.stringify(targets)}`,
+        { cause: error },
+      );
+    }
     const reports = await readConversationReportRequests(telemetryCapture);
     // 早期 staging 断言没有后台 step；后续首终态结算已要求失败也报告零用量 Agent 汇总。
     // 请求返回 429 没有 usage，不能把失败调用计成已确认的计费用量。
@@ -149,6 +174,8 @@ async function assertFailedAgentSurface(stage: "live" | "restored") {
         // Bug 根因：恢复后的 completed turn 默认折叠，失败 Agent 行尚未挂载；旧断言
         // 先查 block 再展开 history，因而把已持久化的 429 状态误报为 restore 丢失。
         await expandAssistantHistoriesWithContent();
+        // 历史里的工作项还可能收在 Agent/工具摘要行内；只展开 history 不会挂载卡片。
+        await expandAllToolSummaryTriggers();
         latestDiagnostics = await getToolCallDiagnostics({
           type: "toolCallId",
           value: TOOL_CALL_ID,
@@ -161,8 +188,22 @@ async function assertFailedAgentSurface(stage: "live" | "restored") {
       },
     );
   } catch (error) {
+    const dom = await browser.execute(() => {
+      const content = document.querySelector<HTMLElement>(
+        '[data-testid^="chat-assistant-history-content-"]',
+      );
+      return {
+        sidePaneActions: Array.from(
+          document.querySelectorAll<HTMLElement>('[data-testid^="v4-subagent-open-side-pane-"]'),
+        ).map((element) => element.getAttribute("data-testid")),
+        toolCallIds: Array.from(document.querySelectorAll<HTMLElement>("[data-tool-call-id]")).map(
+          (element) => element.getAttribute("data-tool-call-id"),
+        ),
+        summaryHtml: (content?.innerHTML ?? "").slice(0, 4000),
+      };
+    });
     throw new Error(
-      `${stage} Agent 卡没有进入 failed; latest=${JSON.stringify(latestDiagnostics)}`,
+      `${stage} Agent 卡没有进入 failed; latest=${JSON.stringify(latestDiagnostics)}; dom=${JSON.stringify(dom)}`,
       { cause: error },
     );
   }
@@ -258,4 +299,15 @@ function normalizeText(value: string) {
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** 历史工作项可能收在 Agent/工具摘要行内；展开它们才会挂载 ToolCallBlock。 */
+async function expandAllToolSummaryTriggers() {
+  await browser.execute((triggerPrefix) => {
+    for (const trigger of document.querySelectorAll<HTMLElement>(
+      `[data-testid^="${triggerPrefix}-"]`,
+    )) {
+      if (trigger.getAttribute("aria-expanded") !== "true") trigger.click();
+    }
+  }, TID_TOOL_SUMMARY_TRIGGER);
 }

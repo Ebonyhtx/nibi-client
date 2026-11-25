@@ -1,5 +1,15 @@
 /* eslint-disable max-lines -- workspace shell 当前集中编排 sidebar、chat、terminal 和 browser pane 的布局联动，先保持单文件收口，避免为满足行数限制打散关键布局状态。*/
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type {
   CSSProperties,
   ReactNode,
@@ -60,14 +70,24 @@ import {
 } from "@/managed-worktrees/index.js";
 import { ScopedErrorBoundary } from "@/ErrorBoundary.js";
 
-import { AUTOMATIONS_TOAST_ANCHOR_ID, AutomationsSection } from "@/settings/AutomationsSection.js";
+import { AUTOMATIONS_TOAST_ANCHOR_ID } from "@/components/ui/toast.js";
+
+const AutomationsSection = lazy(() =>
+  import("@/settings/AutomationsSection.js").then((module) => ({
+    default: module.AutomationsSection,
+  })),
+);
 import type {
   SavedWorkflowLaunchTarget,
   SavedWorkflowsOpenArtifactParams,
   SavedWorkflowsOpenRunParams,
 } from "@/settings/saved-workflows/SavedWorkflowsSection.js";
 import { AutomationsMainBreadcrumbFrame } from "@/settings/AutomationsMainBreadcrumbFrame.js";
-import { PluginStorePage } from "@/settings/PluginStorePage.js";
+const PluginStorePage = lazy(() =>
+  import("@/settings/PluginStorePage.js").then((module) => ({
+    default: module.PluginStorePage,
+  })),
+);
 import { usePluginUpdateFeed } from "@/settings/usePluginUpdateFeed.js";
 import { TaskFindDialog } from "@/quickpick/TaskFindDialog.js";
 import { WebRemoteControlMobileShell } from "@/WebRemoteControlMobileShell.js";
@@ -1568,8 +1588,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
     [handleSelectTask, workspaceAbsPath, workspaceIdentity],
   );
   const draftProjectId = useNibiSessionStore(
-    (state) =>
-      state.getWorkspaceState(workspaceAbsPath, workspaceIdentity).draftProjectId ?? null,
+    (state) => state.getWorkspaceState(workspaceAbsPath, workspaceIdentity).draftProjectId ?? null,
   );
   // worktree 入口只对本地桌面的 Git 项目草稿开放；能力由 useWorktreeSupport 再确认。
   const worktreeEligible =
@@ -1608,11 +1627,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
         // 会话已启动但首份 snapshot 还没到；先登记交接，pane 在空白窗口展示轻量提示。
         // 提示只针对这条自动打开的会话，不改变创建/会话本身的任何状态。
         markManagedWorktreeHandoff(settlement.sessionId);
-        handleSelectTaskInChat(
-          settlement.workspacePath,
-          settlement.sessionId,
-          workspaceIdentity,
-        );
+        handleSelectTaskInChat(settlement.workspacePath, settlement.sessionId, workspaceIdentity);
         return;
       }
       handleCreateTaskInChat({
@@ -2213,10 +2228,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
         chatOverlay={workspaceMainView === "chat" ? renderChatFindDialog() : undefined}
         chatContent={
           workspaceMainView === "automations" && !isWebRemoteControlShell ? (
-            <main
-              id={AUTOMATIONS_TOAST_ANCHOR_ID}
-              className="flex h-full min-h-0 flex-1 flex-col bg-background"
-            >
+            <main id={AUTOMATIONS_TOAST_ANCHOR_ID} className="flex h-full min-h-0 flex-1 flex-col">
               <AutomationsMainBreadcrumbFrame
                 isDesktop={Boolean(isDesktop)}
                 sectionLabel={intl.formatMessage({
@@ -2238,29 +2250,31 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                     className="min-h-full"
                   >
                     <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-4 md:px-6 md:py-6">
-                      <AutomationsSection
-                        workspacePath={workspaceAbsPath}
-                        workspaceIdentity={workspaceIdentity}
-                        onCreateViaChat={handleCreateAutomationInChat}
-                        onNavigateToLaunchedRun={handleNavigateToLaunchedRun}
-                        onOpenWorkflowRun={handleOpenSavedWorkflowRun}
-                        onOpenWorkflowArtifact={handleOpenSavedWorkflowArtifact}
-                        openAutomationId={openAutomationId}
-                        openAutomationTab={openAutomationTab}
-                        onOpenAutomationConsumed={onOpenAutomationConsumed}
-                        openWorkflow={openWorkflow}
-                        onOpenWorkflowConsumed={onOpenWorkflowConsumed}
-                        onOpenSession={({ sessionId, workspacePath, workspaceIdentity }) =>
-                          handleSelectTaskInChat(workspacePath, sessionId, workspaceIdentity)
-                        }
-                      />
+                      <Suspense fallback={null}>
+                        <AutomationsSection
+                          workspacePath={workspaceAbsPath}
+                          workspaceIdentity={workspaceIdentity}
+                          onCreateViaChat={handleCreateAutomationInChat}
+                          onNavigateToLaunchedRun={handleNavigateToLaunchedRun}
+                          onOpenWorkflowRun={handleOpenSavedWorkflowRun}
+                          onOpenWorkflowArtifact={handleOpenSavedWorkflowArtifact}
+                          openAutomationId={openAutomationId}
+                          openAutomationTab={openAutomationTab}
+                          onOpenAutomationConsumed={onOpenAutomationConsumed}
+                          openWorkflow={openWorkflow}
+                          onOpenWorkflowConsumed={onOpenWorkflowConsumed}
+                          onOpenSession={({ sessionId, workspacePath, workspaceIdentity }) =>
+                            handleSelectTaskInChat(workspacePath, sessionId, workspaceIdentity)
+                          }
+                        />
+                      </Suspense>
                     </div>
                   </ScopedErrorBoundary>
                 </div>
               </AutomationsMainBreadcrumbFrame>
             </main>
           ) : workspaceMainView === "plugin-store" && !isWebRemoteControlShell ? (
-            <main className="flex h-full min-h-0 flex-1 flex-col bg-background">
+            <main className="flex h-full min-h-0 flex-1 flex-col">
               <AutomationsMainBreadcrumbFrame
                 isDesktop={Boolean(isDesktop)}
                 sectionLabel={intl.formatMessage({
@@ -2272,20 +2286,22 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
               >
                 <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
                   <div className="mx-auto flex w-full max-w-4xl flex-col px-4 py-4 md:px-6 md:py-6">
-                    <PluginStorePage
-                      isDesktop={isDesktop}
-                      isMacDesktop={isMacDesktop}
-                      isWindowsDesktop={isWindowsDesktop}
-                      isWebRemoteControl={isWebRemoteControlShell}
-                      key={`plugin-store:${pluginStoreOpenVersion}`}
-                      workspacePath={workspaceAbsPath}
-                      workspaceIdentity={workspaceIdentity}
-                      // Bug 根因：独立插件页曾绕过切回聊天页的包装回调，任务虽被创建，
-                      // 视图仍停在插件详情，用户看到“立即试用”与示例 Prompt 点击无反应。
-                      onCreateTask={handleCreateTaskInChat}
-                      sessionId={activeTaskId}
-                      remoteSessionId={workspaceRemoteSessionId}
-                    />
+                    <Suspense fallback={null}>
+                      <PluginStorePage
+                        isDesktop={isDesktop}
+                        isMacDesktop={isMacDesktop}
+                        isWindowsDesktop={isWindowsDesktop}
+                        isWebRemoteControl={isWebRemoteControlShell}
+                        key={`plugin-store:${pluginStoreOpenVersion}`}
+                        workspacePath={workspaceAbsPath}
+                        workspaceIdentity={workspaceIdentity}
+                        // Bug 根因：独立插件页曾绕过切回聊天页的包装回调，任务虽被创建，
+                        // 视图仍停在插件详情，用户看到“立即试用”与示例 Prompt 点击无反应。
+                        onCreateTask={handleCreateTaskInChat}
+                        sessionId={activeTaskId}
+                        remoteSessionId={workspaceRemoteSessionId}
+                      />
+                    </Suspense>
                   </div>
                 </div>
               </AutomationsMainBreadcrumbFrame>
@@ -2311,46 +2327,48 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                     allowEscapeStopOutsidePane={
                       isWorkspaceVisible && !isSidePaneOpen && !isSidePaneVisible
                     }
-                  readOnly={Boolean(workspaceReadOnlyReason)}
-                  workspacePath={workspaceAbsPath}
-                  workspaceIdentity={workspaceIdentity}
-                  isDesktop={isDesktop === true}
-                  compactForRemoteControl={isWebRemoteControlShell}
-                  sessionId={activeTaskId}
-                  provider={activeTaskProvider ?? undefined}
-                  onSessionCreated={handleV4SessionCreated}
-                  onSessionDeleted={handleV4SessionDeleted}
-                  draftComposerHeader={draftComposerHeader}
-                  gitSummary={gitState.summary}
-                  gitDirtyFileCount={gitDirtyFileCount}
-                  gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
-                  gitWorktreeChangeSummary={gitWorktreeChangeSummary}
-                  activeTaskChangeSummary={activeTaskChangeSummary}
-                  summaryPanelVariantOverride={summaryPanelVariantOverride}
-                  onSummaryPanelVariantOverrideChange={onSummaryPanelVariantOverrideChange}
-                  onRefreshGit={handleRefreshGit}
-                  onOpenGitReview={handleOpenGitReview}
-                  onOpenBrowserUrl={handleOpenBrowserUrl}
-                  onOpenAutomationsMain={handleOpenAutomations}
-                  onOpenCodeViewer={handleOpenCodeViewer}
-                  onAutoOpenAssistantPptx={
-                    isDesktop && !isWebRemoteControlShell ? handleAutoOpenAssistantPptx : undefined
-                  }
-                  onOpenFileLink={handleOpenMarkdownFileLink}
-                  onOpenBackgroundBash={handleOpenBackgroundBash}
-                  onOpenSubagentSession={handleOpenSubagentSession}
-                  onOpenSubagentDirectory={handleOpenSubagentDirectory}
-                  onSyncSubagentSessionTabs={handleSyncSubagentSessionTabs}
-                  onOpenPlanDetail={handleOpenPlanDetail}
-                  onOpenWorkflowRun={handleOpenWorkflowRun}
-                  onOpenWorkflowArtifact={handleOpenWorkflowArtifact}
-                  onOpenWorkflowRunDirectory={handleOpenWorkflowRunDirectory}
-                  onOpenWorkflowActorSession={handleOpenWorkflowActorSession}
-                  onOpenWorkflowWorkspace={handleOpenWorkflowWorkspace}
-                  conversationFindQuery={conversationFindQuery}
-                  conversationFindActiveIndex={conversationFindActiveIndex}
-                  conversationFindNavigationRequestId={conversationFindNavigationRequestId}
-                  onConversationFindMatchStateChange={onConversationFindMatchStateChange}
+                    readOnly={Boolean(workspaceReadOnlyReason)}
+                    workspacePath={workspaceAbsPath}
+                    workspaceIdentity={workspaceIdentity}
+                    isDesktop={isDesktop === true}
+                    compactForRemoteControl={isWebRemoteControlShell}
+                    sessionId={activeTaskId}
+                    provider={activeTaskProvider ?? undefined}
+                    onSessionCreated={handleV4SessionCreated}
+                    onSessionDeleted={handleV4SessionDeleted}
+                    draftComposerHeader={draftComposerHeader}
+                    gitSummary={gitState.summary}
+                    gitDirtyFileCount={gitDirtyFileCount}
+                    gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
+                    gitWorktreeChangeSummary={gitWorktreeChangeSummary}
+                    activeTaskChangeSummary={activeTaskChangeSummary}
+                    summaryPanelVariantOverride={summaryPanelVariantOverride}
+                    onSummaryPanelVariantOverrideChange={onSummaryPanelVariantOverrideChange}
+                    onRefreshGit={handleRefreshGit}
+                    onOpenGitReview={handleOpenGitReview}
+                    onOpenBrowserUrl={handleOpenBrowserUrl}
+                    onOpenAutomationsMain={handleOpenAutomations}
+                    onOpenCodeViewer={handleOpenCodeViewer}
+                    onAutoOpenAssistantPptx={
+                      isDesktop && !isWebRemoteControlShell
+                        ? handleAutoOpenAssistantPptx
+                        : undefined
+                    }
+                    onOpenFileLink={handleOpenMarkdownFileLink}
+                    onOpenBackgroundBash={handleOpenBackgroundBash}
+                    onOpenSubagentSession={handleOpenSubagentSession}
+                    onOpenSubagentDirectory={handleOpenSubagentDirectory}
+                    onSyncSubagentSessionTabs={handleSyncSubagentSessionTabs}
+                    onOpenPlanDetail={handleOpenPlanDetail}
+                    onOpenWorkflowRun={handleOpenWorkflowRun}
+                    onOpenWorkflowArtifact={handleOpenWorkflowArtifact}
+                    onOpenWorkflowRunDirectory={handleOpenWorkflowRunDirectory}
+                    onOpenWorkflowActorSession={handleOpenWorkflowActorSession}
+                    onOpenWorkflowWorkspace={handleOpenWorkflowWorkspace}
+                    conversationFindQuery={conversationFindQuery}
+                    conversationFindActiveIndex={conversationFindActiveIndex}
+                    conversationFindNavigationRequestId={conversationFindNavigationRequestId}
+                    onConversationFindMatchStateChange={onConversationFindMatchStateChange}
                     searchResultHighlightRequest={activeSearchResultHighlightRequest}
                     onSearchResultHighlightDone={onSearchResultHighlightDone}
                   />
@@ -2542,6 +2560,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                       data-workspace-conversation-frame="true"
                       className={cn(
                         "relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background",
+                        !isFullView && !isWebRemoteControlShell && "nibi-atelier-panel",
                         isSidePaneVisible
                           ? "rounded-[var(--workspace-panel-radius)] border border-border"
                           : resolveWorkspaceShellWindowChromeClass({
@@ -2578,7 +2597,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                             remoteSessionId={workspaceRemoteSessionId}
                             workspaceIdentity={workspaceIdentity}
                             remoteTarget={workspaceRemoteTarget}
-                                        projectName={projectName}
+                            projectName={projectName}
                             activeTaskTitle={activeTaskTitle}
                             activeTaskChangeSummary={activeTaskChangeSummary}
                             hasUpdateReady={hasUpdateStatusButton}
@@ -2661,7 +2680,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                         {workspaceMainView === "automations" && !isWebRemoteControlShell ? (
                           <main
                             id={AUTOMATIONS_TOAST_ANCHOR_ID}
-                            className="flex h-full min-h-0 flex-1 flex-col bg-background"
+                            className="flex h-full min-h-0 flex-1 flex-col"
                           >
                             <AutomationsMainBreadcrumbFrame
                               isDesktop={Boolean(isDesktop)}
@@ -2684,37 +2703,39 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                                   className="min-h-full"
                                 >
                                   <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-4 md:px-6 md:py-6">
-                                    <AutomationsSection
-                                      workspacePath={workspaceAbsPath}
-                                      workspaceIdentity={workspaceIdentity}
-                                      onCreateViaChat={handleCreateAutomationInChat}
-                                      onNavigateToLaunchedRun={handleNavigateToLaunchedRun}
-                                      onOpenWorkflowRun={handleOpenSavedWorkflowRun}
-                                      onOpenWorkflowArtifact={handleOpenSavedWorkflowArtifact}
-                                      openAutomationId={openAutomationId}
-                                      openAutomationTab={openAutomationTab}
-                                      onOpenAutomationConsumed={onOpenAutomationConsumed}
-                                      openWorkflow={openWorkflow}
-                                      onOpenWorkflowConsumed={onOpenWorkflowConsumed}
-                                      onOpenSession={({
-                                        sessionId,
-                                        workspacePath,
-                                        workspaceIdentity,
-                                      }) =>
-                                        handleSelectTaskInChat(
-                                          workspacePath,
+                                    <Suspense fallback={null}>
+                                      <AutomationsSection
+                                        workspacePath={workspaceAbsPath}
+                                        workspaceIdentity={workspaceIdentity}
+                                        onCreateViaChat={handleCreateAutomationInChat}
+                                        onNavigateToLaunchedRun={handleNavigateToLaunchedRun}
+                                        onOpenWorkflowRun={handleOpenSavedWorkflowRun}
+                                        onOpenWorkflowArtifact={handleOpenSavedWorkflowArtifact}
+                                        openAutomationId={openAutomationId}
+                                        openAutomationTab={openAutomationTab}
+                                        onOpenAutomationConsumed={onOpenAutomationConsumed}
+                                        openWorkflow={openWorkflow}
+                                        onOpenWorkflowConsumed={onOpenWorkflowConsumed}
+                                        onOpenSession={({
                                           sessionId,
+                                          workspacePath,
                                           workspaceIdentity,
-                                        )
-                                      }
-                                    />
+                                        }) =>
+                                          handleSelectTaskInChat(
+                                            workspacePath,
+                                            sessionId,
+                                            workspaceIdentity,
+                                          )
+                                        }
+                                      />
+                                    </Suspense>
                                   </div>
                                 </ScopedErrorBoundary>
                               </div>
                             </AutomationsMainBreadcrumbFrame>
                           </main>
                         ) : workspaceMainView === "plugin-store" && !isWebRemoteControlShell ? (
-                          <main className="flex h-full min-h-0 flex-1 flex-col bg-background">
+                          <main className="flex h-full min-h-0 flex-1 flex-col">
                             <AutomationsMainBreadcrumbFrame
                               isDesktop={Boolean(isDesktop)}
                               sectionLabel={intl.formatMessage({
@@ -2726,18 +2747,20 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                             >
                               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
                                 <div className="mx-auto flex w-full max-w-4xl flex-col px-4 py-4 md:px-6 md:py-6">
-                                  <PluginStorePage
-                                    isDesktop={isDesktop}
-                                    isMacDesktop={isMacDesktop}
-                                    isWindowsDesktop={isWindowsDesktop}
-                                    isWebRemoteControl={isWebRemoteControlShell}
-                                    key={`plugin-store:${pluginStoreOpenVersion}`}
-                                    workspacePath={workspaceAbsPath}
-                                    workspaceIdentity={workspaceIdentity}
-                                    onCreateTask={handleCreateTaskInChat}
-                                    sessionId={activeTaskId}
-                                    remoteSessionId={workspaceRemoteSessionId}
-                                  />
+                                  <Suspense fallback={null}>
+                                    <PluginStorePage
+                                      isDesktop={isDesktop}
+                                      isMacDesktop={isMacDesktop}
+                                      isWindowsDesktop={isWindowsDesktop}
+                                      isWebRemoteControl={isWebRemoteControlShell}
+                                      key={`plugin-store:${pluginStoreOpenVersion}`}
+                                      workspacePath={workspaceAbsPath}
+                                      workspaceIdentity={workspaceIdentity}
+                                      onCreateTask={handleCreateTaskInChat}
+                                      sessionId={activeTaskId}
+                                      remoteSessionId={workspaceRemoteSessionId}
+                                    />
+                                  </Suspense>
                                 </div>
                               </div>
                             </AutomationsMainBreadcrumbFrame>
@@ -2764,62 +2787,64 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                                   allowEscapeStopOutsidePane={
                                     isWorkspaceVisible && !isSidePaneOpen && !isSidePaneVisible
                                   }
-                                readOnly={Boolean(workspaceReadOnlyReason)}
-                                foregroundEnabled={isWorkspaceVisible}
-                                workspacePath={workspaceAbsPath}
-                                workspaceIdentity={workspaceIdentity}
-                                isDesktop={isDesktop === true}
-                                remoteSessionId={workspaceRemoteSessionId}
-                                compactForRemoteControl={isWebRemoteControlShell}
-                                sessionId={activeTaskId}
-                                activeSelectionSideChatSessionId={activeSelectionSideChatSessionId}
-                                provider={activeTaskProvider ?? undefined}
-                                onSessionCreated={handleV4SessionCreated}
-                                onSessionDeleted={handleV4SessionDeleted}
-                                draftComposerHeader={draftComposerHeader}
-                                onPrimaryDraftDropTargetControllerChange={
-                                  setDraftHeaderDropTargetController
-                                }
-                                gitSummary={gitState.summary}
-                                gitDirtyFileCount={gitDirtyFileCount}
-                                activeTaskChangeSummary={activeTaskChangeSummary}
-                                gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
-                                gitWorktreeChangeSummary={gitWorktreeChangeSummary}
-                                summaryPanelVariantOverride={summaryPanelVariantOverride}
-                                onSummaryPanelVariantOverrideChange={
-                                  onSummaryPanelVariantOverrideChange
-                                }
-                                onRefreshGit={handleRefreshGit}
-                                onOpenGitReview={handleOpenGitReview}
-                                onPaneActiveSessionChange={handlePaneActiveSessionChange}
-                                onOpenBrowserUrl={handleOpenBrowserUrl}
-                                onOpenAutomationsMain={handleOpenAutomations}
-                                onOpenCodeViewer={handleOpenCodeViewer}
-                                onAutoOpenAssistantPptx={
-                                  isDesktop && !isWebRemoteControlShell
-                                    ? handleAutoOpenAssistantPptx
-                                    : undefined
-                                }
-                                onOpenBackgroundBash={handleOpenBackgroundBash}
-                                onOpenSubagentSession={handleOpenSubagentSession}
-                                onOpenSubagentDirectory={handleOpenSubagentDirectory}
-                                onSyncSubagentSessionTabs={handleSyncSubagentSessionTabs}
-                                onOpenSelectionSideChat={handleOpenSelectionSideChat}
-                                onOpenPlanDetail={handleOpenPlanDetail}
-                                onOpenWorkflowRun={handleOpenWorkflowRun}
-                                onOpenWorkflowArtifact={handleOpenWorkflowArtifact}
-                                onOpenWorkflowRunDirectory={handleOpenWorkflowRunDirectory}
-                                onOpenWorkflowActorSession={handleOpenWorkflowActorSession}
-                                onOpenWorkflowWorkspace={handleOpenWorkflowWorkspace}
-                                onOpenFileLink={handleOpenMarkdownFileLink}
-                                conversationFindQuery={conversationFindQuery}
-                                conversationFindActiveIndex={conversationFindActiveIndex}
-                                conversationFindNavigationRequestId={
-                                  conversationFindNavigationRequestId
-                                }
-                                onConversationFindMatchStateChange={
-                                  onConversationFindMatchStateChange
-                                }
+                                  readOnly={Boolean(workspaceReadOnlyReason)}
+                                  foregroundEnabled={isWorkspaceVisible}
+                                  workspacePath={workspaceAbsPath}
+                                  workspaceIdentity={workspaceIdentity}
+                                  isDesktop={isDesktop === true}
+                                  remoteSessionId={workspaceRemoteSessionId}
+                                  compactForRemoteControl={isWebRemoteControlShell}
+                                  sessionId={activeTaskId}
+                                  activeSelectionSideChatSessionId={
+                                    activeSelectionSideChatSessionId
+                                  }
+                                  provider={activeTaskProvider ?? undefined}
+                                  onSessionCreated={handleV4SessionCreated}
+                                  onSessionDeleted={handleV4SessionDeleted}
+                                  draftComposerHeader={draftComposerHeader}
+                                  onPrimaryDraftDropTargetControllerChange={
+                                    setDraftHeaderDropTargetController
+                                  }
+                                  gitSummary={gitState.summary}
+                                  gitDirtyFileCount={gitDirtyFileCount}
+                                  activeTaskChangeSummary={activeTaskChangeSummary}
+                                  gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
+                                  gitWorktreeChangeSummary={gitWorktreeChangeSummary}
+                                  summaryPanelVariantOverride={summaryPanelVariantOverride}
+                                  onSummaryPanelVariantOverrideChange={
+                                    onSummaryPanelVariantOverrideChange
+                                  }
+                                  onRefreshGit={handleRefreshGit}
+                                  onOpenGitReview={handleOpenGitReview}
+                                  onPaneActiveSessionChange={handlePaneActiveSessionChange}
+                                  onOpenBrowserUrl={handleOpenBrowserUrl}
+                                  onOpenAutomationsMain={handleOpenAutomations}
+                                  onOpenCodeViewer={handleOpenCodeViewer}
+                                  onAutoOpenAssistantPptx={
+                                    isDesktop && !isWebRemoteControlShell
+                                      ? handleAutoOpenAssistantPptx
+                                      : undefined
+                                  }
+                                  onOpenBackgroundBash={handleOpenBackgroundBash}
+                                  onOpenSubagentSession={handleOpenSubagentSession}
+                                  onOpenSubagentDirectory={handleOpenSubagentDirectory}
+                                  onSyncSubagentSessionTabs={handleSyncSubagentSessionTabs}
+                                  onOpenSelectionSideChat={handleOpenSelectionSideChat}
+                                  onOpenPlanDetail={handleOpenPlanDetail}
+                                  onOpenWorkflowRun={handleOpenWorkflowRun}
+                                  onOpenWorkflowArtifact={handleOpenWorkflowArtifact}
+                                  onOpenWorkflowRunDirectory={handleOpenWorkflowRunDirectory}
+                                  onOpenWorkflowActorSession={handleOpenWorkflowActorSession}
+                                  onOpenWorkflowWorkspace={handleOpenWorkflowWorkspace}
+                                  onOpenFileLink={handleOpenMarkdownFileLink}
+                                  conversationFindQuery={conversationFindQuery}
+                                  conversationFindActiveIndex={conversationFindActiveIndex}
+                                  conversationFindNavigationRequestId={
+                                    conversationFindNavigationRequestId
+                                  }
+                                  onConversationFindMatchStateChange={
+                                    onConversationFindMatchStateChange
+                                  }
                                   searchResultHighlightRequest={activeSearchResultHighlightRequest}
                                   onSearchResultHighlightDone={onSearchResultHighlightDone}
                                 />

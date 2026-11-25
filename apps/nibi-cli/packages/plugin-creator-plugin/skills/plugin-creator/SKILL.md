@@ -19,7 +19,7 @@ Read [the NIBI manifest reference](references/plugin-json-spec.md) before choosi
 
 ## 2. Create and implement
 
-Create `.nibi-plugin/plugin.json` and only the components the plugin needs. The directory name and manifest name must match. Use the available file tools, or the optional bundled `scripts/create-basic-plugin.mjs` helper when Node is already runnable. Helper options and examples are in the manifest reference.
+Create the root `plugin.json` (Agent Plugins 1.0.0, NIBI components under `extensions["com.nibistudio.nibi"]`) and only the components the plugin needs. The directory name and manifest name must match. Use the available file tools, or the optional bundled `scripts/create-basic-plugin.mjs` helper when Node is already runnable. Helper options and examples are in the manifest reference.
 
 Implement the requested capability and replace generic scaffold descriptions with its purpose. The generated MCP server only implements a handshake and an empty tool list; implement real tools before reporting a working integration. Keep secrets in user-config/environment/credential mechanisms.
 

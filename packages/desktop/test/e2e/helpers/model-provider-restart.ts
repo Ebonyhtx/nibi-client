@@ -139,14 +139,40 @@ export async function seedPersistedModelSelection(params: {
 }) {
   await browser.execute(
     (workspacePath, keyPrefix, selection, appProvider) => {
-      window.localStorage.setItem(
-        `${keyPrefix}:${workspacePath}`,
-        JSON.stringify({
-          providerId: selection.providerId,
-          modelId: selection.modelId,
-          options: { reasoningLevel: selection.reasoningLevel },
-        }),
+      const value = JSON.stringify({
+        providerId: selection.providerId,
+        modelId: selection.modelId,
+        options: { reasoningLevel: selection.reasoningLevel },
+      });
+      window.localStorage.setItem(`${keyPrefix}:${workspacePath}`, value);
+      // 当前 Composer 的 Recent 是 v2 作用域键：`nibi-composer-recent:v2:["desktop",<hostId>,<projectId>]`，
+      // 只写旧的无作用域键时草稿控件读不到种子，冷启动会退回目录默认档位（2026-11-22 真机：父会话 max 被
+      // 默认 high 顶掉）。作用域取本工作区已登记的项目归属；没有登记时是 Root 草稿（projectId=null）。
+      let hostId = "local";
+      let projectId: string | null = null;
+      const intentRaw = window.localStorage.getItem(
+        `nibi-composer-workspace-scope:v1:${JSON.stringify(["desktop", workspacePath])}`,
       );
+      if (intentRaw) {
+        try {
+          const intent = JSON.parse(intentRaw) as {
+            hostId?: unknown;
+            projectId?: unknown;
+          } | null;
+          if (intent && typeof intent.hostId === "string" && intent.hostId.trim()) {
+            hostId = intent.hostId;
+          }
+          if (intent && (intent.projectId === null || typeof intent.projectId === "string")) {
+            projectId = typeof intent.projectId === "string" ? intent.projectId : null;
+          }
+        } catch {
+          /* 坏的作用域登记按 Root 草稿处理。 */
+        }
+      }
+      const scopeKey = (currentProjectId: string | null) =>
+        `nibi-composer-recent:v2:${JSON.stringify(["desktop", hostId, currentProjectId])}`;
+      window.localStorage.setItem(scopeKey(projectId), value);
+      if (projectId !== null) window.localStorage.setItem(scopeKey(null), value);
       window.localStorage.setItem("nibi-last-agent-provider", appProvider);
     },
     paths.workspace,

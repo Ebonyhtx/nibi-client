@@ -6,7 +6,7 @@ import { resolvePersistedUiLocale, resolvePersistedUiLocalePreference } from "./
 import { REMOTE_ASSET_INSTALL_MODES } from "./remoteAssetInstallMode.js";
 import { isKnownRemoteResourcePackageId } from "./remoteResourcePackages.js";
 import { wslUserSchema } from "./wslUserValidation.js";
-import { NIBI_ENABLED_AGENT_PROVIDERS } from "./nibi-agent-policy.js";
+import { NIBI_AGENT_PROVIDER, NIBI_ENABLED_AGENT_PROVIDERS } from "./nibi-agent-policy.js";
 import { DYNAMIC_WORKFLOW_MODES } from "./dynamic-workflow-feature.js";
 import { normalizeNibiEndpointOrigin } from "./nibiEndpoint.js";
 import {
@@ -66,10 +66,7 @@ export const integratedTerminalShellSelectionSchema = z.discriminatedUnion("mode
     path: nonEmptyStringSchema,
   }),
 ]);
-const enabledBuiltinAgentCliProvidersSchema = z
-  // 兼容旧 settings：历史列表可能残留三方 CLI provider，解析后统一归一为 Nibi Agent。
-  .array(z.enum(["claude", "opencode", "gemini", "codex", "glm", "nibi-agent"]))
-  .transform(() => [...NIBI_ENABLED_AGENT_PROVIDERS]);
+const enabledBuiltinAgentCliProvidersSchema = z.array(z.literal(NIBI_AGENT_PROVIDER));
 const providerFamilyDomainSchema = z.enum(["zai", "bigmodel"]);
 
 export const postUpdateReleaseNotesPayloadSchema = z.object({
@@ -346,24 +343,6 @@ const legacyRemoteWorkspaceHistoryEntrySchema = z.object({
   lastConnectionError: z.string().optional(),
 });
 
-function migrateLegacyBuiltinAgentCliProviders(value: unknown): unknown {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return value;
-  }
-
-  const raw = value as {
-    enabledBuiltinAgentCliProviders?: unknown;
-  };
-
-  // Bugfix: 单 Nibi Agent 迁移后，旧 setting.json 可能还保存已移除的第三方 CLI provider
-  // 的启用状态。若这些值继续进入 UI / bot 的 provider 选项，会和 server 侧唯一 glm 状态打架。
-  // 这里在 schema 入口统一归一到 Nibi Agent，让核心 provider 状态只有一个事实源。
-  return {
-    ...raw,
-    enabledBuiltinAgentCliProviders: [...NIBI_ENABLED_AGENT_PROVIDERS],
-  };
-}
-
 function stripHistoricalRemoteResourcePackages(target: unknown): unknown {
   if (!target || typeof target !== "object" || Array.isArray(target)) {
     return target;
@@ -619,9 +598,7 @@ export const appSettingsSchema = z.preprocess(
               applyPersistedUiLocaleFields(
                 sanitizeNibiEndpointOrigin(
                   migrateLegacyWorkspaceSession(
-                    migrateLegacyBuiltinAgentCliProviders(
-                      migrateRemoteBoundaryIntroAcknowledgement(migrateTaskAutoArchiveReset(value)),
-                    ),
+                    migrateRemoteBoundaryIntroAcknowledgement(migrateTaskAutoArchiveReset(value)),
                   ),
                 ),
               ),

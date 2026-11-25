@@ -59,9 +59,9 @@ function writePluginManifest(
   pluginRoot: string,
   manifest: Record<string, unknown>,
 ): void {
-  mkdirSync(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+  mkdirSync(pluginRoot, { recursive: true });
   writeFileSync(
-    join(pluginRoot, ".nibi-plugin", "plugin.json"),
+    join(pluginRoot, "plugin.json"),
     JSON.stringify(manifest, null, 2),
     "utf-8",
   );
@@ -549,7 +549,7 @@ describe("commandsService", () => {
     ]);
   });
 
-  it("ignores commands from plugins that only carry a legacy .claude-plugin manifest", async () => {
+  it("lists commands from a read-only legacy .claude-plugin manifest", async () => {
     const home = makeTempRoot();
     const workspacePath = join(makeTempRoot(), "workspace");
     const pluginRoot = marketplacePluginRoot(home, "claude-plugins-official", "legacy-commands");
@@ -580,7 +580,17 @@ describe("commandsService", () => {
     const service = await createCommandsServiceInEnv(home);
     const result = await service.list({ workspacePath });
 
-    expect(result.pluginCommands).toEqual([]);
+    expect(result.pluginCommands).toEqual([
+      expect.objectContaining({
+        description: "Legacy commit",
+        enabled: true,
+        name: "/git/commit",
+        pluginEnabled: true,
+        pluginMarketplace: "claude-plugins-official",
+        pluginName: "legacy-commands",
+        source: "plugin",
+      }),
+    ]);
   });
 
   it("stores command disabled overrides in the user zcode config", async () => {

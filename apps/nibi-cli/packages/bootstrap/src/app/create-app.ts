@@ -18,6 +18,8 @@ import { createJimpImageProcessorAdapter } from "@nibi/adapters/image";
 import { createPopplerPdfDocumentAdapter } from "@nibi/adapters/pdf";
 import { createNodeSessionMailboxAdapter } from "@nibi/adapters/mailbox";
 import { createNodeContextSourceAdapter } from "@nibi/adapters/context";
+import { createBuiltinPaidPluginGate } from "@nibi/adapters/plugins";
+import { maybeRefreshPluginRevocations } from "@nibi/adapters/plugins";
 import { createNodeSkillAdapter } from "@nibi/adapters/skills";
 import { createMcpAdapter } from "@nibi/adapters/mcp";
 import {
@@ -63,6 +65,7 @@ import {
   resolveEffectiveConfigResult,
 } from "./app-config-options.js";
 import { getCliStorageRoot, getModelIoDir, projectIdFromDirectory } from "./paths.js";
+import { getPluginStorageRoot } from "./storage-paths.js";
 import { resolveMcpNodeFallbackProvider } from "./mcpNodeFallback/index.js";
 import {
   asInputHistoryStore,
@@ -125,6 +128,10 @@ import {
   resolveStartupPlugins,
   startAppStartup,
 } from "./startup-marks.js";
+import {
+  activatePluginExtensions,
+  type PluginExtensionHost,
+} from "../plugins.js";
 
 function decodePromptAttachmentDataUrl(
   content: string,
@@ -218,6 +225,7 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
   });
   let nodeReplBrowserBroker: NodeReplBrowserBroker | undefined;
   let ownedNodeReplBrowserBroker: NodeReplBrowserBroker | undefined;
+  let pluginExtensionHost: PluginExtensionHost | undefined;
   let providerModelRuntime: ApiProviderModelRuntime | undefined;
   try {
     const storageRoot = resolvePath(configResult.config.storage.dir);
@@ -276,6 +284,35 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
     const sessionStore =
       options.sessionStore ?? (await openStartupSessionStore(configResult, startupTimer));
     const localSettingStore = asLocalSettingStore(sessionStore);
+    try {
+      pluginExtensionHost = await activatePluginExtensions({
+        logger,
+        plugins: pluginOutcome.plugins,
+        storageRoot: getPluginStorageRoot(cliStorageRoot),
+        workspacePath: workingDirectory,
+        handlers: {
+          // v1 只读当前工作区会话；不暴露提示词、文件路径或分页游标。
+          readSessions: async (input) => {
+            const sessions = await sessionStore.listSessions({
+              directory: workingDirectory,
+              limit: Math.max(1, Math.min(input.limit ?? 50, 100)),
+            });
+            return sessions.map((session) => ({
+              id: session.id,
+              parentId: session.parentID ?? null,
+              title: session.title,
+              createdAt: session.time.created,
+              updatedAt: session.time.updated,
+            }));
+          },
+        },
+      });
+    } catch (error) {
+      // 扩展代码失败不能阻断 App 启动；声明式组件仍可用。
+      logger.warn("[plugins] extension host activation failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     const projectID = projectIdFromDirectory(workingDirectory);
     const persistedMode = options.runtimeConfig?.mode
       ? undefined
@@ -332,6 +369,43 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
     // 创建时冻结一次。冷恢复会重建 App，天然拿到新 catalog；已有 Session 不热加载新 Plugin。
     const pluginReferenceCatalog = buildPluginReferenceCatalog(pluginOutcome.plugins);
     runtimeConfig.pluginReferenceCatalog = pluginReferenceCatalog;
+    // 付费插件执行期门禁：与发现层同一套判定，但**不缓存凭据**——会员在会话中途
+    // 到期或被服务端撤销时，下一次 MCP 工具调用就要被拒。发现层那次裁剪发生在
+    // App 创建时，管不到之后的变化（Rust 内核的 PaidPluginGate 是等价语义）。
+    runtimeConfig.paidPluginGate = createBuiltinPaidPluginGate({
+      cacheCredentials: false,
+      env: options.env,
+      storageRoot: getPluginStorageRoot(cliStorageRoot),
+    });
+    // 撤销名单后台刷新：只在用户点「检查更新」时刷新的话，从不点的用户永远拿不到新名单，
+    // 撤销门禁形同虚设。fire-and-forget：网络/验签失败只影响名单时效，不能拖慢或中断启动。
+    // 测试进程不发起真实外发请求（与 official-plugin-runtime 同一约定），
+    // 否则后台写盘会与测试 teardown 的目录删除竞争。
+    const pluginRevocationsRefreshDisabled =
+      Boolean(options.env?.E2E_PROVIDER_HTTP_MODE) ||
+      Boolean(process.env.VITEST) ||
+      process.env.NODE_ENV === "test";
+    if (!pluginRevocationsRefreshDisabled) {
+      void maybeRefreshPluginRevocations({
+        storageRoot: getPluginStorageRoot(cliStorageRoot),
+        env: options.env,
+      })
+        .then((result) => {
+          if (result.status === "skipped") return;
+          logger.info("Plugin revocation list background refresh finished", {
+            event: "bootstrap.app.plugin_revocations.refresh",
+            module: "bootstrap.app",
+            refreshStatus: result.status,
+            stage: "refresh_plugin_revocations",
+            status: result.status === "failed" ? "failed" : "completed",
+            ...(result.revision === undefined ? {} : { revision: result.revision }),
+            ...(result.message === undefined ? {} : { message: result.message }),
+          });
+        })
+        .catch(() => {
+          // maybeRefresh 已把失败收敛成返回值；这里只兜住未处理的 rejection。
+        });
+    }
     // 插件验收合同与 catalog 同址同因：在 App（Session runtime）创建时冻结一次。
     // 只有 enabled 且 activation 判据（工作区里存在插件的工作流状态文件）成立的合同才注入；
     // 否则装在这个目录里的插件会把每个目标都拦一遍。
@@ -992,6 +1066,23 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
         }
         return await resolveNibiCustomCommandPrompt(text, {
           additionalDirectories: options.additionalDirectories,
+          // 付费插件命令的执行期复核：与 MCP/技能/子代理同一套判定。
+          ...(runtimeConfig.paidPluginGate
+            ? {
+                assertPluginExecutionAllowed: (pluginId: string) => {
+                  const at = pluginId.lastIndexOf("@");
+                  if (at <= 0) return;
+                  const verdict = runtimeConfig.paidPluginGate?.({
+                    id: pluginId,
+                    marketplace: pluginId.slice(at + 1),
+                    name: pluginId.slice(0, at),
+                  });
+                  if (verdict && !verdict.allowed) {
+                    throw new Error(verdict.message ?? "Plugin requires an active NIBI membership");
+                  }
+                },
+              }
+            : {}),
           env: options.env,
           logger,
           projectConfigPath: options.projectConfigPath,
@@ -1295,12 +1386,16 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       ...sessionFacade,
       close: async () => {
         try {
-          await closeSession?.();
+          await pluginExtensionHost?.dispose();
         } finally {
           try {
-            providerModelRuntime?.dispose();
+            await closeSession?.();
           } finally {
-            await modelTelemetry.shutdown();
+            try {
+              providerModelRuntime?.dispose();
+            } finally {
+              await modelTelemetry.shutdown();
+            }
           }
         }
       },
@@ -1471,6 +1566,7 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       ...inputFacade,
     };
   } catch (error) {
+    await pluginExtensionHost?.dispose().catch(() => undefined);
     providerModelRuntime?.dispose();
     void modelTelemetry.shutdown().catch(() => undefined);
     void ownedNodeReplBrowserBroker?.close();

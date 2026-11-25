@@ -24,11 +24,12 @@ import { CommandsSection } from "@/settings/CommandsSection.js";
 import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
 import { SettingsResourceHeaderActions } from "@/settings/SettingsResourceHeaderActions.js";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
-import { PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
+import { PluginConsentDialog, PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
 import { PluginInstallEmptyState, PluginLoadingState } from "@/settings/PluginInstallEmptyState.js";
 import {
   PluginDetailRow,
   PluginHookDetails,
+  PluginPermissionSummary,
   PluginWarningList,
 } from "@/settings/InstalledPluginManagement.js";
 import { PluginConfigControls } from "@/settings/PluginConfigControls.js";
@@ -73,6 +74,7 @@ import {
   type StorePluginItem,
   resolveManagedPluginDisplay,
   resolvePluginDisplayName,
+  resolvePluginOriginLabelId,
   updatePluginsSerially,
 } from "@/settings/pluginStoreListing.js";
 import { useScopedPluginManagementStore } from "@/store/pluginManagementStore.js";
@@ -215,6 +217,10 @@ function PluginList({
   const currentConfigScope = usePluginManagementStore((state) => state.configScope);
   const resetPluginConfig = usePluginManagementStore((state) => state.resetPluginConfig);
   const togglingPluginId = usePluginManagementStore((state) => state.togglingPluginId);
+  const consentPrompt = usePluginManagementStore((state) => state.consentPrompt);
+  const grantConsent = usePluginManagementStore((state) => state.grantConsent);
+  const revokeConsent = usePluginManagementStore((state) => state.revokeConsent);
+  const dismissConsent = usePluginManagementStore((state) => state.dismissConsent);
   const activeOperations = usePluginManagementStore((state) => state.activeOperations);
   const [selectedPluginId, setSelectedPluginId] = useState<string | null>(null);
   const [pluginOptionsDrafts, setPluginOptionsDrafts] = useState<
@@ -264,6 +270,10 @@ function PluginList({
       restorableBuiltins,
     ],
   );
+  const consentPlugin = plugins.find((plugin) => plugin.id === consentPrompt?.pluginId);
+  const consentPluginName = consentPlugin
+    ? resolveManagedPluginDisplay(consentPlugin, storeItemById.get(consentPlugin.id), locale).name
+    : (consentPrompt?.pluginId ?? "");
   // 已安装/启用的会员插件：到期后“启用或打开”也先弹开通页；宿主机仍是最终门禁。
   const isPaidPlugin = useCallback(
     (pluginId: string): boolean => storeItemById.get(pluginId)?.paid === true,
@@ -375,6 +385,8 @@ function PluginList({
       const succeeded = await setEnabled(pluginId, enabled, pluginManagementService, configScope);
       if (!succeeded) {
         const state = usePluginManagementStore.getState();
+        // 需要权限同意时弹窗本身就是反馈；再弹「更新失败」会挡住弹窗并误导。
+        if (state.consentPrompt?.pluginId === pluginId) return false;
         const error = state.error;
         if (enabled && error && /会员|membership/i.test(error)) {
           setMembershipOpen(true);
@@ -394,7 +406,11 @@ function PluginList({
           : enabled
             ? "settings.plugins.toggle.enabled"
             : "settings.plugins.toggle.disabled";
-      toast(intl.formatMessage({ id: messageId }, { plugin: pluginLabel }));
+      toast(
+        `${intl.formatMessage({ id: messageId }, { plugin: pluginLabel })} · ${intl.formatMessage(
+          { id: "settings.plugins.effect.newSession" },
+        )}`,
+      );
       return true;
     },
     [
@@ -525,6 +541,10 @@ function PluginList({
     [handleUpdatePlugin, intl, locale, storeItemById, usePluginManagementStore],
   );
   const selectedPlugin = plugins.find((plugin) => plugin.id === selectedPluginId) ?? null;
+  // 来源行只对已发现插件展示；旧 Host 不下发 origin 时整行不渲染。
+  const selectedPluginOriginLabelId = selectedPlugin
+    ? resolvePluginOriginLabelId(selectedPlugin.origin)
+    : undefined;
   // 插件自身 warning 诊断（如声明的技能路径扫描为空）：详情高级区展示，避免静默失败。
   const pluginWarningsForSelected = selectedPlugin
     ? pluginDiagnostics.filter(
@@ -866,6 +886,12 @@ function PluginList({
                     <PluginWarningList warnings={pluginWarningsForSelected} />
                   </div>
                 ) : null}
+                {selectedPluginOriginLabelId ? (
+                  <PluginDetailRow
+                    label={intl.formatMessage({ id: "settings.plugins.detail.source" })}
+                    value={intl.formatMessage({ id: selectedPluginOriginLabelId })}
+                  />
+                ) : null}
                 <PluginDetailRow
                   label={intl.formatMessage({
                     id: "settings.plugins.detail.rootPath",
@@ -874,6 +900,18 @@ function PluginList({
                 />
                 {(selectedPlugin.hookDetails ?? []).length > 0 ? (
                   <PluginHookDetails hooks={selectedPlugin.hookDetails ?? []} />
+                ) : null}
+                {(selectedPlugin.permissions?.required.length ?? 0) > 0 ||
+                (selectedPlugin.permissions?.requested.length ?? 0) > 0 ||
+                (selectedPlugin.capabilities?.requested.length ?? 0) > 0 ? (
+                  <PluginPermissionSummary
+                    requested={selectedPlugin.permissions?.requested ?? []}
+                    required={selectedPlugin.permissions?.required ?? []}
+                    capabilities={selectedPlugin.capabilities?.requested ?? []}
+                    onRevoke={() =>
+                      void revokeConsent(selectedPlugin.id, pluginManagementService)
+                    }
+                  />
                 ) : null}
                 <PluginConfigControls
                   getValue={getPluginOptionValue}
@@ -1044,6 +1082,15 @@ function PluginList({
           {renderUnavailableComputerUse()}
         </div>
       ) : null}
+      <PluginConsentDialog
+        open={consentPrompt !== null}
+        pluginName={consentPluginName}
+        permissions={consentPrompt?.permissions ?? []}
+        capabilities={consentPrompt?.capabilities ?? []}
+        pending={togglingPluginId === consentPrompt?.pluginId}
+        onCancel={dismissConsent}
+        onConfirm={() => void grantConsent(pluginManagementService)}
+      />
       <PluginUninstallConfirmDialog
         open={uninstall.pendingPlugin !== null}
         pluginName={

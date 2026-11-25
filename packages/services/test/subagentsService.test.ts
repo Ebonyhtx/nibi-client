@@ -40,10 +40,10 @@ async function writeOfficialPluginFixture(
     version,
   );
   await mkdir(join(home, ".nibi", "cli", "plugins"), { recursive: true });
-  await mkdir(join(root, ".nibi-plugin"), { recursive: true });
+  await mkdir(root, { recursive: true });
   await mkdir(join(root, "agents"), { recursive: true });
   await writeFile(
-    join(root, ".nibi-plugin", "plugin.json"),
+    join(root, "plugin.json"),
     JSON.stringify({ name: pluginName, version }),
     "utf8",
   );
@@ -120,7 +120,7 @@ describe("subagent markdown helpers", () => {
     const newRoot = await writeOfficialPluginFixture(home, "documents", "0.1.10", "visual-judge");
     const invalidRoot = await writeOfficialPluginFixture(home, "documents", "99.0", "visual-judge");
     await writeFile(
-      join(invalidRoot, ".nibi-plugin", "plugin.json"),
+      join(invalidRoot, "plugin.json"),
       JSON.stringify({ name: "wrong" }),
     );
     await writeOfficialPluginFixture(home, "documents", "99.0.backup-1", "visual-judge");
@@ -192,10 +192,10 @@ describe("subagent markdown helpers", () => {
     const workspacePath = join(home, "workspace");
     await writeOfficialPluginFixture(home, "documents", "0.1.4", "visual-judge");
     const installedRoot = join(home, "installed", "documents");
-    await mkdir(join(installedRoot, ".nibi-plugin"), { recursive: true });
+    await mkdir(installedRoot, { recursive: true });
     await mkdir(join(installedRoot, "agents"), { recursive: true });
     await writeFile(
-      join(installedRoot, ".nibi-plugin", "plugin.json"),
+      join(installedRoot, "plugin.json"),
       JSON.stringify({ name: "documents" }),
       "utf8",
     );
@@ -262,10 +262,10 @@ describe("subagent markdown helpers", () => {
     const agentId = "plugin:fixture@personal:visual-judge";
     const path = join(pluginRoot, "agents", "visual-judge.md");
     await mkdir(join(pluginRoot, "agents"), { recursive: true });
-    await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+    await mkdir(pluginRoot, { recursive: true });
     await mkdir(pluginStorage, { recursive: true });
     await writeFile(
-      join(pluginRoot, ".nibi-plugin", "plugin.json"),
+      join(pluginRoot, "plugin.json"),
       JSON.stringify({ name: "fixture" }),
     );
     const markdown =
@@ -876,7 +876,7 @@ describe("createSubagentsService", () => {
       "0.0.0",
     );
     await mkdir(join(home, ".nibi", "cli", "plugins"), { recursive: true });
-    await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+    await mkdir(pluginRoot, { recursive: true });
     await mkdir(join(pluginRoot, "agents"), { recursive: true });
     await writeFile(
       join(home, ".nibi", "cli", "config.json"),
@@ -908,7 +908,7 @@ describe("createSubagentsService", () => {
       "utf8",
     );
     await writeFile(
-      join(pluginRoot, ".nibi-plugin", "plugin.json"),
+      join(pluginRoot, "plugin.json"),
       JSON.stringify({ name: "feature-dev", description: "Feature workflow" }),
       "utf8",
     );
@@ -941,7 +941,7 @@ tools:
     expect(result.pluginAgents.every((agent) => agent.readOnly)).toBe(true);
   });
 
-  it("ignores plugin agents declared only by a legacy .claude-plugin manifest", async () => {
+  it("lists plugin agents declared only by a legacy .claude-plugin manifest", async () => {
     const home = await makeTempHome();
     const workspacePath = join(home, "workspace");
     const pluginRoot = join(
@@ -1007,7 +1007,16 @@ legacy prompt`,
 
     const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
-    expect(result.pluginAgents).toEqual([]);
+    expect(result.pluginAgents).toEqual([
+      expect.objectContaining({
+        description: "legacy agent",
+        id: "plugin:legacy-agents@claude-plugins-official:legacy-reviewer",
+        name: "legacy-agents:legacy-reviewer",
+        pluginId: "legacy-agents@claude-plugins-official",
+        pluginName: "legacy-agents",
+        source: "plugin",
+      }),
+    ]);
   });
 
   it("persists plugin agent model overrides by agent id and echoes them in list", async () => {

@@ -31,14 +31,14 @@ describe("buildWorkspaceSessionReloadPlan", () => {
       { code: -32000, message: "Authentication required" },
       {
         workspacePath: "/repo/demo",
-        provider: "glm",
+        provider: "nibi-agent",
       },
     );
 
     expect(error).toMatchObject({
       code: "WORKSPACE_PREPARE_FAILED",
       message: "Authentication required",
-      detail: "workspace=/repo/demo provider=glm reason=reload-session attempt=1/1",
+      detail: "workspace=/repo/demo provider=nibi-agent reason=reload-session attempt=1/1",
     });
   });
 

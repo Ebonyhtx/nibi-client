@@ -98,6 +98,14 @@ impl RunSink for RecordingSink {
         std::mem::take(&mut *lock(&self.steering))
     }
 
+    /// 收口前有插话就继续本轮（通知来源在别的替身里，见 `NoticeSink`）。
+    async fn take_absorbed_at_text_end(&self) -> Option<Vec<crate::hooks::Absorbed>> {
+        if lock(&self.steering).is_empty() {
+            return None;
+        }
+        Some(self.take_absorbed().await)
+    }
+
     async fn emit(&self, event: QueryEvent) -> bool {
         lock(&self.events).push(event);
         true

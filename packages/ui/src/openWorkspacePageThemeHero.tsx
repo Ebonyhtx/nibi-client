@@ -27,14 +27,14 @@ function getThemeHeroPalette(theme: Theme): ThemeHeroPalette {
     default:
       return {
         isDark: true,
-        meshBase: "#171716",
+        meshBase: "#171614",
         meshLight: "#e8c491",
         panel:
-          "bg-[linear-gradient(180deg,#1b1b1c_0%,#171716_48%,#131313_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_18%,rgba(238,240,242,0.05),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(207,168,126,0.1),transparent_34%),radial-gradient(circle_at_68%_84%,rgba(235,154,82,0.08),transparent_36%)]",
+          "bg-[linear-gradient(180deg,#1b1917_0%,#171614_48%,#131210_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_18%,rgba(243,234,216,0.05),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(207,168,126,0.1),transparent_34%),radial-gradient(circle_at_68%_84%,rgba(235,154,82,0.08),transparent_36%)]",
         glowPrimary: "bg-[#e8c491]/10 mix-blend-screen",
         glowSecondary: "bg-[#d97e6e]/8 mix-blend-screen",
-        heading: "text-[#eef0f2]",
-        description: "text-[#9aa0a8]",
+        heading: "text-[#f3ede2]",
+        description: "text-[#b9ad9a]",
       };
     case "nibi-light":
     case "light":

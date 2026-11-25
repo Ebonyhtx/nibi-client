@@ -5,7 +5,7 @@ describe("resolveBuiltinAgentCliStatus", () => {
   it("非安装型内置 provider 不依赖 settings 启用列表", () => {
     expect(
       resolveBuiltinAgentCliStatus({
-        provider: "glm",
+        provider: "nibi-agent",
         enabledProviders: [],
         enablingProvider: null,
         disablingProvider: null,

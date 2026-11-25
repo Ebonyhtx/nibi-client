@@ -3456,7 +3456,7 @@ function parseModelPickerValue(value: string): ModelSelection {
   const customModel = decodeCustomModelValue(value);
   if (customModel?.providerId && customModel.modelName) {
     // UI 下拉的 custom:provider:model 只是展示态，不能原样传给 nibi-cli。
-    // 旧解析会先按冒号截断成 custom，最终下发 glm/custom，触发 Unsupported model。
+    // 旧解析会先按冒号截断成 custom，最终下发 nibi-agent/custom，触发 Unsupported model。
     return {
       providerId: customModel.providerId,
       modelId: customModel.modelName,

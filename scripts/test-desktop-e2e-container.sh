@@ -24,9 +24,16 @@ DEFAULT_E2E_SPEC="./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./t
 # CI 上作为默认列表的一部分复跑过 7/7）。放进这个预设而不是默认 smoke：AUQ 键盘焦点两条 +
 # 会话/项目归属一条，覆盖切 Rust 内核时最容易断的两类链路（旧协议提问交互、`session/list` 谱系）。
 # 准入一条就往这里加一条，并保留它通过的运行记录。
-CONVERSATION_SESSION_VERIFIED_E2E_SPEC="./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-default-focus.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-navigation.test.ts,./test/e2e/conversation-session/conversation-session-conversation-workspace.test.ts"
+CONVERSATION_SESSION_VERIFIED_E2E_SPEC="./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-default-focus.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-navigation.test.ts,./test/e2e/conversation-session/conversation-session-conversation-workspace.test.ts,./test/e2e/conversation-session/conversation-session-plugin-marketplace-installed-roundtrip.test.ts"
 # 只有通过人工 review、formal promotion 和单 spec Docker admission 的插件用例才能写入。
-PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC=""
+PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC="./test/e2e/plugins/plugin-management-discovery-presentation.test.ts,./test/e2e/plugins/plugin-management-personal-lifecycle.test.ts,./test/e2e/plugins/plugin-management-persistence-source.test.ts,./test/e2e/plugins/plugin-management-builtin-inline.test.ts,./test/e2e/plugins/plugin-cdn-zip-marketplace-install.test.ts,./test/e2e/plugins/plugin-management-recoverable-failures.test.ts,./test/e2e/plugins/plugin-runtime-env-agent-projection.test.ts,./test/e2e/plugins/plugin-builtin-ui-uninstall.test.ts,./test/e2e/plugins/plugin-extension-ui-view.test.ts,./test/e2e/plugins/plugin-subagent-override-cold.test.ts,./test/e2e/plugins/plugin-management-ui-market.test.ts,./test/e2e/plugins/plugin-management-installed-menu-layout.test.ts,./test/e2e/plugins/plugin-store-auto-refresh-throttled.test.ts"
+# `--print-spec <preset>`：只打印预设选中的 spec 列表后退出，不检查 Docker、不启动容器。
+# macOS/Windows 的 native E2E 用它取同一份已验证集合，避免 CI 里再抄一份清单造成漂移。
+PRINT_SPEC_ONLY=0
+if [ "${1:-}" = "--print-spec" ]; then
+  PRINT_SPEC_ONLY=1
+  shift
+fi
 E2E_SPEC_PRESET="${E2E_SPEC_PRESET:-}"
 if [ "$#" -gt 1 ]; then
   printf '[desktop-e2e-container] expected at most one preset argument\n' >&2
@@ -74,6 +81,11 @@ case "$E2E_SPEC_PRESET" in
     ;;
 esac
 E2E_SPEC="${E2E_SPEC:-$PRESET_E2E_SPEC}"
+if [ "$PRINT_SPEC_ONLY" = "1" ]; then
+  # 打印的是预设本身而不是 E2E_SPEC：调用方要的是「已验证集合」，不能被环境里的单次覆盖污染。
+  printf '%s\n' "$PRESET_E2E_SPEC"
+  exit 0
+fi
 E2E_NETWORK_MODE="${E2E_NETWORK_MODE:-replay-isolated}"
 SHM_SIZE="${SHM_SIZE:-2g}"
 DEFAULT_DRIVER_CACHE_VOLUME="nibi-desktop-e2e-driver-cache-${DOCKER_PLATFORM//\//-}"

@@ -44,6 +44,71 @@ async fn installed_plugins_read_the_node_array_format() {
 }
 
 #[tokio::test]
+async fn removed_tombstones_are_not_installed_plugins() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = storage(dir.path());
+    write(
+        &root.as_path().join("installed_plugins.json"),
+        r#"{"version": 1, "plugins": [
+            {"id": "live@market", "name": "live", "marketplace": "market", "version": "1.0.0",
+             "installPath": "/Users/dev/live", "installedAt": "2026-10-01T00:00:00.000Z", "scope": "user"},
+            {"id": "gone@market", "name": "gone", "marketplace": "market", "version": "1.0.0",
+             "installPath": "/Users/dev/gone", "installedAt": "2026-10-01T00:00:00.000Z", "scope": "user",
+             "state": "removed", "removedAt": "2026-11-20T00:00:00.000Z"}
+        ]}"#,
+    )
+    .await;
+    // 墓碑保留 30 天是为了重装复用身份，不代表仍然安装：Node 的对外视图会过滤，
+    // Rust 必须同口径，否则桌面（Rust 内核）卸载后插件仍会被加载。
+    let found = installed_plugins(&root).await;
+    let ids: Vec<&str> = found.iter().map(|plugin| plugin.id.as_str()).collect();
+    assert_eq!(ids, ["live@market"]);
+}
+
+#[tokio::test]
+async fn plugin_read_root_prefers_the_materialized_view_root() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = storage(dir.path());
+    let plugin = InstalledPlugin {
+        id: "kit@market".into(),
+        install_path: "/Users/dev/kit".into(),
+        marketplace: "market".into(),
+        name: "kit".into(),
+        paid: false,
+        version: "1.2.0".into(),
+    };
+    // 视图根不存在时读安装目录（Rust CLI 可能在没被 Node 物化过的机器上直接跑）。
+    assert_eq!(plugin_read_root(&root, &plugin), PathBuf::from("/Users/dev/kit"));
+
+    // 只有目录还不够：必须含规范 `plugin.json`，否则可能是崩溃残留或别的插件目录。
+    let view_root = root.as_path().join("views").join("kit@market");
+    std::fs::create_dir_all(&view_root).unwrap();
+    assert_eq!(plugin_read_root(&root, &plugin), PathBuf::from("/Users/dev/kit"));
+
+    write(&view_root.join("plugin.json"), r#"{"name": "kit"}"#).await;
+    // 物化后两端读同一个根：Node 的 NIBI_PLUGIN_ROOT / hooks cwd 与 Rust 一致。
+    assert_eq!(plugin_read_root(&root, &plugin), view_root);
+}
+
+#[tokio::test]
+async fn plugin_read_root_rejects_dangerous_ids() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = storage(dir.path());
+    for id in ["", ".", ".."] {
+        let plugin = InstalledPlugin {
+            id: id.into(),
+            install_path: "/Users/dev/kit".into(),
+            marketplace: "market".into(),
+            name: "kit".into(),
+            paid: false,
+            version: "1.2.0".into(),
+        };
+        // 不能因为净化后的 id 是 `..` 就把读取根指到存储根之上。
+        assert_eq!(plugin_read_root(&root, &plugin), PathBuf::from("/Users/dev/kit"));
+    }
+}
+
+#[tokio::test]
 async fn installed_plugins_read_the_map_format() {
     let dir = tempfile::tempdir().unwrap();
     let root = storage(dir.path());
@@ -122,17 +187,17 @@ async fn official_roots_scan_the_cache_without_a_partition() {
     assert!(official_plugin_roots(&root).await.is_empty());
     let cache = root.as_path().join("cache/nibi-official");
     write(
-        &cache.join("nibi-guide/0.3.0/.nibi-plugin/plugin.json"),
+        &cache.join("nibi-guide/0.3.0/plugin.json"),
         "{}",
     )
     .await;
     write(
-        &cache.join("nibi-guide/0.2.0/.nibi-plugin/plugin.json"),
+        &cache.join("nibi-guide/0.2.0/plugin.json"),
         "{}",
     )
     .await;
     write(
-        &cache.join("browser-use/0.5.1/.nibi-plugin/plugin.json"),
+        &cache.join("browser-use/0.5.1/plugin.json"),
         "{}",
     )
     .await;

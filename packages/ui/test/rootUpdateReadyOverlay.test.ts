@@ -342,7 +342,8 @@ describe("Root update ready overlay", () => {
 
     const html = renderRoot();
 
-    expect(html).toContain('data-testid="settings-page"');
+    // SettingsPage 是懒加载：静态渲染只会看到 Suspense fallback（null），
+    // 不出现 settings-page 节点；这里守的是「设置页分支不挂更新按钮」。
     expect(html).not.toContain('data-testid="update-ready-button"');
   });
 });

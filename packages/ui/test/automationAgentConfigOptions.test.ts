@@ -49,7 +49,7 @@ describe("automation model/thought linkage", () => {
   it("Registry View 已发布时不再用旧 Provider 重做 entitlement 过滤", () => {
     expect(
       buildAutomationModelSelectGroups({
-        selectedProvider: "glm",
+        selectedProvider: "nibi-agent",
         labels: {},
         registrySelectionView: { revision: 1, providers: [] },
       }),
@@ -58,7 +58,7 @@ describe("automation model/thought linkage", () => {
 
   it("新建任务模型列表直接使用 Registry 已裁决的模型集合", () => {
     const groups = buildAutomationModelSelectGroups({
-      selectedProvider: "glm",
+      selectedProvider: "nibi-agent",
       labels: {},
       registrySelectionView: {
         revision: 1,

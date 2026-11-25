@@ -12,7 +12,7 @@ function Checkbox({ className, checkIconStrokeWidth, ...props }: CheckboxProps) 
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer size-4 shrink-0 rounded-sm border border-input-border bg-input text-primary-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-input-border-focused/30 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary",
+        "peer size-4 shrink-0 rounded-sm border border-input-border bg-input text-primary-foreground shadow-[var(--nibi-shadow-input-inset)] outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-out hover:border-input-border-hover focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:shadow-[var(--nibi-shadow-primary-btn)] data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:shadow-[var(--nibi-shadow-primary-btn)]",
         className,
       )}
       {...props}

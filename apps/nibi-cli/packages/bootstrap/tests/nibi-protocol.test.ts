@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { createSqliteSessionStore } from "@nibi/adapters/storage";
+import { writePluginConsent } from "@nibi/adapters/plugins";
 import {
   BUILTIN_MODEL_PROVIDER_IDS,
   NIBI_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
@@ -1746,6 +1747,9 @@ describe("NibiProtocolAgentServer", () => {
     const workspacePath = join(root, "workspace");
     // PROJECT-CONFIG：项目 plugins.dirs 必须是工作区内路径。
     const pluginRoot = join(workspacePath, "plugins", "status-plugin");
+    const previousStorageDir = process.env.NIBI_STORAGE_DIR;
+    const storageDir = join(root, "storage");
+    process.env.NIBI_STORAGE_DIR = storageDir;
     const connectedConfigs: Record<string, McpServerConfig>[] = [];
     const mcpPort = createProtocolListMcpPort(connectedConfigs);
     const server = new NibiProtocolAgentServer({
@@ -1757,7 +1761,7 @@ describe("NibiProtocolAgentServer", () => {
 
     try {
       await mkdir(join(root, ".git"));
-      await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+      await mkdir(join(pluginRoot), { recursive: true });
       await mkdir(workspacePath, { recursive: true });
       await writeFile(
         join(root, "nibi.json"),
@@ -1776,7 +1780,7 @@ describe("NibiProtocolAgentServer", () => {
         }),
       );
       await writeFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: "status-plugin",
           mcpServers: {
@@ -1786,6 +1790,13 @@ describe("NibiProtocolAgentServer", () => {
           },
         }),
       );
+      // 项目内 dirs 属于本地信任；本地 MCP 需要逐版本同意，否则会被同意门禁停用。
+      writePluginConsent({
+        permissions: ["network", "process"],
+        pluginId: "status-plugin@inline",
+        storageRoot: join(storageDir, "cli", "plugins"),
+        version: "0.0.0",
+      });
 
       const result = await requestResult(server, {
         id: 1,
@@ -1822,6 +1833,8 @@ describe("NibiProtocolAgentServer", () => {
         },
       });
     } finally {
+      if (previousStorageDir === undefined) delete process.env.NIBI_STORAGE_DIR;
+      else process.env.NIBI_STORAGE_DIR = previousStorageDir;
       await rm(root, { force: true, recursive: true });
     }
   });

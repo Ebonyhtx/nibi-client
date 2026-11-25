@@ -39,10 +39,10 @@ export function OnboardingOccupationGrid({
             disabled={saving}
             onClick={() => onSelect(value)}
             className={cn(
-              "group flex min-h-12 items-center gap-3 rounded-xl border px-3 py-3 [@media(max-height:740px)]:min-h-11 [@media(max-height:740px)]:py-2 text-left text-ui-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
+              "group flex min-h-12 items-center gap-3 rounded-xl border px-3 py-3 [@media(max-height:740px)]:min-h-11 [@media(max-height:740px)]:py-2 text-left text-ui-base transition-[border-color,background-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
               occupation === value
-                ? "border-foreground/60 bg-card-selected dark:border-foreground/50"
-                : "border-card-border bg-card hover:border-border-hover hover:bg-surface-hover dark:border-border/60 dark:bg-transparent dark:hover:bg-surface/60",
+                ? "border-primary/55 bg-card-selected shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25"
+                : "border-card-border bg-card shadow-[var(--nibi-shadow-card)] hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)]",
             )}
           >
             <Icon

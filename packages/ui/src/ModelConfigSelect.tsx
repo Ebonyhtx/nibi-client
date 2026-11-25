@@ -613,7 +613,7 @@ export const ModelConfigSelect = memo(function ModelConfigSelectComponent({
         data-composer-collapse-priority={composerOptions ? "3" : undefined}
         onClick={guideTooltipOpen ? onGuideTooltipDismiss : undefined}
         className={cn(
-          "w-fit justify-between gap-1 rounded-lg pl-2 pr-1.5 text-ui-base whitespace-nowrap",
+          "w-fit justify-between gap-1 rounded-lg border border-transparent pl-2 pr-1.5 text-ui-base whitespace-nowrap hover:border-border/60 hover:bg-surface/80 aria-expanded:border-border/75 aria-expanded:bg-card aria-expanded:shadow-2xs",
           triggerClassName,
           composerOptions && "group/combined relative",
           showSelectionLabel &&

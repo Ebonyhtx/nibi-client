@@ -69,12 +69,12 @@ export function WebRemoteControlDeviceRow({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex w-full min-w-0 items-center gap-3 pl-4 text-left text-foreground outline-none enabled:active:bg-hover focus-visible:bg-hover disabled:cursor-not-allowed"
+      className="flex w-full min-w-0 items-center gap-3.5 pl-4 text-left text-foreground transition-colors outline-none enabled:cursor-pointer enabled:hover:bg-hover/60 enabled:active:bg-hover focus-visible:bg-hover disabled:cursor-not-allowed"
     >
       <span className={dimmed ? "opacity-55" : undefined}>{leading}</span>
       <span
         className={[
-          "flex min-h-16 min-w-0 flex-1 items-center gap-2 py-3 pr-3",
+          "flex min-h-16 min-w-0 flex-1 items-center gap-2 py-3 pr-3.5",
           first ? "" : "border-t border-border",
         ].join(" ")}
       >
@@ -122,9 +122,7 @@ export function WebRemoteControlConnectionList({
             }
           >
             <span className="block truncate text-ui-base font-medium">
-              {connection.meta.version?.trim()
-                ? `NIBI ${connection.meta.version.trim()}`
-                : "NIBI"}
+              {connection.meta.version?.trim() ? `NIBI ${connection.meta.version.trim()}` : "NIBI"}
             </span>
             <span className="mt-0.5 block truncate text-ui-sm text-foreground-subtle">
               {copy.startedAgo(formatRelativeTime(connection.created_at, locale, now))}
@@ -169,18 +167,20 @@ export function WebRemoteControlConnectionSheet({
               {copy.sheetDescription(device.onlineConnections.length)}
             </BottomSheetDescription>
           </BottomSheetHeader>
-          <div className="min-h-0 overflow-y-auto">
-            <WebRemoteControlConnectionList
-              device={device}
-              locale={locale}
-              disabled={disabled}
-              now={now()}
-              onSelect={onSelect}
-            />
+          <div className="min-h-0 overflow-y-auto px-4 pt-1">
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
+              <WebRemoteControlConnectionList
+                device={device}
+                locale={locale}
+                disabled={disabled}
+                now={now()}
+                onSelect={onSelect}
+              />
+            </div>
           </div>
           <div className="px-4 pt-3">
             <BottomSheetClose asChild>
-              <Button type="button" variant="outline" className="h-11 w-full rounded-lg">
+              <Button type="button" variant="outline" className="h-11 w-full rounded-xl">
                 {copy.cancel}
               </Button>
             </BottomSheetClose>

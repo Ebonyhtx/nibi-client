@@ -33,7 +33,7 @@ vi.mock("@nibi/shared", () => ({
     binaryKind: "native-binary",
     binaryEnvVar: "NIBI_AGENT_BINARY_PATH",
     bundledResourceDir: "nibi",
-    resourcePackageDir: "glm",
+    resourcePackageDir: "nibi-agent",
     version: "0.0.0-test",
     spawnArgs: ["app-server", "--stdio"],
     nativeConfigDir: ".nibi/cli",
@@ -154,7 +154,7 @@ const originalRemoteAssetCacheDir = process.env["NIBI_REMOTE_ASSET_CACHE_DIR"];
 const originalNodeNoWarnings = process.env["NODE_NO_WARNINGS"];
 const originalNodeEnv = process.env["NODE_ENV"];
 const originalNibiRuntimeEnv = process.env["NIBI_RUNTIME_ENV"];
-const originalGlmBinaryPath = process.env["NIBI_AGENT_BINARY_PATH"];
+const originalAgentBinaryPath = process.env["NIBI_AGENT_BINARY_PATH"];
 const originalNibiBaseUrl = process.env["NIBI_BASE_URL"];
 const originalNibiEndpointOrigin = process.env["NIBI_ENDPOINT_ORIGIN"];
 const originalDynamicWorkflowMode = process.env["NIBI_DYNAMIC_WORKFLOW_MODE"];
@@ -471,10 +471,10 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       process.env[key] = value;
     }
 
-    if (originalGlmBinaryPath == null) {
+    if (originalAgentBinaryPath == null) {
       delete process.env["NIBI_AGENT_BINARY_PATH"];
     } else {
-      process.env["NIBI_AGENT_BINARY_PATH"] = originalGlmBinaryPath;
+      process.env["NIBI_AGENT_BINARY_PATH"] = originalAgentBinaryPath;
     }
     restoreEnvValue("NIBI_BASE_URL", originalNibiBaseUrl);
     restoreEnvValue("NIBI_ENDPOINT_ORIGIN", originalNibiEndpointOrigin);

@@ -1,5 +1,6 @@
 import {
   nibiPluginsConfigureParamsSchema,
+  nibiPluginsConsentParamsSchema,
   nibiPluginsResetConfigParamsSchema,
   nibiPluginsInstallParamsSchema,
   nibiPluginsMarketplaceAddParamsSchema,
@@ -9,6 +10,7 @@ import {
   nibiPluginsBootstrapParamsSchema,
   nibiPluginsListParamsSchema,
   nibiPluginsSetEnabledParamsSchema,
+  nibiPluginsAuditParamsSchema,
   nibiPluginsUninstallParamsSchema,
   nibiPluginsUpdateParamsSchema,
   nibiPluginsValidateParamsSchema,
@@ -21,6 +23,7 @@ import {
   type NibiPluginInfo,
   type NibiPluginMarketplaceSummary,
   type NibiPluginsConfigureResult,
+  type NibiPluginsConsentResult,
   type NibiPluginsDescribeResult,
   type NibiPluginsInstallResult,
   type NibiPluginsBootstrapResult,
@@ -29,14 +32,17 @@ import {
   type NibiPluginsOverviewResult,
   type NibiPluginsRestoreBuiltinResult,
   type NibiPluginsSetEnabledResult,
+  type NibiPluginsAuditResult,
   type NibiPluginsUninstallResult,
   type NibiPluginsValidateResult,
 } from "@nibi/shared";
 import type {
   Logger,
+  PluginCapabilityGrant,
   PluginDiagnostic,
   PluginLoadOutcome,
   PluginMetadata,
+  PluginPermission,
 } from "@nibi/contracts";
 import {
   addNibiPluginMarketplace,
@@ -51,11 +57,23 @@ import {
   restoreBuiltinPlugin as restoreBuiltinPluginCore,
   setNibiPluginEnabled,
   uninstallNibiMarketplacePlugin,
+  refreshNibiPluginRevocations,
   updateNibiPluginMarketplace,
   validateNibiPlugin,
   type NibiPluginsOverviewData,
 } from "../plugins.js";
-import { listInstalledPluginRecords } from "@nibi/adapters/plugins";
+import {
+  listInstalledPluginRecords,
+  readRecentPluginAuditEvents,
+  type PluginAuditEvent,
+} from "@nibi/adapters/plugins";
+import {
+  isSensitivePluginCapability,
+  revokePluginConsent,
+  revokePluginGrants,
+  writePluginConsent,
+  writePluginGrants,
+} from "@nibi/adapters/plugins";
 import { withPluginStorageLock } from "../lib/plugin-storage-lock.js";
 import { getCliStorageRoot, getPluginStorageRoot } from "../app/storage-paths.js";
 import { resolveOfficialPluginHostMcpServerNames } from "../app/official-plugin-definitions.js";
@@ -98,6 +116,8 @@ export function toPluginInfo(plugin: PluginMetadata, configResult?: ConfigResult
     enabled: plugin.enabled,
     source: plugin.source,
     marketplace: plugin.marketplace,
+    // 派生的来源只供详情页展示/诊断；协议字段 optional，旧 Host 不下发时 UI 不渲染该行。
+    origin: plugin.origin,
     // 验收合同随 list 下发，宿主门禁与插件详情页看的是同一份声明。
     ...(plugin.acceptance ? { acceptance: plugin.acceptance } : {}),
     // 只下发 problems/warnings：解析结果里的 `contract` 是宿主内部形态，
@@ -130,10 +150,21 @@ export function toPluginInfo(plugin: PluginMetadata, configResult?: ConfigResult
       pluginId: plugin.id, pluginName: plugin.name, id: surface.id, title: surface.title,
       ...(surface.icon ? { icon: surface.icon } : {}), server: surface.server,
       resourceUri: surface.resourceUri, availability: surface.availability,
+      ...(surface.slot ? { slot: surface.slot } : {}),
     })) } : {}),
     mcpServerNames: plugin.mcpServerNames,
     ...(hostMcpServerNames.length > 0 ? { hostMcpServerNames } : {}),
     hookDetails: plugin.hookDetails,
+    permissions: plugin.permissions,
+    capabilities: plugin.capabilities,
+    ...(plugin.runtime ? { hasCodeRuntime: true } : {}),
+    compatibility: plugin.adapter.compatibility,
+    skippedComponents: plugin.adapter.skipped,
+    // 完整性门禁（撤销/原生模块/包 hash）：UI 据此显示「已停用/已撤销」，
+    // 而不是把被安全拦截的插件当成用户自己关掉的。
+    ...(plugin.blockedReason ? { blockedReason: plugin.blockedReason } : {}),
+    ...(plugin.codeBlockedReason ? { codeBlockedReason: plugin.codeBlockedReason } : {}),
+    ...(plugin.packageHash ? { packageHash: plugin.packageHash } : {}),
     rootPath: plugin.rootPath,
     ...(plugin.userConfig ? { userConfig: plugin.userConfig } : {}),
     ...(Object.keys(configuredOptions).length > 0 ? { configuredOptions } : {}),
@@ -352,6 +383,65 @@ export async function setPluginEnabled(
   };
 }
 
+export async function setPluginConsent(
+  context: PluginManagementContext,
+  rawParams: unknown,
+): Promise<NibiPluginsConsentResult> {
+  const params = parseParams(nibiPluginsConsentParamsSchema, rawParams);
+  const list = await listPlugins(context, { workspace: params.workspace });
+  const plugin = list.plugins.find((item) => item.id === params.pluginId);
+  if (!plugin) {
+    throw new Error(`Plugin not found: ${params.pluginId}`);
+  }
+  // 同意与授权必须落在发现层读取的同一个存储根（config.storage.dir/cli/plugins）；
+  // workspacePath 是项目目录，不是存储根，写错会让同意记录永远读不到。
+  const storageRoot = resolvePluginStorageRoot(
+    params.workspace.workspacePath,
+    context.deps?.env,
+  );
+  const permissions = (plugin.permissions?.required ?? []) as PluginPermission[];
+  const version = plugin.version ?? "0.0.0";
+  const requestedCapabilities = plugin.capabilities?.requested ?? [];
+  const sensitiveCapabilities = requestedCapabilities.filter((grant) =>
+    isSensitivePluginCapability(grant.id),
+  );
+  if (params.granted) {
+    writePluginConsent({
+      permissions,
+      pluginId: plugin.id,
+      storageRoot,
+      version,
+    });
+    if (sensitiveCapabilities.length > 0) {
+      writePluginGrants({
+        grants: sensitiveCapabilities as PluginCapabilityGrant[],
+        pluginId: plugin.id,
+        storageRoot,
+        version,
+      });
+    }
+  } else {
+    revokePluginConsent(storageRoot, plugin.id);
+    revokePluginGrants(storageRoot, plugin.id);
+  }
+  return {
+    granted: params.granted,
+    permissions,
+    ...(plugin.capabilities
+      ? {
+          capabilities: {
+            granted: params.granted
+              ? requestedCapabilities
+              : requestedCapabilities.filter((grant) => !isSensitivePluginCapability(grant.id)),
+            requested: requestedCapabilities,
+          },
+        }
+      : {}),
+    pluginId: plugin.id,
+    version,
+  };
+}
+
 export async function getPluginsOverview(
   context: PluginManagementContext,
   rawParams: unknown,
@@ -415,14 +505,22 @@ export async function updatePluginMarketplace(
 ): Promise<NibiPluginsMarketplaceMutationResult> {
   const params = parseParams(nibiPluginsMarketplaceUpdateParamsSchema, rawParams);
   const pluginStorageRoot = resolvePluginStorageRoot(params.workspace.workspacePath);
-  const result = await withPluginStorageLock(pluginStorageRoot, async () =>
-    updateNibiPluginMarketplace({
+  const result = await withPluginStorageLock(pluginStorageRoot, async () => {
+    const updated = await updateNibiPluginMarketplace({
       abortSignal,
       logger: context.logger,
       marketplace: params.marketplace,
       workingDirectory: params.workspace.workspacePath,
-    }),
-  );
+    });
+    // 撤销列表与目录同源同签名链：刷新目录时一起刷新，否则「已下架但仍能装」的窗口
+    // 会一直延长。失败只作 warning 一并下发——门禁读的是上一份成功快照，不影响可用性。
+    const revocationDiagnostics = await refreshNibiPluginRevocations({
+      abortSignal,
+      logger: context.logger,
+      workingDirectory: params.workspace.workspacePath,
+    });
+    return { ...updated, diagnostics: [...updated.diagnostics, ...revocationDiagnostics] };
+  });
   return {
     marketplaces: result.marketplaces.map(toMarketplaceSummary),
     diagnostics: result.diagnostics.map(toPluginDiagnostic),
@@ -471,6 +569,28 @@ export async function uninstallPlugin(
     ...(removed ? { removedPlugin: toInstalledPluginSummary(removed) } : {}),
     diagnostics: [],
   };
+}
+
+/** `plugins/audit`：插件审计「最近 N 条」只读投影（不含路径/内容/参数值）。 */
+export async function listPluginAudit(
+  context: PluginManagementContext,
+  rawParams: unknown,
+): Promise<NibiPluginsAuditResult> {
+  const params = parseParams(nibiPluginsAuditParamsSchema, rawParams);
+  const pluginStorageRoot = resolvePluginStorageRoot(params.workspace.workspacePath);
+  const limit = params.limit ?? 10;
+  const events = readRecentPluginAuditEvents(pluginStorageRoot, params.pluginId ? 500 : limit)
+    .filter((event: PluginAuditEvent) => !params.pluginId || event.pluginId === params.pluginId)
+    .slice(0, limit)
+    .map((event: PluginAuditEvent) => ({
+      at: event.at,
+      type: event.type,
+      pluginId: event.pluginId,
+      ...(event.capability ? { capability: event.capability } : {}),
+      ...(event.version ? { version: event.version } : {}),
+      ...(event.permissions ? { permissions: [...event.permissions] } : {}),
+    }));
+  return { events };
 }
 
 export async function updatePlugin(
@@ -608,6 +728,8 @@ export async function describePlugin(
     components,
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
     ...(result.metadata ? { metadata: result.metadata } : {}),
+    // 安装前声明随 describe 下发；adapter 已按协议形状收窄，类型由共享 schema 校验。
+    ...(result.declaration ? { declaration: result.declaration } : {}),
   };
 }
 
@@ -693,8 +815,11 @@ function toInstalledPluginSummary(input: {
   };
 }
 
-function resolvePluginStorageRoot(workingDirectory: string): string {
-  const config = createConfig({ workingDirectory });
+export function resolvePluginStorageRoot(
+  workingDirectory: string,
+  env?: NodeJS.ProcessEnv,
+): string {
+  const config = createConfig({ env, workingDirectory });
   const storageRoot = resolvePath(config.config.storage.dir);
   return getPluginStorageRoot(getCliStorageRoot(storageRoot));
 }

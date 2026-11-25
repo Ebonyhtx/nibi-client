@@ -184,9 +184,9 @@ describe("protocol slash command surface", () => {
 
     try {
       await mkdir(commandsRoot, { recursive: true });
-      await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+      await mkdir(join(pluginRoot), { recursive: true });
       await writeFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "ralph-loop", version: "1.0.0" }),
       );
       await writeCommand(

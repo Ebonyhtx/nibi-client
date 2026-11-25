@@ -18,26 +18,25 @@ use tokio_util::sync::CancellationToken;
 use crate::Core;
 use crate::child::{ChildSink, Parent};
 use crate::context::SubagentContext;
+use crate::coordinator;
 use crate::live::{AgentState, LiveAgent};
 use crate::report::{self, Ending, Report};
 use crate::routing;
 use crate::runs::{RunInfo, Tracked};
+use crate::selection::AgentModelSelection;
 use crate::toolset::{FilteredTools, ToolRule};
 
-/// 子代理的模型：定义里的模型 ID（`inherit` 与缺省继承父运行），`effort` 参数优先于定义。provider 与账号连接
-/// （Team Plan 的团队项目，工作线 F49）都跟父运行：同一个团队项目、换一个模型。
+/// 子代理的模型：设置页覆盖（`agents-state.json`）> 定义里的 pin（`model` + `thoughtLevel`）> 继承父运行。
+/// 覆盖与 pin 都是完整选择（Provider 限定）；账号连接只在 provider 与父会话相同时沿用（Team Plan 的团队项目，
+/// 工作线 F49）。Agent 调用参数 `effort` 最后覆盖档位（NIBI 的历史行为）。
 pub(crate) fn selection(
     parent: &ModelSelection,
-    model: Option<&str>,
+    pin: Option<&AgentModelSelection>,
+    over: Option<&AgentModelSelection>,
     effort: Option<String>,
 ) -> ModelSelection {
-    let mut selection = match model.filter(|model| *model != "inherit") {
-        Some(model) => ModelSelection {
-            provider: parent.provider.clone(),
-            model: model.to_owned(),
-            reasoning: None,
-            connection: parent.connection.clone(),
-        },
+    let mut selection = match over.or(pin) {
+        Some(chosen) => chosen.selection(parent),
         None => parent.clone(),
     };
     if effort.is_some() {
@@ -395,12 +394,15 @@ pub(crate) async fn drive(
     // 重启后的终态（docs/subagent-restart-resume.md）：完成、失败与停止都写，恢复逻辑据此不再重跑
     // 用户停掉或已经结束的子代理；通知丢了时也靠它补发。写在 `TurnEnded` 之后，作为独立一批。
     let finished_at = core.ports.clock.now_ms();
+    // 失败原因与通知同一份 provider 原文；补发通知时不再退化成 `Unknown error`。
+    let failure = error.as_ref().map(QueryError::failure_message);
     let stored = Fact::Entry {
         kind: crate::restore::RESULT_ENTRY.to_owned(),
         id: agent.agent.as_str().to_owned(),
         data: serde_json::json!({
             "ending": ending.status(),
             "text": &report.text,
+            "error": &failure,
             "tokens": report.tokens,
             "toolUses": report.tool_uses,
             "durationMs": report.duration_ms,
@@ -412,7 +414,6 @@ pub(crate) async fn drive(
         tracing::warn!(agent = %agent.agent, %error, "the subagent result could not be stored");
     }
     // `Option` 的字段在 None 时不写（logging.md §2）。
-    let failure = error.as_ref().map(ToString::to_string);
     tracing::info!(
         event = "subagent.end",
         session = %agent.parent,
@@ -481,11 +482,18 @@ async fn run_loop(
             }),
         )
     } else {
+        // 子代理的控制工具（RespondToCoordinator）叠在按定义过滤之后的工具面上：定义点名的清单
+        // 不含它也照样有，deny 仍然生效（Node `appendChildControlTool`）。
+        let rule = ToolRule::new(&agent.definition, agent.background, agent.depth);
+        let filtered: Arc<dyn ToolRegistry> = Arc::new(FilteredTools {
+            inner: registry,
+            rule: rule.clone(),
+        });
+        let coordinator: Arc<dyn nibi_kernel_api::tool::Tool> = Arc::new(
+            coordinator::RespondToCoordinator::new(core.clone(), agent),
+        );
         (
-            Arc::new(FilteredTools {
-                inner: registry,
-                rule: ToolRule::new(&agent.definition, agent.background, agent.depth),
-            }),
+            Arc::new(coordinator::Tools::new(filtered, rule, coordinator)),
             Arc::new(SubagentContext {
                 inner: core.ports.context.clone(),
                 system: report::system(&agent.definition.prompt, &agent.selection),

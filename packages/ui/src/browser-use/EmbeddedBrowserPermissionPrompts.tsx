@@ -170,7 +170,7 @@ export function EmbeddedBrowserPermissionPrompts({
           {permissionPrompts.map((prompt) => (
             <div
               key={prompt.requestId}
-              className="pointer-events-auto rounded-xl border border-popover-border bg-popover p-4 shadow-md"
+              className="pointer-events-auto rounded-2xl border border-popover-border bg-popover/96 p-4 shadow-[var(--nibi-shadow-popover)] backdrop-blur-md"
               role="dialog"
               aria-label={formatMessage({ id: "browser.permission.promptAriaLabel" })}
             >
@@ -287,7 +287,7 @@ export function EmbeddedBrowserPermissionPrompts({
                         <button
                           type="button"
                           key={screen.sourceId}
-                          className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-menu-hover data-[selected=true]:bg-selected"
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-menu-hover data-[selected=true]:bg-selected data-[selected=true]:shadow-[var(--nibi-shadow-active-row)]"
                           data-selected={selection[prompt.requestId] === screen.sourceId}
                           onClick={() =>
                             setSelection((current) => ({
@@ -316,7 +316,7 @@ export function EmbeddedBrowserPermissionPrompts({
                   <button
                     type="button"
                     key={device.deviceId}
-                    className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-menu-hover data-[selected=true]:bg-selected"
+                    className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-menu-hover data-[selected=true]:bg-selected data-[selected=true]:shadow-[var(--nibi-shadow-active-row)]"
                     data-selected={selection[prompt.requestId] === device.deviceId}
                     onClick={() =>
                       setSelection((current) => ({

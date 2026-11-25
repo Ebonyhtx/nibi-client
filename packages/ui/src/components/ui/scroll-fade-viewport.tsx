@@ -88,7 +88,7 @@ export function ScrollFadeViewport({ className, children, ref, ...props }: Compo
       ref={viewportRef}
       data-scroll-mask={maskState}
       className={cn(
-        "min-h-0 flex-1 overflow-y-auto",
+        "min-h-0 flex-1 overflow-y-auto scroll-py-6",
         SCROLL_MASK_CLASS_BY_STATE[maskState],
         className,
       )}

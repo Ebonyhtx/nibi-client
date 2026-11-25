@@ -338,6 +338,10 @@ pub struct LoadedSession {
     /// 机器人来源、引用与插件来源。键是那条 user 消息；没有意图的输入不在表里（serde 缺省为空）。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub input_intents: Vec<(MessageId, serde_json::Value)>,
+    /// 已持久化的子代理调用关联（`Fact::SubagentLinked` 写进 tool part 的 `state.metadata`）：
+    /// 冷投影据此恢复父会话 timeline 的 `subagent` 行。earlier 与 messages 都算（serde 缺省为空）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub subagent_links: Vec<crate::agents::SubagentLink>,
 }
 
 /// 真人输入的规范意图 entry 的 kind：会话 actor 与消息同一批写（`Fact::Entry`），节点存储把它并进

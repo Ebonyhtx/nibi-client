@@ -1683,7 +1683,7 @@ describe("SubagentsSection", () => {
     expect(formState.selectedTools).toEqual(["Read", "Grep"]);
   });
 
-  it("preserves unknown intent and leaves an unsupported resolved effort unselected", async () => {
+  it("keeps an unsupported resolved effort visible but unavailable", async () => {
     const {
       createSubagentFormInitialState,
       isSubagentThoughtLevelAvailable,
@@ -1719,7 +1719,7 @@ describe("SubagentsSection", () => {
       modelCatalogStatus: "ready",
       thoughtLevel: initial.thoughtLevel,
     });
-    expect(supportedState.option?.currentValue).toBe("");
+    expect(supportedState.option?.currentValue).toBe("medium");
     expect(initial.thoughtLevel).toBe("medium");
     expect(isSubagentThoughtLevelAvailable(supportedState, initial.thoughtLevel)).toBe(false);
     expect(isSubagentThoughtLevelAvailable(supportedState, "high")).toBe(true);
@@ -1954,7 +1954,8 @@ describe("SubagentsSection", () => {
     expect(disabled).toMatchObject({
       kind: "supported",
       option: {
-        currentValue: "",
+        // 历史值已不在 Option Spec 里，但设置页要原样展示，用户才知道是哪条旧配置挡住保存。
+        currentValue: "high",
         options: [{ value: "disabled" }],
       },
     });

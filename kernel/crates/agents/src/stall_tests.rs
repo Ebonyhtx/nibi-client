@@ -336,6 +336,7 @@ fn a_queued_reminder_is_dropped_at_delivery_when_it_no_longer_holds() {
             from: solver.clone(),
             status: "running",
             envelope: "<background-agent-stall></background-agent-stall>".to_owned(),
+            kind: nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
             stall: Some(stamp),
         };
         live.with(|agents| {

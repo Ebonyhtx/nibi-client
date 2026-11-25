@@ -89,7 +89,7 @@ fn write(path: &Path, content: &str) {
 /// 一个插件：manifest、一个 skill、一个在 UserPromptSubmit 时写标记文件的 hook。
 fn plugin(dir: &Path, name: &str, skill: &str, marker: &str) {
     write(
-        &dir.join(".nibi-plugin/plugin.json"),
+        &dir.join("plugin.json"),
         &format!(r#"{{"name": "{name}", "version": "1.0.0"}}"#),
     );
     write(

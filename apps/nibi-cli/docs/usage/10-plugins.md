@@ -26,20 +26,27 @@ nibi plugins marketplace remove example-market
 
 ```text
 example-plugin/
-  .nibi-plugin/plugin.json
+  plugin.json
   skills/greet/SKILL.md
+  mcp.json
   commands/hello.md
 ```
 
-manifest 示例：
+根 `plugin.json` 遵循 Agent Plugins 1.0.0；NIBI 专属组件放
+`extensions["com.nibistudio.nibi"]`。manifest 示例：
 
 ```json
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "example-plugin",
   "version": "0.1.0",
   "description": "示例技能与命令",
-  "skills": "skills",
-  "commands": "commands"
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1",
+      "commands": "./commands"
+    }
+  }
 }
 ```
 
@@ -64,6 +71,16 @@ nibi commands list --json
 ```
 
 插件可携带本地可执行内容。安装前审查其 Hook、MCP 命令、依赖和数据访问范围。validate 只检查结构与诊断，不证明插件安全或所有功能可用。兼容 manifest 中的字段也不一定具有运行时实现；以加载诊断为准。
+
+## 权限与同意
+
+- 内置与官方市场插件沿用既有信任，不需要额外同意。
+- 本地目录与第三方市场插件里，只有 skills / commands / agents 的可以直接启用；出现 Hook 或 MCP 时会启动子进程，必须逐插件、逐版本显式同意 `process`（MCP 还要求 `network`）。
+- 桌面端在启用时弹同意框；CLI 用 `nibi plugins enable <plugin> --accept-permissions`。未同意时插件保持停用并给出 `plugin_consent_required` 诊断。
+- 同意记录在 `<插件存储根>/plugin-consents.json`；版本变化或权限变多需要重新确认。撤销同意后插件在下次加载时停用。
+- `full-access` 对本地/第三方插件永远不会授予；声明了也只会保留在请求列表里，不进入 required。
+- 同意与撤销写入 `<插件存储根>/plugin-audit.ndjson`，只记录插件 id、版本和权限，不记录命令或环境变量。
+- 扩展代码（`extensions["com.nibistudio.nibi"].runtime`）还受五项 NIBI Extension 能力约束：读会话、读工作区文件、打开自己的视图、读写自己的设置、发通知。读会话/读文件逐版本同意，存在 `plugin-grants.json`；详见 [插件扩展运行时](../../../../docs/plugin-extension-runtime.md)。
 
 ## 数据与复现
 

@@ -12,18 +12,21 @@ use nibi_kernel_api::tool::Tool;
 
 use crate::definitions::AgentDefinition;
 
-/// 所有子代理都不能用的工具（general-purpose 有 Agent、TaskStop、SendMessage，没有
-/// Workflow、ScheduleWakeup）。
+/// 所有子代理都不能用的工具（general-purpose 有 Agent、TaskStop，没有 Workflow、ScheduleWakeup、
+/// SendMessage）。SendMessage 是主会话的工具（docs/subagent-respond-to-coordinator.md「SendMessage
+/// 保持 main-only」）：Node 的子代理 runtime 没有 `subagentPort`，`includeSendMessage` 为假，子代理
+/// 只通过 `RespondToCoordinator` 回复 coordinator。
 const ALL_AGENT_DISALLOWED: &[&str] = &[
     "Workflow",
     "ScheduleWakeup",
     "TaskOutput",
+    "SendMessage",
     "ExitPlanMode",
     "EnterPlanMode",
     "AskUserQuestion",
 ];
 
-/// 后台子代理只能用的工具（含 SendMessage、TaskStop、Monitor）。
+/// 后台子代理只能用的工具（含 TaskStop、Monitor；没有 SendMessage）。
 const ASYNC_ALLOWED: &[&str] = &[
     "Read",
     "WebSearch",
@@ -42,7 +45,6 @@ const ASYNC_ALLOWED: &[&str] = &[
     "ToolSearch",
     "EnterWorktree",
     "ExitWorktree",
-    "SendMessage",
     "TaskStop",
     // 工作线 F83：后台子代理的白名单里有 Monitor（tools-more.md §19.1）。
     "Monitor",
@@ -79,6 +81,9 @@ impl ToolRule {
         if !mcp && ALL_AGENT_DISALLOWED.contains(&name) {
             return false;
         }
+        // RespondToCoordinator 是子代理的控制工具（Node `appendChildControlTool`）：定义的点名清单
+        // 不含它也照样给，异步白名单也不挡它；全局 / agent 的 deny 仍然生效（下面最后一步）。
+        let control = name == crate::coordinator::NAME;
         // Agent 只看深度，不受异步白名单限制（先判 Agent；后台的 general-purpose 有它）。
         // 以前后台子代理一律没有 Agent，子代理里派生的又总在前台，嵌套的后台子代理无从出现。
         let depth_allows = name != crate::agent_tool::NAME || self.depth < MAX_SPAWN_DEPTH;
@@ -87,6 +92,7 @@ impl ToolRule {
         }
         if !mcp
             && self.background
+            && !control
             && name != crate::agent_tool::NAME
             && !ASYNC_ALLOWED.contains(&name)
         {
@@ -94,6 +100,9 @@ impl ToolRule {
         }
         if self.deny.iter().any(|tool| tool == name) {
             return false;
+        }
+        if control {
+            return true;
         }
         self.allow
             .as_ref()

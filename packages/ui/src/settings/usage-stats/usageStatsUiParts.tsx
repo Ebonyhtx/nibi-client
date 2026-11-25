@@ -6,9 +6,9 @@ import { formatCompactTokenNumber } from "@/lib/tokenNumberFormat.js";
 
 export const RANGE_OPTIONS: AppUsageRange[] = ["7d", "30d"];
 export const USAGE_STATS_TABS_LIST_CLASS =
-  "flex h-7 rounded-full bg-surface p-0.5 group-data-horizontal/tabs:h-7";
+  "flex h-7 rounded-full border border-border/60 bg-surface/90 p-0.5 shadow-[var(--nibi-shadow-input-inset)] group-data-horizontal/tabs:h-7";
 export const USAGE_STATS_TABS_TRIGGER_CLASS =
-  "h-6 flex-none justify-center rounded-full border-transparent bg-transparent px-2.5 py-0 text-ui-sm font-medium text-foreground-subtle data-active:border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-background";
+  "h-6 flex-none justify-center rounded-full border-transparent bg-transparent px-2.5 py-0 text-ui-sm font-medium text-foreground-subtle data-active:border-border/70 data-active:bg-card data-active:text-foreground data-active:shadow-[var(--nibi-shadow-active-row)] dark:data-active:border-border/80 dark:data-active:bg-card";
 
 export function formatCompactNumber(locale: string, value: number): string {
   if (!Number.isFinite(value)) {
@@ -109,7 +109,7 @@ export function UsageMetricCard({
   const valueNode = (
     <div
       className={cn(
-        "truncate font-semibold text-foreground",
+        "truncate font-semibold tabular-nums text-foreground",
         valueSize === "sm"
           ? "text-ui-base"
           : valueSize === "base"
@@ -124,7 +124,7 @@ export function UsageMetricCard({
   );
 
   return (
-    <div className="min-w-0 rounded-xl bg-surface px-3.5 py-3">
+    <div className="min-w-0 rounded-xl border border-card-border bg-card px-3.5 py-3 shadow-[var(--nibi-shadow-card)]">
       <div className="flex min-w-0 items-center gap-2 text-ui-base text-foreground-subtle">
         <Icon className="size-3.5 shrink-0 text-foreground-subtle" />
         <span className="truncate">{label}</span>

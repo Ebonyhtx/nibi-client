@@ -299,7 +299,7 @@ function UserInputPresentation({
       ) : null}
       <div
         data-v4-user-input-bubble="true"
-        className="flex max-w-xl flex-col gap-2 rounded-xl rounded-tr-xs border border-border bg-surface px-4 py-3 text-ui-base text-foreground"
+        className="flex max-w-xl flex-col gap-2 rounded-2xl rounded-tr-xs border border-card-border bg-card/92 px-4 py-3 text-ui-base text-foreground shadow-[var(--nibi-shadow-card)]"
       >
         <ConversationUserInputBody contentText={row.text} rowId={row.rowId}>
           <ConversationUserInputContent
@@ -482,8 +482,8 @@ const ArtifactPresentation = memo(function ArtifactPresentation({
   return (
     // ReadonlyTurn 已提供与正文一致的水平 inset，这里再加 px-4 会让资源卡片两侧各多缩进 16px。
     <div data-conversation-share-row-kind="artifact" className="py-1">
-      <div className="flex w-full items-center gap-3 rounded-xl border border-card-border bg-card p-3 pr-4 text-foreground">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-background text-foreground-subtle">
+      <div className="flex w-full items-center gap-3 rounded-xl border border-card-border bg-card p-3 pr-4 text-foreground shadow-[var(--nibi-shadow-card)] transition-[border-color,box-shadow] duration-150 hover:border-border-hover hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:transition-none">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-border/60 bg-surface text-foreground-subtle">
           {descriptor ? (
             <FileDisplayIcon src={descriptor.fileIconSrc} size={24} />
           ) : (
@@ -502,7 +502,7 @@ const ArtifactPresentation = memo(function ArtifactPresentation({
           // data-share-preview-button 是测试断言用的结构性标记：语义锁定不依赖 Tailwind 类字符串。
           <div
             data-share-preview-button="true"
-            className="flex h-7 shrink-0 items-center overflow-hidden rounded-lg border border-border bg-input transition-all hover:border-border-hover"
+            className="flex h-7 shrink-0 items-center overflow-hidden rounded-lg border border-border bg-card shadow-2xs transition-[border-color,background-color] hover:border-border-hover hover:bg-hover"
           >
             <button
               type="button"

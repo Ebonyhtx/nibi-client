@@ -32,7 +32,7 @@
 
 Skill 按 scaffold -> optional components -> validate -> install/update 流程组织；正文路由到脚本与参考资料。脚手架使用 Node 标准库、异步 IO，默认 `<cwd>/plugins/<slug>`，名称规范化为小写连字符，目录名与 manifest 一致。已有文件默认拒绝覆盖，显式 force 才能更新选定文件；市场无关字段与条目顺序保留。组件只声明实际生成的路径。
 
-生成 ZCode `.nibi-plugin/plugin.json`；marketplace listing 承载显示名与 i18n。2026-09-17 收敛：默认交付源码、测试市场清单和手动添加/安装/更新/试用指引，由用户在界面完成市场与安装操作。普通桌面用户不需要安装 CLI 或 Node；已有开发运行时可选用辅助脚本，无运行时则使用文件工具准备源码与 JSON。检查结构、资源路径和占位符；只有已有可用开发 CLI 时才额外调用 `zcode plugins validate`，未执行时不声称协议校验通过。
+生成 Agent Plugins 1.0.0 根 `plugin.json`（NIBI 组件在 `extensions["com.nibistudio.nibi"]`）；marketplace listing 承载显示名与 i18n。2026-09-17 收敛：默认交付源码、测试市场清单和手动添加/安装/更新/试用指引，由用户在界面完成市场与安装操作。普通桌面用户不需要安装 CLI 或 Node；已有开发运行时可选用辅助脚本，无运行时则使用文件工具准备源码与 JSON。检查结构、资源路径和占位符；只有已有可用开发 CLI 时才额外调用 `nibi plugins validate`，未执行时不声称协议校验通过。
 
 ## 本地 dev 市场闭环
 
@@ -62,9 +62,9 @@ Skill 按 scaffold -> optional components -> validate -> install/update 流程�
 
 | Case | 状态/动作 | 断言 |
 | --- | --- | --- |
-| PLM-LC-018 | 中英文管理列表及搜索 | 完整 ID 关联 listing，名称/简介/反馈一致，原名与中文可搜，无翻译保留原文 |
-| PLM-LC-019 | 两处添加菜单/创建 | 两个菜单项；真实 skill chip 和尾空格；未发送；remount 恢复同一草稿 |
-| PLM-LC-020 | 添加来源成功/失败/取消 | 一次导航消费；成功个人分段；失败输入保留；取消无写入 |
+| PLM-LC-021 | 中英文管理列表及搜索 | 完整 ID 关联 listing，名称/简介/反馈一致，原名与中文可搜，无翻译保留原文 |
+| PLM-LC-022 | 两处添加菜单/创建 | 两个菜单项；真实 skill chip 和尾空格；未发送；remount 恢复同一草稿 |
+| PLM-LC-023 | 添加来源成功/失败/取消 | 一次导航消费；成功个人分段；失败输入保留；取消无写入 |
 | creator-boundary | 重复点击、切换 identity/attachment、禁用/缺失 | 仅当前目标提交一次，错误无预填/启用副作用 |
 | creator-assets | Node/SEA/Desktop/remote | manifest、skill、scripts、references 齐全且可发现 |
 | creator-scaffold | 最小、skill、MCP、hook、市场、更新 | ZCode 校验通过；非法输入、越界、重复/覆盖、TODO 被拒绝 |

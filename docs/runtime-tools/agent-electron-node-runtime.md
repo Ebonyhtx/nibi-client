@@ -36,7 +36,7 @@ esbuild `target` 从 `node26` 降到 **`node22`**，取两端运行时里最低�
 - `nibi-agent-runtime.ts`：描述符加 `nodeBundleEntryFile: "nibi.cjs"` + `resolveNodeBundleSegments()`。
 - `providerRuntimeResolver.ts`：`findZCodeAgentRuntimeNodeBundle()` 定位 `resources/nibi/nibi.cjs`。
 - `nibiAgentProcessManager.ts`：`resolveElectronRuntimeZCodeAgentCommand`，插在 monorepo dev 与 native-binary 兜底之间。
-- 打包：`prepare:agent-bundle`（`prepare-agent-node-bundle.mjs`）构建 cli、把 `nibi.cjs` stage 进 `bundled-agents/<平台>/glm/`、删掉旧原生 `nibi-agent`；`prepare:runtime-assets` 本机列表用它替换 `prepare:glm`；electron-builder 整目录拷 `resources/nibi`。
+- 打包：`prepare:agent-bundle`（`prepare-agent-node-bundle.mjs`）构建 cli、把 `nibi.cjs` stage 进 `bundled-agents/<平台>/nibi/`、删掉旧原生 `nibi-agent`；`prepare:runtime-assets` 使用它准备本机 runtime；electron-builder 整目录拷 `resources/nibi`。
 
 **远端**
 - `@nibi/server-cli stage:remote-assets` 为四个平台生成完整 archive；`runtime/nibi.cjs` 与 Server CLI/Core 使用同一 descriptor SHA 身份。
@@ -52,4 +52,4 @@ esbuild `target` 从 `node26` 降到 **`node22`**，取两端运行时里最低�
 
 ## 备注
 
-`scripts/download-glm.mjs`（下载原生二进制）与 desktop `prepare:glm` 脚本不再进入默认链路，保留作为手动兜底，未删除。
+`scripts/download-glm.mjs` 与 desktop `prepare:glm` 脚本已删除；旧原生 Agent 的下载/打包链不再存在。

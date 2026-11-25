@@ -27,6 +27,7 @@ export function listPluginUiSurfacesFromPlugins(
         server: surface.server,
         resourceUri: surface.resourceUri,
         availability: surface.availability,
+        ...(surface.slot ? { slot: surface.slot } : {}),
       });
     }
   }

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createNodePluginAdapter } from "../src/plugins/index.js";
+import { createNodePluginAdapter, writePluginConsent } from "../src/plugins/index.js";
 
 const PLUGIN_NAME = "telemetry-source-fixture";
 const MCP_RUNTIME_NAME = `plugin:${PLUGIN_NAME}:browser`;
@@ -52,14 +52,14 @@ async function discoverPluginMcp(channel: "builtin" | "official-cdn" | "inline")
   const storageRoot = join(root, "storage");
   const marketplace = channel === "inline" ? "inline" : "nibi-official";
   const pluginId = `${PLUGIN_NAME}@${marketplace}`;
-  await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+  await mkdir(join(pluginRoot), { recursive: true });
   await mkdir(storageRoot, { recursive: true });
   await writeFile(
-    join(pluginRoot, ".nibi-plugin", "plugin.json"),
+    join(pluginRoot, "plugin.json"),
     JSON.stringify({ name: PLUGIN_NAME }),
   );
   await writeFile(
-    join(pluginRoot, ".mcp.json"),
+    join(pluginRoot, "mcp.json"),
     JSON.stringify({
       mcpServers: {
         browser: { command: "node", type: "stdio" },
@@ -84,6 +84,16 @@ async function discoverPluginMcp(channel: "builtin" | "official-cdn" | "inline")
         version: 1,
       }),
     );
+  }
+
+  if (channel === "inline") {
+    // 本地 MCP 插件需要逐版本同意；本用例验证 source 归属，不验证同意流程。
+    writePluginConsent({
+      permissions: ["network", "process"],
+      pluginId,
+      storageRoot,
+      version: "0.0.0",
+    });
   }
 
   const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({

@@ -299,7 +299,7 @@ export function ExecuteToolCallBlock(context: ToolCallBlockRenderContext) {
     () => (
       <div
         data-testid="execute-detail"
-        className="space-y-3 mb-2 rounded-xl border border-border bg-panel px-4 py-3"
+        className="space-y-3 mb-2 rounded-xl border border-card-border bg-card px-4 py-3 shadow-[var(--nibi-shadow-card)]"
       >
         <div className="space-y-1">
           <div className="flex items-start gap-2 font-sans text-ui-base text-foreground">
@@ -311,13 +311,15 @@ export function ExecuteToolCallBlock(context: ToolCallBlockRenderContext) {
         </div>
 
         {context.isPermissionPreview ? null : outputPreview || failureVisibleText || resultText ? (
-          <ExecuteOutput
-            text={outputPreview?.fullText ?? failureVisibleText ?? resultText ?? ""}
-            running={isRunning}
-          />
+          <div className="border-t border-border/60 pt-2.5">
+            <ExecuteOutput
+              text={outputPreview?.fullText ?? failureVisibleText ?? resultText ?? ""}
+              running={isRunning}
+            />
+          </div>
         ) : (
           !isRunning && (
-            <div className="space-y-1">
+            <div className="space-y-1 border-t border-border/60 pt-2.5">
               <p className="font-mono text-ui-base text-foreground-subtle">
                 {intl.formatMessage({
                   id: "chat.toolCall.execute.noOutput",

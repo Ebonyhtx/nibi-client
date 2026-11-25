@@ -54,7 +54,7 @@ export function ImageEditorToolbar({
     <div
       role="toolbar"
       aria-label={intl.formatMessage({ id: "imageEditor.tools" })}
-      className="absolute bottom-14 left-1/2 z-20 flex max-w-full -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-xl border border-popover-border bg-popover p-1 shadow-md sm:bottom-auto sm:left-auto sm:right-4 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col"
+      className="absolute bottom-14 left-1/2 z-20 flex max-w-full -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-xl border border-popover-border bg-popover/95 p-1 shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-lg sm:bottom-auto sm:left-auto sm:right-4 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col"
     >
       {TOOLS.map(([value, Icon]) => (
         <Button

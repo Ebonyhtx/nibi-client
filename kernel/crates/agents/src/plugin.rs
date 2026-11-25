@@ -14,12 +14,15 @@ use nibi_kernel_api::machine::Files;
 use crate::custom::permission_mode;
 use crate::definitions::{AgentDefinition, AgentSource};
 use crate::frontmatter::{self, Value};
+use crate::selection::AgentModelSelection;
 
 /// 插件里的一个 agent 文件。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PluginAgentFile {
     /// 插件名（类型名的第一段）。
     pub plugin: String,
+    /// 稳定插件身份 `<name>@<marketplace>`（设置页覆盖的键前缀，Node `PluginMetadata.id`）。
+    pub plugin_id: String,
     /// 插件目录（`${CLAUDE_PLUGIN_ROOT}`）。
     pub root: String,
     pub path: String,
@@ -70,12 +73,10 @@ pub(crate) fn parse(raw: &str, file: &PluginAgentFile, project_dir: &str) -> Age
             || format!("Agent from {} plugin", file.plugin),
             |description| description.replace("\\n", "\n"),
         );
-    let model = text("model").map(|model| {
-        if model.eq_ignore_ascii_case("inherit") {
-            "inherit".to_owned()
-        } else {
-            model.to_owned()
-        }
+    let model = text("model");
+    let model_selection = model.and_then(|model| {
+        // `thoughtLevel` 是 Node 的正式字段；`effort` 是 NIBI 早期 Rust 写法，保留兼容。
+        AgentModelSelection::parse(model, text("thoughtLevel").or_else(|| text("effort")))
     });
     if ["hooks", "mcpServers"]
         .iter()
@@ -94,8 +95,14 @@ pub(crate) fn parse(raw: &str, file: &PluginAgentFile, project_dir: &str) -> Age
         prompt: substitute(body.trim(), &file.root, project_dir),
         source: AgentSource::Plugin,
         plugin: Some(file.plugin.clone()),
-        model,
-        effort: text("effort").map(str::to_owned),
+        model_selection,
+        model_override: None,
+        // 设置页的键：`plugin:<pluginId>:<agent 名小写>`（Node `createPluginAgentStateId`）。
+        state_id: Some(format!(
+            "plugin:{}:{}",
+            file.plugin_id,
+            name.to_lowercase()
+        )),
         max_turns: text("maxTurns")
             .and_then(|turns| turns.parse::<u32>().ok())
             .filter(|turns| *turns > 0),

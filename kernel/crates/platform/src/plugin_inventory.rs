@@ -91,6 +91,7 @@ fn map_records(id: &str, entry: &Value) -> Vec<InstalledPlugin> {
     };
     entries
         .into_iter()
+        .filter(|item| !is_removed_record(item))
         .filter_map(Value::as_object)
         .filter_map(|item| {
             let install_path = text(item, "installPath").filter(|path| !path.is_empty())?;
@@ -106,6 +107,18 @@ fn map_records(id: &str, entry: &Value) -> Vec<InstalledPlugin> {
         .collect()
 }
 
+/// 是否是卸载墓碑（Node `InstalledPluginRecord.state === "removed"`）。
+///
+/// 记录保留 30 天是为了重装复用同一条身份；但「保留记录」不等于「仍然安装」，
+/// 两个内核的读取面必须一致地把它排除。
+fn is_removed_record(value: &Value) -> bool {
+    value
+        .as_object()
+        .and_then(|object| object.get("state"))
+        .and_then(Value::as_str)
+        == Some("removed")
+}
+
 /// `installed_plugins.json` 的记录，按文件里的顺序；文件不存在或不合法时为空。
 pub async fn installed_plugins(root: &StoragePath) -> Vec<InstalledPlugin> {
     let Some(state) = read_object(&root.as_path().join(INSTALLED_PLUGINS)).await else {
@@ -116,7 +129,13 @@ pub async fn installed_plugins(root: &StoragePath) -> Vec<InstalledPlugin> {
             .iter()
             .flat_map(|(id, entry)| map_records(id, entry))
             .collect(),
-        Some(Value::Array(items)) => items.iter().filter_map(node_record).collect(),
+        // 30 天墓碑（`state: "removed"`）不是已安装：Node 的 `loadInstalledPluginsSync`
+        // 会过滤它们，Rust 必须同口径，否则桌面（Rust 内核）卸载后插件仍会被加载。
+        Some(Value::Array(items)) => items
+            .iter()
+            .filter(|item| !is_removed_record(item))
+            .filter_map(node_record)
+            .collect(),
         _ => Vec::new(),
     }
 }
@@ -146,6 +165,30 @@ pub fn installed_root(root: &StoragePath, plugin: &InstalledPlugin) -> PathBuf {
         .join(sanitize(&plugin.marketplace))
         .join(sanitize(&plugin.name))
         .join(sanitize(&plugin.version))
+}
+
+/// Node 物化的 view root 目录名（`adapters/src/plugins/view-root.ts` 的 `PLUGIN_VIEWS_DIR`）。
+const VIEWS_DIR: &str = "views";
+
+/// 已安装插件的**读取根**：优先 Node 物化的 view root，缺失时回退 `installed_root`。
+///
+/// 为什么 Rust 也要读视图根：Node 与 Rust 是两个独立读取方。如果只有 Node 读视图根，
+/// 同一个插件的 `NIBI_PLUGIN_ROOT`、hooks `cwd`、MCP 工作目录在两端会指向不同目录——
+/// 那是隐性 parity 缺口（例如按相对路径写文件的插件会出现两份状态）。
+///
+/// 只认「目录存在且含规范 `plugin.json`」的视图根；否则回退源目录。视图根缺失不会报错：
+/// Rust CLI 可能在没有 Node 物化过的机器上直接运行，此时读缓存目录是正确行为。
+pub fn plugin_read_root(root: &StoragePath, plugin: &InstalledPlugin) -> PathBuf {
+    let segment = sanitize(&plugin.id);
+    // 与 Node 一致：空串/`.`/`..` 这类危险 id 不走视图根（Node 用 hash 目录名，Rust 不复刻）。
+    if segment.is_empty() || segment == "." || segment == ".." {
+        return installed_root(root, plugin);
+    }
+    let view_root = root.as_path().join(VIEWS_DIR).join(&segment);
+    if view_root.join("plugin.json").is_file() {
+        return view_root;
+    }
+    installed_root(root, plugin)
 }
 
 /// bundled 分片里的插件目录（Node `loadBundledOfficialPluginRootsSync`）：`cachePath` 必须在

@@ -13,17 +13,26 @@ export {
   getPluginsBootstrap,
   getPluginsOverview,
   installPlugin,
+  listPluginAudit,
   listPlugins,
   removePluginMarketplace,
   resetPluginConfig,
   restoreBuiltinPlugin,
+  setPluginConsent,
   setPluginEnabled,
   toPluginInfo,
   uninstallPlugin,
   updatePlugin,
   updatePluginMarketplace,
   validatePlugin,
+  resolvePluginStorageRoot,
   type PluginManagementContext,
 } from "./nibi-protocol/plugins.js";
 export { listPluginUiSurfaces } from "./nibi-protocol/plugin-ui-surfaces.js";
+export {
+  activatePluginExtensions,
+  resolveNibiPlugins,
+  type PluginExtensionHost,
+  type PluginExtensionHostHandlers,
+} from "./plugins.js";
 export { seedOfficialPlugins } from "./plugins.js";

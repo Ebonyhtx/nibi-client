@@ -22,7 +22,7 @@ import {
   waitForPluginControl,
 } from "../../../helpers/plugin-management-lifecycle.js";
 
-describe("PLM-LC-018/019/020 本地化与插件创建入口", () => {
+describe("PLM-LC-021/022/023 本地化与插件创建入口", () => {
   after(async () => {
     await browser.electron.restoreAllMocks();
     await clearAppData();
@@ -60,7 +60,7 @@ describe("PLM-LC-018/019/020 本地化与插件创建入口", () => {
     expect(await getPluginControlText("plugin-add-menu")).not.toContain("录制");
     await clickPluginControl("plugin-create-menu-item");
     await expectCreatorDraft();
-    await capturePluginManualReview("PLM-LC-019", "store-creator-draft");
+    await capturePluginManualReview("PLM-LC-022", "store-creator-draft");
     await openPluginManagementSettings();
     await clickPluginControl("settings-back-button");
     await expectCreatorDraft(false);
@@ -104,7 +104,7 @@ describe("PLM-LC-018/019/020 本地化与插件创建入口", () => {
     const text = await getPluginControlText("plugin-add-menu");
     expect(text).toContain("Create plugin");
     expect(text).toContain("Add plugin marketplace");
-    await capturePluginManualReview("PLM-LC-020", "en-dark-narrow-add-menu");
+    await capturePluginManualReview("PLM-LC-023", "en-dark-narrow-add-menu");
     await assertPluginStoreFitsViewport();
   });
 });

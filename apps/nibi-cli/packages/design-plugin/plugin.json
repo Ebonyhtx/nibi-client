@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "design",
+  "version": "0.7.3",
+  "description": "Design workflow for UI, web, app prototypes and HTML decks, delivered as workspace files.",
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "Apache-2.0",
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1",
+      "descriptionI18n": {
+        "en": "Design workflow for UI, web, app prototypes and HTML decks, delivered as workspace files.",
+        "zh-CN": "设计工作流：UI、网页、App 原型与 HTML 演示稿，交付为工作区文件。"
+      }
+    }
+  }
+}

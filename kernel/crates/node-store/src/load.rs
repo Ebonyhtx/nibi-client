@@ -104,6 +104,11 @@ pub fn load(
             .into_iter()
             .chain(input_intents(&active))
             .collect(),
+        // 已持久化的子代理调用关联（tool part 的 `state.metadata`）：冷投影恢复 subagent 行。
+        subagent_links: crate::hydrate::subagent_links(&earlier)
+            .into_iter()
+            .chain(crate::hydrate::subagent_links(&active))
+            .collect(),
         model,
         mode: execution.map(|state| state.mode),
         plan: execution.is_some_and(|state| state.plan),

@@ -1,12 +1,4 @@
 import type { NibiTaskRuntimeStatus } from "@nibi/shared";
-import calmLoopUrl from "@/assets/nibi/companion/calm-loop.webm";
-import workingLoopUrl from "@/assets/nibi/companion/working-loop.webm";
-import calmToWorkingUrl from "@/assets/nibi/companion/calm-to-working.webm";
-import workingToCalmUrl from "@/assets/nibi/companion/working-to-calm.webm";
-import calmLoopPosterUrl from "@/assets/nibi/companion/calm-loop-poster.png";
-import workingLoopPosterUrl from "@/assets/nibi/companion/working-loop-poster.png";
-import calmToWorkingPosterUrl from "@/assets/nibi/companion/calm-to-working-poster.png";
-import workingToCalmPosterUrl from "@/assets/nibi/companion/working-to-calm-poster.png";
 import poseHeroUrl from "@/assets/nibi/companion/pose-hero.png";
 import poseIdleUrl from "@/assets/nibi/companion/pose-idle.png";
 import posePausedUrl from "@/assets/nibi/companion/pose-paused.png";
@@ -54,20 +46,6 @@ export const COMPANION_STATIONARY_STATES = new Set<CompanionSemanticState>([
   "warning",
 ]);
 
-export const COMPANION_MOTION_ASSETS = Object.freeze({
-  calmLoop: calmLoopUrl,
-  workingLoop: workingLoopUrl,
-  calmToWorking: calmToWorkingUrl,
-  workingToCalm: workingToCalmUrl,
-});
-
-export const COMPANION_MOTION_POSTERS = Object.freeze({
-  "calm-loop": calmLoopPosterUrl,
-  "working-loop": workingLoopPosterUrl,
-  "enter-transition": calmToWorkingPosterUrl,
-  "exit-transition": workingToCalmPosterUrl,
-});
-
 export const COMPANION_POSE_ASSETS: Record<CompanionPose, string> = {
   hero: poseHeroUrl,
   idle: poseIdleUrl,
@@ -75,13 +53,6 @@ export const COMPANION_POSE_ASSETS: Record<CompanionPose, string> = {
   respond: poseRespondUrl,
   fly: poseFlyUrl,
 };
-
-export const COMPANION_MOTION_PLAYBACK_RATES = Object.freeze({
-  "calm-loop": 1,
-  "working-loop": 0.82,
-  "enter-transition": 1,
-  "exit-transition": 0.82,
-});
 
 export function companionPoseForState(state: CompanionSemanticState): CompanionPose {
   return COMPANION_POSE_BY_STATE[state] ?? "hero";

@@ -174,18 +174,18 @@ export function GitGraphDialog({ open, workspacePath, onOpenChange }: GitGraphDi
             variant="ghost"
             size="icon-sm"
             aria-label={intl.formatMessage({ id: "common.close" })}
-            className="absolute right-2 top-2 z-30 bg-background/80 text-foreground-subtle hover:bg-hover hover:text-foreground [app-region:no-drag]"
+            className="absolute right-2 top-2 z-30 bg-background/80 text-foreground-subtle backdrop-blur-sm hover:bg-hover hover:text-foreground [app-region:no-drag]"
           >
             <XIcon className="size-3.5" />
           </Button>
         </DialogClose>
         {loading ? (
           <div className="flex h-full items-center justify-center bg-background text-foreground-subtle">
-            <LoaderIcon className="size-5 animate-spin" />
+            <LoaderIcon className="size-5 animate-spin motion-reduce:animate-none" />
           </div>
         ) : errorMessage ? (
           <div className="flex h-full items-center justify-center bg-background p-6">
-            <div className="max-w-md rounded-xl border border-border bg-card p-4 text-ui-base text-foreground">
+            <div className="max-w-md rounded-xl border border-card-border bg-card p-4 text-ui-base text-foreground shadow-[var(--nibi-shadow-card)]">
               <div className="flex items-start gap-3">
                 <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-warning" />
                 <p className="break-words text-foreground-subtle">{errorMessage}</p>

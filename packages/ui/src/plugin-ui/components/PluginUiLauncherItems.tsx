@@ -7,13 +7,132 @@ import { resolveItemDisplayName, resolveItemDescription } from "@/settings/plugi
 import { useEffect, type ReactNode } from "react";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
 import { PuzzleIcon, type LucideIcon } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button.js";
+import { Button, buttonVariants } from "@/components/ui/button.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { cn } from "@/components/lib/utils.js";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { OpenPluginUiSideTabRequest } from "@/plugin-ui/contract.js";
 import { resolvePluginUiSurfaceTitle } from "@/plugin-ui/adapters/usePluginUiSurfaces.js";
+import { usePluginUiSurfaces } from "@/plugin-ui/adapters/usePluginUiSurfaces.js";
+import { useOpenPluginUi } from "@/plugin-ui/adapters/PluginUiProviders.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
+
+/**
+ * `nav.primary` 插槽：主导航里挂已启用插件的入口。没有活动会话时侧栏标签页
+ * 没有可挂载的 owner，因此不显示（与 composer 槽同一规则）。
+ */
+export function PluginUiNavPrimarySlots({
+  workspacePath,
+  workspaceIdentity,
+}: {
+  workspacePath: string;
+  workspaceIdentity?: string;
+}) {
+  const openPluginUi = useOpenPluginUi();
+  const { locale, intl } = useNibiIntl();
+  const activeTaskId = useNibiSessionStore((state) => {
+    // 测试/旧宿主可能注入不完整 store；没有选择器时按「无活动会话」处理。
+    if (typeof state.getWorkspaceState !== "function") return null;
+    return state.getWorkspaceState(workspacePath, workspaceIdentity).activeTaskId ?? null;
+  });
+  const surfaces = usePluginUiSurfaces({
+    workspacePath,
+    workspaceIdentity,
+    enabled: activeTaskId !== null,
+  });
+  const slots = surfaces.filter((surface) => surface.slot === "nav.primary");
+  if (!openPluginUi || !activeTaskId || slots.length === 0) return null;
+  return (
+    <>
+      {slots.map((surface) => {
+        const title = resolvePluginUiSurfaceTitle(surface.title, locale);
+        const label =
+          title || intl.formatMessage({ id: "settings.plugins.store.ui.open" });
+        return (
+          <Button
+            key={`${surface.pluginId}:${surface.id}`}
+            type="button"
+            variant="ghost"
+            size="lg"
+            className="w-full justify-start gap-2"
+            data-testid="plugin-nav-primary-slot"
+            title={label}
+            onClick={() =>
+              openPluginUi({
+                parentSessionId: activeTaskId,
+                surfaceId: surface.id,
+                serverName: surface.server,
+                pluginId: surface.pluginId,
+                resourceUri: surface.resourceUri,
+                title: label,
+                workspacePath,
+                ...(workspaceIdentity ? { workspaceIdentity } : {}),
+              })
+            }
+          >
+            <PuzzleIcon className="size-4" aria-hidden="true" />
+            <span className="min-w-0 truncate">{label}</span>
+          </Button>
+        );
+      })}
+    </>
+  );
+}
+export function PluginUiComposerSlots({
+  workspacePath,
+  workspaceIdentity,
+  sessionId,
+}: {
+  workspacePath: string;
+  workspaceIdentity?: string;
+  sessionId: string | null;
+}) {
+  const openPluginUi = useOpenPluginUi();
+  const { locale, intl } = useNibiIntl();
+  const surfaces = usePluginUiSurfaces({
+    workspacePath,
+    workspaceIdentity,
+    enabled: sessionId !== null,
+  });
+  const slots = surfaces.filter((surface) => surface.slot === "composer.status");
+  if (!openPluginUi || !sessionId || slots.length === 0) return null;
+  return (
+    <div className="flex min-w-0 items-center gap-1" data-testid="plugin-composer-slots">
+      {slots.map((surface) => {
+        const title = resolvePluginUiSurfaceTitle(surface.title, locale);
+        const label =
+          title ||
+          intl.formatMessage({ id: "settings.plugins.store.ui.open" });
+        return (
+          <Button
+            key={`${surface.pluginId}:${surface.id}`}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 max-w-40 px-2 text-ui-sm"
+            title={label}
+            onClick={() =>
+              openPluginUi({
+                parentSessionId: sessionId,
+                surfaceId: surface.id,
+                serverName: surface.server,
+                pluginId: surface.pluginId,
+                resourceUri: surface.resourceUri,
+                title: label,
+                workspacePath,
+                ...(workspaceIdentity ? { workspaceIdentity } : {}),
+              })
+            }
+          >
+            <PuzzleIcon className="mr-1 size-3.5 shrink-0" aria-hidden="true" />
+            <span className="truncate">{label}</span>
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
 
 export interface PluginUiLauncherItemsProps {
   workspacePath: string;
@@ -230,14 +349,14 @@ export function SidePaneLauncherRow({
     <button
       type="button"
       data-side-pane-open-tab-item={itemId}
-      className="flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+      className="flex w-full min-w-0 items-center gap-3 rounded-xl border border-card-border/70 bg-card/85 px-3 py-2.5 text-left shadow-[var(--nibi-shadow-card)] transition-[background-color,border-color,box-shadow,translate] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
       onClick={onOpen}
       disabled={disabled}
       aria-busy={loading || undefined}
     >
       {/* 应用插件复用市场图标来源；固定 PuzzleIcon 会忽略已发布的品牌图片。 */}
       {avatar ?? (
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-surface">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/55 bg-surface/85 shadow-2xs">
           <Icon className="size-6 text-foreground-subtle" aria-hidden="true" />
         </span>
       )}

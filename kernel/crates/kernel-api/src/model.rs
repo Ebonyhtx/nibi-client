@@ -378,6 +378,30 @@ pub enum ModelError {
     RequestTooLarge { message: String },
 }
 
+impl ModelError {
+    /// Provider 返回的错误原文。失败通知的 `<error>`/`<summary>` 与 UI hover 用它，
+    /// 不使用 `Display` 的分类前缀；没有自由文本的分类（取消、流空闲、fallback）退回 `Display`。
+    pub fn provider_message(&self) -> String {
+        match self {
+            Self::RateLimited { message, .. }
+            | Self::Overloaded { message }
+            | Self::PromptTooLong { message }
+            | Self::Authentication { message }
+            | Self::InvalidRequest { message }
+            | Self::Network { message }
+            | Self::Server { message, .. }
+            | Self::Protocol { message }
+            | Self::QuotaExhausted { message }
+            | Self::ContentBlocked { message }
+            | Self::RequestTooLarge { message } => message.clone(),
+            Self::Cancelled
+            | Self::FallbackTriggered { .. }
+            | Self::Unsupported { .. }
+            | Self::StreamIdle { .. } => self.to_string(),
+        }
+    }
+}
+
 /// 内容拦截的说明（[`ModelError::ContentBlocked`] 的前一句；结束原因是 refusal 时主循环用它结束回合，
 /// docs/specs/rust-cli/provider-errors.md §6，修复线 F113）。
 pub const CONTENT_BLOCKED: &str =

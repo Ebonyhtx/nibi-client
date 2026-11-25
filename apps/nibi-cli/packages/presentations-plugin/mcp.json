@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "presentations": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${NIBI_PLUGIN_ROOT}/dist/server.mjs"
+      ],
+      "cwd": "${NIBI_PROJECT_DIR}",
+      "env": {
+        "NIBI_WORKSPACE_ROOT": "${NIBI_PROJECT_DIR}"
+      }
+    }
+  }
+}

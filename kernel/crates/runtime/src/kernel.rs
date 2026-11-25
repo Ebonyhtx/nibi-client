@@ -127,6 +127,7 @@ impl LocalKernel {
                 model_turns: Vec::new(),
                 input_intents: Vec::new(),
                 worktree_creations: Vec::new(),
+                subagent_links: Vec::new(),
                 draft,
             },
             Opened::Created,
@@ -715,6 +716,7 @@ impl Kernel for LocalKernel {
                 model_turns: Vec::new(),
                 input_intents: Vec::new(),
                 worktree_creations: Vec::new(),
+                subagent_links: Vec::new(),
                 draft: false,
             },
             Opened::Created,
@@ -781,6 +783,7 @@ impl Kernel for LocalKernel {
             model_turns: loaded.model_turns,
             worktree_creations: loaded.worktree_creations,
             input_intents: loaded.input_intents,
+            subagent_links: loaded.subagent_links,
             // 冷加载的会话一定已经落库（草稿没有行可加载）。
             draft: false,
         };

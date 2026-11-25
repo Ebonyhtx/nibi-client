@@ -11,7 +11,7 @@ async function migrate(options: unknown) {
         workspacePath: "/workspace",
         mode: "draft",
         activeTaskId: null,
-        draftOptions: { provider: "glm", ...(options as object) },
+        draftOptions: { provider: "nibi-agent", ...(options as object) },
         updatedAt: 1,
       },
     },

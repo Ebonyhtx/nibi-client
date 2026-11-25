@@ -391,7 +391,7 @@ export function PluginStoreCard({
       tabIndex={0}
       data-testid="plugin-store-card"
       data-plugin-id={item.id}
-      className="group/card flex min-w-0 cursor-pointer items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+      className="group/card flex min-w-0 cursor-pointer items-center gap-3 rounded-xl border border-card-border/70 bg-card/85 px-3 py-2.5 shadow-[var(--nibi-shadow-card)] transition-[background-color,border-color,box-shadow,translate] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
       onClick={open}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;

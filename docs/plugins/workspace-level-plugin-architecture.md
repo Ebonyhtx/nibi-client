@@ -406,7 +406,7 @@ UI scope/source state
 ```
 
 当前证据状态不是“全部完成”：`WPL-001` 至 `WPL-011`、`WPL-013`、`WPL-014`、`WPL-015`
-已有独立 pending spec，并在本地 macOS 上取得 targeted/replay pass。2026-08-31 使用隔离 SSH
+已有独立 pending spec，并在本地 macOS 上取得 targeted/replay pass（`WPL-015` 另于 2026-11-22 在 Windows 真机复验通过，仍 pending，未 promotion/Docker admission）。2026-08-31 使用隔离 SSH
 目标完成远程验证：`WPL-010` run `desktop-e2e-20260831-060023-004` 证明相同 path、不同
 workspace identity 的配置、catalog 与 runtime 不串；`WPL-011` run
 `desktop-e2e-20260831-054511-469` 证明连接不复制本机 package，显式 Sync 后才在 remote Host

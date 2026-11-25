@@ -421,6 +421,23 @@ impl SessionStore for MemoryStore {
             model_turns: Vec::new(),
             worktree_creations: Vec::new(),
             input_intents: Vec::new(),
+            subagent_links: facts
+                .iter()
+                .filter_map(|fact| match fact {
+                    Fact::SubagentLinked {
+                        tool_use,
+                        agent,
+                        child,
+                        agent_type,
+                    } => Some(crate::agents::SubagentLink {
+                        tool_use: tool_use.clone(),
+                        agent: agent.clone(),
+                        child: child.clone(),
+                        agent_type: agent_type.clone(),
+                    }),
+                    _ => None,
+                })
+                .collect(),
         })
     }
 

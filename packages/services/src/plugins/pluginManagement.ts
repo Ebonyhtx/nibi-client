@@ -12,6 +12,7 @@ import type {
   NibiPluginOperationProgressNotification,
   NibiPluginsBootstrapResult,
   NibiPluginsConfigureResult,
+  NibiPluginsConsentResult,
   NibiPluginsCancelOperationResult,
   NibiPluginsDescribeResult,
   NibiPluginsInstallResult,
@@ -23,6 +24,7 @@ import type {
   NibiPluginsSetEnabledResult,
   NibiPluginsUninstallResult,
   NibiPluginsValidateResult,
+  NibiWorkspaceRef,
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
@@ -36,6 +38,8 @@ import type {
   NibiAgentResolveSuggestedPluginReferenceParams,
   NibiAgentResetPluginConfigParams,
   NibiAgentPluginViewParams,
+  NibiAgentPluginsAuditParams,
+  NibiAgentPluginConsentParams,
   NibiAgentRemovePluginMarketplaceParams,
   NibiAgentRestoreBuiltinPluginParams,
   NibiAgentSetPluginEnabledParams,
@@ -44,6 +48,19 @@ import type {
   NibiAgentUpdatePluginParams,
   NibiAgentValidatePluginParams,
 } from "../nibi-agent/nibiAgentPluginParams.js";
+
+/** 扩展代码 `nibi.ui.openView` 的宿主侧事件；Host 打开面板，renderer 只消费。 */
+export interface NibiPluginUiOpenViewEvent extends NibiWorkspaceRef {
+  pluginId: string;
+  surfaceId: string;
+}
+
+/** 扩展代码 `nibi.notifications.show` 的宿主侧事件；title 已由扩展宿主校验非空。 */
+export interface NibiPluginNotificationEvent extends NibiWorkspaceRef {
+  body?: string;
+  pluginId: string;
+  title: string;
+}
 
 export interface IPluginManagementService {
   listPlugins(params: NibiAgentPluginViewParams): Promise<NibiPluginsListResult>;
@@ -62,6 +79,10 @@ export interface IPluginManagementService {
     operationId: string,
   ): Event<NibiPluginOperationProgressNotification>;
   getPluginsOverview(params: NibiAgentPluginViewParams): Promise<NibiPluginsOverviewResult>;
+  /** 插件审计「最近 N 条」（设置页详情用）：只读，按 pluginId 过滤。 */
+  getPluginsAudit(
+    params: NibiAgentPluginsAuditParams,
+  ): Promise<import("@nibi/shared").NibiPluginsAuditResult>;
   /**
    * Additive：一次返回 list + overview。Host 侧只跑一次插件 discovery；
    * 旧 Host 没有该方法，调用方按 method-not-found 回退到两个旧 RPC。
@@ -90,6 +111,16 @@ export interface IPluginManagementService {
   validatePlugin(params: NibiAgentValidatePluginParams): Promise<NibiPluginsValidateResult>;
   describePlugin(params: NibiAgentDescribePluginParams): Promise<NibiPluginsDescribeResult>;
   setPluginEnabled(params: NibiAgentSetPluginEnabledParams): Promise<NibiPluginsSetEnabledResult>;
+  setPluginConsent(params: NibiAgentPluginConsentParams): Promise<NibiPluginsConsentResult>;
+  /**
+   * 扩展代码请求打开自己的面板。Host-local backend 提供；旧 backend / 远端 agent 缺席，
+   * renderer 按“没有事件”处理，不把缺席当成已支持。
+   * 名字必须是 `onDynamic*`：RPC proxy 只有这条约定会把“返回 Event 的方法”变成订阅，
+   * 其它 onXxx 名称会被当成事件属性并把返回值序列化成非函数。
+   */
+  onDynamicPluginUiOpenView?(): Event<NibiPluginUiOpenViewEvent>;
+  /** 扩展代码发通知。缺席原因与命名约束同 `onDynamicPluginUiOpenView`。 */
+  onDynamicPluginNotification?(): Event<NibiPluginNotificationEvent>;
 }
 
 export const IPluginManagementService = createServiceDescriptor<IPluginManagementService>(

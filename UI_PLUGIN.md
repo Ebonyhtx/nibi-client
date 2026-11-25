@@ -2,6 +2,8 @@
 
 简体中文 | [English](UI_PLUGIN.en.md)
 
+> **历史设计文档（2026-07，上游 ZCode 时代）**：文中的 `zai-org/ZCode`、`feat/ui-plugin` 分支与联调步骤已不适用于当前 NIBI。当前插件 UI 与扩展运行时以 [`docs/plugin-extension-runtime.md`](docs/plugin-extension-runtime.md)、[`docs/plugins/plugin-compatibility-model.md`](docs/plugins/plugin-compatibility-model.md) 与 [`docs/plugin-platform-status-2026-11-25.md`](docs/plugin-platform-status-2026-11-25.md) 为准；本文只保留页面 API 概念与示例参考。
+
 从 Excalidraw 开始了解 UI Plugin：让 Agent 和用户共同编辑一份可保存的内容。本文覆盖当前源码中的能力、实际可用的 API、安装调试步骤与五个示例，优先按下面的路线阅读。
 
 - [先看 Excalidraw 演示](#重点示例excalidraw)

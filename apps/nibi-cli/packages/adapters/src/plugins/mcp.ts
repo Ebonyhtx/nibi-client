@@ -10,7 +10,7 @@ import type {
 } from "@nibi/contracts";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE } from "@nibi/contracts";
 import { NIBI_PLUGIN_ID_ENV_KEY } from "@nibi/shared";
-import type { LoadedPlugin } from "./types.js";
+import type { PluginManifestSource } from "./types.js";
 import { isNotFoundError, isPluginOptionValue, isRecord, resolveInside } from "./helpers.js";
 
 const SUPPORTED_MCP_TYPES = new Set(["stdio", "http", "sse"]);
@@ -19,9 +19,13 @@ const ENVIRONMENT_VARIABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export function loadPluginMcpServerDefinitions(input: {
   diagnostics: PluginDiagnostic[];
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
 }): Record<string, unknown> {
-  const fromFile = loadMcpServersFromFile(join(input.loaded.rootPath, ".mcp.json"), input);
+  // Agent Plugins 固定根 mcp.json；旧 .mcp.json 仅过渡期兜底。
+  const fromFile = {
+    ...loadMcpServersFromFile(join(input.loaded.rootPath, ".mcp.json"), input),
+    ...loadMcpServersFromFile(join(input.loaded.rootPath, "mcp.json"), input),
+  };
   const fromManifest = loadMcpServersFromSpec(input.loaded.manifest.mcpServers, input);
   return { ...fromFile, ...fromManifest };
 }
@@ -31,7 +35,7 @@ export function resolvePluginMcpServers(input: {
   definitions?: Record<string, unknown>;
   diagnostics: PluginDiagnostic[];
   env: Record<string, string | undefined>;
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
   options: PluginOptionValues;
   workingDirectory: string;
 }): Record<string, McpServerConfig> {
@@ -59,7 +63,7 @@ export function resolvePluginMcpServers(input: {
   return result;
 }
 
-function toNamespacedServerName(loaded: LoadedPlugin, serverName: string): string {
+function toNamespacedServerName(loaded: PluginManifestSource, serverName: string): string {
   return `plugin:${loaded.manifest.name}:${serverName}`;
 }
 
@@ -67,7 +71,7 @@ function loadMcpServersFromSpec(
   spec: unknown,
   input: {
     diagnostics: PluginDiagnostic[];
-    loaded: LoadedPlugin;
+    loaded: PluginManifestSource;
   },
 ): Record<string, unknown> {
   if (spec === undefined) return {};
@@ -95,7 +99,7 @@ function loadMcpServersFromFile(
   path: string,
   input: {
     diagnostics: PluginDiagnostic[];
-    loaded: LoadedPlugin;
+    loaded: PluginManifestSource;
   },
 ): Record<string, unknown> {
   try {
@@ -117,7 +121,7 @@ function normalizeMcpServersShape(
   value: unknown,
   input: {
     diagnostics: PluginDiagnostic[];
-    loaded: LoadedPlugin;
+    loaded: PluginManifestSource;
   },
 ): Record<string, unknown> {
   if (!isRecord(value)) {
@@ -137,7 +141,7 @@ function normalizeMcpServersShape(
 interface VariableContext {
   dataPath: string;
   env: Record<string, string | undefined>;
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
   options: PluginOptionValues;
   userConfigDefaults: PluginOptionValues;
   workingDirectory: string;
@@ -146,7 +150,7 @@ interface VariableContext {
 function createVariableContext(input: {
   dataPath: string;
   env: Record<string, string | undefined>;
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
   options: PluginOptionValues;
   workingDirectory: string;
 }): VariableContext {
@@ -324,11 +328,17 @@ function resolveTemplate(
   return value.replace(TEMPLATE_PATTERN, (match, name: string) => {
     switch (name) {
       case "NIBI_PLUGIN_ROOT":
+      // 外来清单的既有写法：只做只读映射，不把外来名字带进产品面。
+      case "CLAUDE_PLUGIN_ROOT":
+      case "ZCODE_PLUGIN_ROOT":
         return context.loaded.rootPath;
       case "NIBI_PLUGIN_DATA":
+      case "CLAUDE_PLUGIN_DATA":
+      case "ZCODE_PLUGIN_DATA":
         return context.dataPath;
       case "CLAUDE_PROJECT_DIR":
       case "NIBI_PROJECT_DIR":
+      case "ZCODE_PROJECT_DIR":
         return context.workingDirectory;
       case "CLAUDE_CODE_SESSION_ID":
       case "CLAUDE_SESSION_ID":

@@ -100,6 +100,9 @@ describe("toast", () => {
     expect(html).toContain("Coding Plan subscribers only");
     expect(html).toContain("Upgrade");
     expect(html).toContain('aria-label="Close"');
+    expect(html).toContain("bg-toast/92");
+    expect(html).toContain("text-ui-base");
+    expect(html).not.toContain("text-sm");
   });
 
   it("renders multiline notice copy with its action", () => {

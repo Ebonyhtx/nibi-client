@@ -4,6 +4,8 @@
   "spec": "./test/e2e/plugins/plugin-management-discovery-presentation.test.ts",
   "providerFixtures": [],
   "providerRequestPolicy": "none",
-  "fileFixtures": ["runtime-generated local marketplace under the isolated E2E home"],
+  "fileFixtures": [
+    "runtime-generated local marketplace under the isolated E2E home"
+  ],
   "requests": []
 }

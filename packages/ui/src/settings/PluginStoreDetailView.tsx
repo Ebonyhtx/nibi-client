@@ -17,7 +17,11 @@ import {
   Maximize2,
   RotateCcw,
 } from "lucide-react";
-import type { NibiPluginComponentKind, NibiPluginsDescribeResult } from "@nibi/shared";
+import type {
+  NibiPluginComponentKind,
+  NibiPluginDescribeDeclaration,
+  NibiPluginsDescribeResult,
+} from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
@@ -49,6 +53,7 @@ import {
   resolveLocalizedList,
   type StorePluginItem,
 } from "@/settings/pluginStoreListing.js";
+import { PluginPermissionSummary } from "@/settings/InstalledPluginManagement.js";
 import {
   buildInstalledPluginDisplayGroups,
   describeResultToDisplayGroups,
@@ -97,6 +102,7 @@ export function resolveExamplePromptDocumentIcon(prompt: string): ExamplePromptD
 export function PluginStoreDetailView({
   item,
   actions,
+  declaration,
   describeEntry,
   onRetryDescribe,
   onUsePrompt,
@@ -105,6 +111,8 @@ export function PluginStoreDetailView({
 }: {
   item: StorePluginItem;
   actions: PluginStoreActions;
+  /** 未安装候选由 plugins/describe 从真实包清单推导的安装前声明；缺省时整块不渲染。 */
+  declaration?: NibiPluginDescribeDeclaration;
   describeEntry?: PluginDescribeEntry;
   onRetryDescribe: () => void;
   /** 试用：标准新建任务并预填 canonical Plugin 引用 + 示例提示词（不自动发送）；未安装时先引导安装。 */
@@ -132,8 +140,8 @@ export function PluginStoreDetailView({
   const orderedGroups = SECTION_ORDER.map((kind) =>
     componentGroups.find((group) => group.kind === kind),
   ).filter((group): group is PluginComponentDisplayGroup => group !== undefined);
-  // 只有装过的插件才谈得上"组件清单"：未安装时 plugins/describe 本来就拿不到东西，
-  // 把它当失败弹警告会让人以为插件坏了。未安装一律走中性提示（安装后可查看）。
+  // 组件清单仍只在装过后展示：未安装候选虽然会 describe 取安装前声明，但组件分区
+  // 继续走中性提示（安装后可查看），避免把"尚未安装"误当成"清单加载失败"。
   const canDescribeComponents = item.installed || item.info !== undefined;
   const componentsLoading =
     canDescribeComponents && !item.info && (describeEntry?.status ?? "loading") === "loading";
@@ -193,6 +201,11 @@ export function PluginStoreDetailView({
         {description ? (
           <p data-testid="plugin-store-description" className="text-ui-base text-foreground-subtle">
             {description}
+          </p>
+        ) : null}
+        {item.info?.compatibility === "partial" || item.info?.compatibility === "detected" ? (
+          <p className="text-ui-xs text-foreground-subtle">
+            {intl.formatMessage({ id: "settings.plugins.detail.partialSupport" })}
           </p>
         ) : null}
         {item.orphaned ? (
@@ -282,6 +295,35 @@ export function PluginStoreDetailView({
           <RotateCcw className="size-3.5" aria-hidden="true" />
           {intl.formatMessage({ id: "settings.plugins.scope.restoreUserDefault" })}
         </Button>
+      ) : null}
+
+      {/* 安装前声明：只对未安装候选展示，内容来自真实包清单；缺省时整块不渲染。 */}
+      {!item.installed && !item.info && declaration ? (
+        <PluginStoreAdvancedSection>
+          {declaration.permissions.requested.length > 0 ||
+          declaration.permissions.required.length > 0 ||
+          declaration.capabilities.requested.length > 0 ? (
+            <PluginPermissionSummary
+              requested={declaration.permissions.requested}
+              required={declaration.permissions.required}
+              capabilities={declaration.capabilities.requested}
+            />
+          ) : null}
+          {declaration.hasCodeRuntime ? (
+            <p
+              data-testid="plugin-store-declaration-code-runtime"
+              className="text-ui-xs text-foreground"
+            >
+              {intl.formatMessage({ id: "settings.plugins.store.declaration.codeRuntime" })}
+            </p>
+          ) : null}
+          <p
+            data-testid="plugin-store-declaration-note"
+            className="text-ui-xs text-foreground-subtle"
+          >
+            {intl.formatMessage({ id: "settings.plugins.store.declaration.note" })}
+          </p>
+        </PluginStoreAdvancedSection>
       ) : null}
 
       {advanced}

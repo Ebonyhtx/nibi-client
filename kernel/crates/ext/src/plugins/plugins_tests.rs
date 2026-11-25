@@ -10,7 +10,7 @@ use crate::test_support::{facts, workspace};
 async fn manifest_components_and_mcp_servers() {
     let root = "/Users/dev/plugins/kit";
     let env = MemoryEnvironment::new(facts())
-        .with_file(&format!("{root}/.nibi-plugin/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${NIBI_PLUGIN_ROOT}/bin/db", "args": ["--root", "${NIBI_PLUGIN_ROOT}"]}}}"#)
+        .with_file(&format!("{root}/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${NIBI_PLUGIN_ROOT}/bin/db", "args": ["--root", "${NIBI_PLUGIN_ROOT}"]}}}"#)
         .with_file(&format!("{root}/skills/deploy/SKILL.md"), "---\ndescription: Deploy\n---\n")
         .with_file(&format!("{root}/extra/lint/SKILL.md"), "---\ndescription: Lint\n---\n")
         .with_file(&format!("{root}/agents/reviewer.md"), "---\nname: reviewer\n---\n")
@@ -124,7 +124,7 @@ async fn plugin_stdio_servers_get_the_node_variables(kit: &Plugin, root: &str) {
 async fn plugin_templates_expand_data_user_config_and_project() {
     let root = "/Users/dev/plugins/math-agent";
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{root}/.nibi-plugin/plugin.json"),
+        &format!("{root}/plugin.json"),
         r#"{"name": "math-agent", "userConfig": {"pythonMirror": {"type": "string", "default": "https://pypi.example/simple"}}, "mcpServers": {"math": {"command": "python", "args": ["${NIBI_PLUGIN_ROOT}/tools/mcp_server.py"], "cwd": "${NIBI_PROJECT_DIR}", "env": {"NIBI_MATH_ENV_DIR": "${NIBI_PLUGIN_DATA}/env", "NIBI_MATH_PYTHON_MIRROR": "${user_config.pythonMirror}", "NIBI_WORKSPACE_ROOT": "${NIBI_PROJECT_DIR}"}}}}"#,
     );
     let data_root = "/Users/dev/plugins/data";
@@ -172,7 +172,7 @@ async fn plugin_templates_expand_data_user_config_and_project() {
 async fn configured_plugin_options_override_the_manifest_defaults() {
     let root = "/Users/dev/plugins/math-agent";
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{root}/.nibi-plugin/plugin.json"),
+        &format!("{root}/plugin.json"),
         r#"{"name": "math-agent", "userConfig": {"pythonMirror": {"type": "string", "default": "https://pypi.example/simple"}}, "mcpServers": {"math": {"command": "python", "env": {"MIRROR": "${user_config.pythonMirror}"}}}}"#,
     );
     let mut options = BTreeMap::new();
@@ -201,7 +201,7 @@ async fn configured_plugin_options_override_the_manifest_defaults() {
 async fn a_missing_user_config_value_skips_the_server() {
     let root = "/Users/dev/plugins/bare-config";
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{root}/.nibi-plugin/plugin.json"),
+        &format!("{root}/plugin.json"),
         r#"{"name": "bare-config", "mcpServers": {"math": {"command": "python", "env": {"MIRROR": "${user_config.pythonMirror}"}}}}"#,
     );
     let plugins = load_all(
@@ -220,7 +220,7 @@ async fn a_missing_user_config_value_skips_the_server() {
 async fn a_sensitive_user_config_value_is_rejected_outside_sensitive_fields() {
     let root = "/Users/dev/plugins/secret";
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{root}/.nibi-plugin/plugin.json"),
+        &format!("{root}/plugin.json"),
         r#"{"name": "secret", "userConfig": {"token": {"type": "string", "sensitive": true, "default": "s3cr3t"}}, "mcpServers": {"bad": {"command": "tool", "args": ["${user_config.token}"]}, "good": {"command": "tool", "env": {"TOKEN": "${user_config.token}"}}}}"#,
     );
     let plugins = load_all(
@@ -248,7 +248,7 @@ async fn a_sensitive_user_config_value_is_rejected_outside_sensitive_fields() {
 async fn configured_env_wins_over_the_provided_variables() {
     let root = "/Users/dev/plugins/own";
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{root}/.nibi-plugin/plugin.json"),
+        &format!("{root}/plugin.json"),
         r#"{"name": "own", "mcpServers": {"db": {"command": "db", "env": {"CLAUDE_PROJECT_DIR": "/elsewhere", "TOKEN": "x"}}}}"#,
     );
     let plugins = load_all(
@@ -269,13 +269,14 @@ async fn configured_env_wins_over_the_provided_variables() {
     assert!(!env.contains_key("CLAUDE_PLUGIN_ROOT"));
 }
 
-/// G1：插件模板只展开 NIBI 变量；`${CLAUDE_PLUGIN_ROOT}` 不再被当作兼容别名。
+/// 外来插件清单用 `${CLAUDE_PLUGIN_ROOT}` / `${ZCODE_PLUGIN_ROOT}` 写根路径；
+/// 模板只读映射到同一插件根，但变量名不注入子进程环境。
 #[tokio::test]
-async fn legacy_plugin_variables_are_not_expanded() {
+async fn legacy_plugin_root_aliases_expand_in_templates_but_are_not_injected() {
     let root = "/Users/dev/plugins/legacy-vars";
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{root}/.nibi-plugin/plugin.json"),
-        r#"{"name": "legacy-vars", "mcpServers": {"db": {"command": "db", "args": ["${CLAUDE_PLUGIN_ROOT}/old", "${NIBI_PLUGIN_ROOT}/new"]}}}"#,
+        &format!("{root}/plugin.json"),
+        r#"{"name": "legacy-vars", "mcpServers": {"db": {"command": "db", "args": ["${CLAUDE_PLUGIN_ROOT}/old", "${NIBI_PLUGIN_ROOT}/new", "${ZCODE_PLUGIN_ROOT}/z"]}}}"#,
     );
     let plugins = load_all(
         &env,
@@ -285,16 +286,19 @@ async fn legacy_plugin_variables_are_not_expanded() {
     )
     .await
     .plugins;
-    let McpTransportConfig::Stdio { args, .. } = &plugins.0[0].mcp_servers[0].transport else {
+    let McpTransportConfig::Stdio { args, env, .. } = &plugins.0[0].mcp_servers[0].transport else {
         panic!("db is stdio");
     };
     assert_eq!(
         args,
         &[
-            "${CLAUDE_PLUGIN_ROOT}/old".to_owned(),
-            format!("{root}/new")
+            format!("{root}/old"),
+            format!("{root}/new"),
+            format!("{root}/z")
         ]
     );
+    assert!(!env.contains_key("CLAUDE_PLUGIN_ROOT"));
+    assert!(!env.contains_key("ZCODE_PLUGIN_ROOT"));
 }
 
 /// 插件 `commands/` 与 manifest `commands` 路径都成为自定义命令根，身份随根走。
@@ -303,7 +307,7 @@ async fn command_roots_follow_the_plugin_manifest() {
     let root = "/Users/dev/plugins/math";
     let env = MemoryEnvironment::new(facts())
         .with_file(
-            &format!("{root}/.nibi-plugin/plugin.json"),
+            &format!("{root}/plugin.json"),
             r#"{"name": "math-modeling", "commands": "commands"}"#,
         )
         .with_file(
@@ -335,7 +339,7 @@ async fn visualize_skill_roots_require_an_inline_view_host() {
     let pdf = "/Users/dev/cache/nibi-official/pdf/0.1.0";
     let env = MemoryEnvironment::new(facts())
         .with_file(
-            &format!("{visualize}/.nibi-plugin/plugin.json"),
+            &format!("{visualize}/plugin.json"),
             r#"{"name": "visualize"}"#,
         )
         .with_file(
@@ -343,7 +347,7 @@ async fn visualize_skill_roots_require_an_inline_view_host() {
             "---\ndescription: Inline views\n---\n",
         )
         .with_file(
-            &format!("{pdf}/.nibi-plugin/plugin.json"),
+            &format!("{pdf}/plugin.json"),
             r#"{"name": "pdf"}"#,
         )
         .with_file(
@@ -391,7 +395,7 @@ async fn a_third_party_visualize_plugin_is_not_filtered() {
     let root = "/Users/dev/plugins/visualize";
     let env = MemoryEnvironment::new(facts())
         .with_file(
-            &format!("{root}/.nibi-plugin/plugin.json"),
+            &format!("{root}/plugin.json"),
             r#"{"name": "visualize"}"#,
         )
         .with_file(

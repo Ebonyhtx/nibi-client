@@ -196,6 +196,7 @@ import {
   V4ComposerModelControls,
   type ModelSelectionSource,
 } from "@/v4/composer/V4ComposerToolbar.js";
+import { PluginUiComposerSlots } from "@/plugin-ui/index.js";
 import {
   resolveV4ComposerConfigPickerState,
   type V4ComposerConfigPicker,
@@ -1442,7 +1443,7 @@ function ConversationComposerImpl({
       pendingRef.current = true;
       setPending(true);
       // Bug 根因：草稿 intent 只保存用户显式改动，正常继承模型位于冻结初始化 config。
-      // prewarm snapshot 尚未到达时若只读 draftConfig，send_btn 会错误落成空模型/glm。
+      // prewarm snapshot 尚未到达时若只读 draftConfig，send_btn 会错误落成空模型/nibi-agent。
       const telemetryConfig = telemetryDraftConfig ?? snapshotRef.current?.config ?? draftConfig;
       let telemetrySeed: ConversationPromptTelemetrySeed;
       if (existingTelemetrySeed) {
@@ -2507,6 +2508,11 @@ function ConversationComposerImpl({
             />
           </span>
         ) : null}
+        <PluginUiComposerSlots
+          workspacePath={workspacePath}
+          {...(workspaceIdentity ? { workspaceIdentity } : {})}
+          sessionId={sessionId ?? null}
+        />
         {showStopControl ? (
           <ControlHintTooltip title={stopTooltipTitle} shortcut="Esc">
             <Button
@@ -2535,7 +2541,7 @@ function ConversationComposerImpl({
               onClick={handleSendButtonClick}
               data-testid={TID_V4_COMPOSER_SEND}
               aria-label={resolvedSendTooltipTitle}
-              className="cursor-pointer gap-1 rounded-lg bg-brand text-ui-base text-foreground-inverse hover:bg-brand/80"
+              className="cursor-pointer gap-1 rounded-lg bg-primary text-ui-base text-primary-foreground hover:bg-primary/90"
             >
               {pending ? <Spinner className="size-4" /> : <ArrowUpIcon className="size-4" />}
               <span className="sr-only">{resolvedSendTooltipTitle}</span>
@@ -2728,7 +2734,8 @@ function ConversationComposerImpl({
       <div
         className={cn(
           "chat-composer-input-surface relative w-full",
-          contextHeader && "rounded-2xl bg-surface shadow-xl/5",
+          contextHeader &&
+            "rounded-[1.125rem] border border-border/70 bg-surface/85 p-1 shadow-[var(--nibi-shadow-card)]",
         )}
       >
         {modelSweepKey > 0 ? (

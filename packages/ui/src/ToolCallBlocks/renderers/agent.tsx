@@ -94,8 +94,8 @@ function AgentActivitySection({
 }) {
   return (
     <section className="space-y-2">
-      <div className="rounded-lg border border-border bg-background-alt/40 flex flex-col">
-        <h4 className="p-3 text-ui-base font-medium tracking-wide text-foreground-subtlest uppercase">
+      <div className="flex flex-col overflow-hidden rounded-xl border border-card-border bg-card/85 shadow-[var(--nibi-shadow-card)]">
+        <h4 className="border-b border-border/60 bg-surface/55 px-3 py-2 text-ui-xs font-medium tracking-wide text-foreground-subtlest uppercase">
           {label}
         </h4>
         <div className="overflow-auto max-h-64" data-markdown-table-sticky-scrollbar="disabled">

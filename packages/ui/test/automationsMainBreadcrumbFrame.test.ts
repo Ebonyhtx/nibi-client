@@ -45,5 +45,6 @@ describe("AutomationsMainBreadcrumbFrame", () => {
 
     expect(screen.queryByRole("navigation")).toBeNull();
     expect(screen.getByTestId("automations-main-drag-region")).not.toBeNull();
+    expect(screen.queryByTestId("desktop-window-controls")).toBeNull();
   });
 });

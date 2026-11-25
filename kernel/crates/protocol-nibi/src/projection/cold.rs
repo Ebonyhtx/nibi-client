@@ -6,16 +6,18 @@ use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin}
 use nibi_kernel_api::session_api::{
     SequencedEvent, SessionView, TurnExecutionKind, TurnInputSource,
 };
+use nibi_kernel_api::store::SessionKind;
 use nibi_kernel_api::user_input::INTERRUPT_TEXTS;
 
 use super::{Projection, state::Phase, tool_key};
 
-/// 通知轮的来源标签集合：内核自己的（`task-notification`）与 Node 记录上的两个拼写
+/// 通知轮的来源标签集合：内核自己的（`task-notification`、`subagent_message`）与 Node 记录上的两个拼写
 /// （跨库读时 hydrate 原样保留 `background_task` / `task_notification`）。
-const NOTICE_TURN_SOURCES: [&str; 3] = [
+const NOTICE_TURN_SOURCES: [&str; 4] = [
     "task-notification",
     "background_task",
     "task_notification",
+    "subagent_message",
 ];
 
 /// 从视图的消息建行；阶段按最后一个回合与 `running` 定。
@@ -78,6 +80,15 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                     started,
                     &mut out,
                 );
+                // fresh 子会话的首轮没有上一轮可比：Node 用 source-less 基线落一条
+                // 「正在使用 provider/model」标记；主会话首轮仍然静默。
+                if turns == 1 && view.meta.kind == SessionKind::Subagent {
+                    let selection = selections
+                        .get(user.id.as_str())
+                        .copied()
+                        .unwrap_or(&view.selection);
+                    projection.append_model_initial(&turn, selection, started, 0, &mut out);
+                }
                 // 工作流控制轮（NIBI 中枢启动/设置轮，launch.md）：消息记录带 `source: "workflow_launch"`
                 // 的 user 消息按 controlOnly 重建（Node transcript-hydration 的 workflowLaunchOfMessage
                 // 同一判据）；清单里没有或元数据缺席时退回普通 agent 轮。
@@ -141,12 +152,22 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                         UserOrigin::Meta { origin_meta, .. } => origin_meta.clone(),
                         _ => None,
                     };
+                    // 子代理的 coordinator 回复（`subagent_message`）与后台通知一样是 model-only
+                    // 轮，但来源不同（Node `TurnStarted.inputSource`）。
+                    let input_source = match &user.origin {
+                        UserOrigin::Meta { source, .. }
+                            if source == nibi_kernel_api::message::SUBAGENT_MESSAGE_SOURCE =>
+                        {
+                            Some(TurnInputSource::SubagentMessage)
+                        }
+                        _ => Some(TurnInputSource::BackgroundTask),
+                    };
                     projection.start_turn(
                         &turn,
                         None,
                         None,
                         None,
-                        Some(TurnInputSource::BackgroundTask),
+                        input_source,
                         origin_meta.as_ref(),
                         started,
                         0,
@@ -166,11 +187,20 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                         is_error,
                     } = block
                     {
-                        let output = nibi_kernel_api::tool::ToolOutput {
+                        let mut output = nibi_kernel_api::tool::ToolOutput {
                             content: content.clone(),
                             is_error: *is_error,
                             display: serde_json::Value::Null,
                         };
+                        // 冷恢复没有 live 的 display：卡片载荷能从结果正文确定地重建的那两种在这里补
+                        // （`RespondToCoordinator`、`TaskOutput`，见 `display.rs`）。
+                        if !*is_error
+                            && let Some(name) = projection.tool_name(tool_use_id.as_str())
+                        {
+                            output.display =
+                                super::display::cold(&name, &super::output_text(&output))
+                                    .unwrap_or(serde_json::Value::Null);
+                        }
                         let event = SequencedEvent {
                             seq: 0,
                             event: nibi_kernel_api::session_api::KernelEvent::ToolDone {

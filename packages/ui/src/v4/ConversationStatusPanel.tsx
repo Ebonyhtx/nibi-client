@@ -6,6 +6,7 @@ import {
 import { SUBAGENT_WORKFLOW_COLOR } from "@/lib/subagentColors.js";
 import { useToolPresentationCapabilities } from "@/ToolCallBlocks/presentationCapabilities.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
+import { useSecondClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import {
   forwardRef,
   memo,
@@ -1048,21 +1049,12 @@ function BackgroundWorkStatusSection({
   works: readonly BackgroundWorkSummary[];
 }) {
   const { intl } = useNibiIntl();
-  const [now, setNow] = useState(() => Date.now());
+  // 秒级时钟共享一条 interval：三个分区 + 多侧栏不再各自起定时器。
+  const now = useSecondClock(works.length > 0);
   const orderedRunningWorks = useMemo(
     () => [...works].sort((left, right) => left.startedAt - right.startedAt),
     [works],
   );
-
-  useEffect(() => {
-    if (works.length === 0) {
-      return;
-    }
-    const timer = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [works.length]);
 
   if (works.length === 0) return null;
 
@@ -1366,14 +1358,9 @@ function WorkflowStatusSection({
   title: string;
 }) {
   const { intl } = useNibiIntl();
-  const [now, setNow] = useState(() => Date.now());
   // 只有带 startedAt 的行需要秒级刷新；一行都没有时不必让面板每秒重渲染。
   const tickingRunCount = runs.filter((run) => run.startedAt !== undefined).length;
-  useEffect(() => {
-    if (tickingRunCount === 0) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [tickingRunCount]);
+  const now = useSecondClock(tickingRunCount > 0);
 
   // 活动行与已结束计数**都**为零才收起整个分区：只按活动数开门的那一版，重启后一个 run
   // 都不在跑，于是入口连带目录页一起消失——而重启后回看被打断的 run 正是它的主要用途。
@@ -1461,17 +1448,12 @@ function SubagentStatusSection({
   subagents: readonly ConversationStatusPanelRunningSubagent[];
 }) {
   const { intl } = useNibiIntl();
-  const [now, setNow] = useState(() => Date.now());
+  const now = useSecondClock(subagents.length > 0);
   const presentation = useToolPresentationCapabilities();
   const ordered = useMemo(
     () => [...subagents].sort((left, right) => (left.startedAt ?? 0) - (right.startedAt ?? 0)),
     [subagents],
   );
-  useEffect(() => {
-    if (subagents.length === 0) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [subagents.length]);
   if (subagents.length === 0 && endedSubagentCount <= 0) return null;
   const longestElapsedMs = subagents.reduce(
     (longest, item) => Math.max(longest, Math.max(0, now - (item.startedAt ?? now))),

@@ -115,6 +115,20 @@ pub enum QueryError {
     Unsupported { what: String },
 }
 
+impl QueryError {
+    /// 失败通知与 UI hover 使用的错误原文：模型/API 错误取 provider 返回的 message，
+    /// 不附加 `rate limited:` / `server error 500:` 这类内核分类前缀（Node
+    /// `selectExecutionErrorMessage` 同样只保留最内层原文）。没有 provider 原文的
+    /// 错误（取消、存储、未实现）退回 `Display`。
+    pub fn failure_message(&self) -> String {
+        match self {
+            Self::Api { message } => message.clone(),
+            Self::Model(error) => error.provider_message(),
+            Self::Store(_) | Self::Unsupported { .. } => self.to_string(),
+        }
+    }
+}
+
 /// 主循环的输出端，由会话 actor 实现（子代理、压缩各有自己的实现）。
 ///
 /// 提交屏障：`commit_message` 与 `commit_intent` 在存储事务成功后才返回，主循环拿到 `Ok` 才继续
@@ -184,6 +198,15 @@ pub trait RunSink: Interactions {
     /// 工具边界并入的插话与通知，按到达顺序（L18，query.md §5）。缺省：先插话、后通知。
     async fn take_absorbed(&self) -> Vec<Absorbed> {
         Absorbed::ordered(self.take_steered().await, self.take_notices().await)
+    }
+
+    /// 文本轮收口前的并入（Node 的 active-loop 在 text-only 收口后仍会读一次 priority <= next 的
+    /// command snapshot）：**只有批里有插话（guide 输入）** 时才交出这一批并沿同一轮继续；只有通知
+    /// 时返回 None，通知留在通道里，由会话在回合结束后开 model-only 轮（query.md §5）。
+    ///
+    /// 缺省不继续（测试替身与只看一次运行的输出端）。
+    async fn take_absorbed_at_text_end(&self) -> Option<Vec<Absorbed>> {
+        None
     }
 
     /// 会话现在的权限模式；主循环每一步与每次工具调用前读一次，工具改过的模式在同一回合里立即

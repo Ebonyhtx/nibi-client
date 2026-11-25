@@ -10,6 +10,7 @@ use nibi_kernel_api::permission::PermissionMode;
 
 use crate::definitions::{AgentDefinition, AgentSource};
 use crate::frontmatter::{self, Value};
+use crate::selection::AgentModelSelection;
 
 struct Reader<'a> {
     files: &'a dyn Files,
@@ -105,15 +106,16 @@ pub(crate) fn parse(raw: &str, source: AgentSource) -> Option<AgentDefinition> {
     let when_to_use = text("description")
         .filter(|description| !description.is_empty())?
         .replace("\\n", "\n");
-    let model = text("model")
-        .filter(|model| !model.is_empty())
-        .map(|model| {
-            if model.eq_ignore_ascii_case("inherit") {
-                "inherit".to_owned()
-            } else {
-                model.to_owned()
-            }
-        });
+    let model_selection = text("model").and_then(|model| {
+        // `thoughtLevel` 是 Node 的正式字段；`effort` 是 NIBI 早期 Rust 写法，保留兼容。
+        AgentModelSelection::parse(model, text("thoughtLevel").or_else(|| text("effort")))
+    });
+    // 设置页只按用户级键停用 agent（Node `createAgentStateId` 的 `user:user:<name 小写>`）；
+    // 项目级 agent 不受 disabledAgentIds 控制。
+    let state_id = match source {
+        AgentSource::User => Some(format!("user:user:{}", agent_type.to_lowercase())),
+        AgentSource::Project | AgentSource::BuiltIn | AgentSource::Plugin => None,
+    };
     Some(AgentDefinition {
         agent_type,
         when_to_use,
@@ -122,8 +124,9 @@ pub(crate) fn parse(raw: &str, source: AgentSource) -> Option<AgentDefinition> {
         prompt: body.trim().to_owned(),
         source,
         plugin: None,
-        model,
-        effort: text("effort").map(str::to_owned),
+        model_selection,
+        model_override: None,
+        state_id,
         max_turns: text("maxTurns")
             .and_then(|turns| turns.parse::<u32>().ok())
             .filter(|turns| *turns > 0),

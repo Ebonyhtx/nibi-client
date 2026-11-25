@@ -359,9 +359,9 @@ export async function startAgent(
       demo?: { serverScript: string; resourceUri: string; surface: string },
     ) {
       const pluginRoot = join(workspacePath, "editor-plugin");
-      await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+      await mkdir(pluginRoot, { recursive: true });
       await writeFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: "background-editor",
           mcpServers: {

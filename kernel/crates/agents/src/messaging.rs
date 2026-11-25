@@ -94,23 +94,29 @@ impl Messaging {
             .await;
             return Ok(text_output(text, false));
         };
-        if self.core.live.enqueue(&id, input.message.clone()) {
-            let text = format!(
-                "Message queued for delivery to {} at its next tool round.",
-                input.to
-            );
-            return Ok(text_output(text, false));
+        // 中途投递的正文与 Node `formatSubagentCoordinatorMessage` 同形：有 summary 时
+        // `summary`、空行、`message`（子代理按 coordinator_steer 写法收到）。
+        let body = match input.summary.as_deref().map(str::trim) {
+            Some(summary) if !summary.is_empty() => {
+                format!("{summary}\n\n{}", input.message)
+            }
+            _ => input.message.clone(),
+        };
+        let active = |uuid: String| {
+            format!(
+                "Message msg_{uuid} was sent to its active turn for local agent {}.",
+                agent.agent.as_str()
+            )
+        };
+        if self.core.live.enqueue(&id, body.clone()) {
+            return Ok(text_output(active(self.core.ports.ids.uuid()), false));
         }
         // 已结束：在后台续跑子会话。
         let status = agent.status();
         if !self.core.live.restart(&id, Abort::new()) {
             // 并发的另一条消息刚刚让它跑起来：排进邮箱。
-            self.core.live.enqueue(&id, input.message.clone());
-            let text = format!(
-                "Message queued for delivery to {} at its next tool round.",
-                input.to
-            );
-            return Ok(text_output(text, false));
+            self.core.live.enqueue(&id, body);
+            return Ok(text_output(active(self.core.ports.ids.uuid()), false));
         }
         let origin = nibi_kernel_api::message::UserOrigin::Human;
         let opening = match spawn::resume(&self.core, &agent, &input.message, origin).await {

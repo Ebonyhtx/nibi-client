@@ -555,6 +555,8 @@ where
         config.permission_rules(local, crate::args::cli_rules(&[], &[], Vec::new())),
     );
     let kernel = Arc::new(kernel);
+    // 设置页的子代理模型覆盖（`agents-state.json`）：每次取 agent 定义都重读，改完立即生效。
+    kernel.set_agent_state_source(crate::agent_state::source(paths.root()));
     // 会话控制（8 个模型工具）的拥有者端口：桌面 app-server 入口接同一条实现。
     // 另带“内核直接建会话”的 Host 通知器：CreateSession/ForkSession 建完立刻补 tasks-index；
     // 归档 reader 让 ForkSession 在创建子会话前拒绝 App 任务索引里已归档的目标。

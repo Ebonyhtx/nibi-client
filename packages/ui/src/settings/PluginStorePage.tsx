@@ -23,10 +23,10 @@ import { resolvePluginUiSurfaceTitle } from "@/plugin-ui/index.js";
 import type { CreateTaskRequest } from "@/app-shell/types.js";
 import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/nibiDraftSkillInvalidation.js";
 import { refreshSharedSkillStoreForWorkspace } from "@/lib/skillStoreRefresh.js";
-import { reloadWorkspaceRuntimeAfterPluginChange } from "@/lib/pluginRuntimeReload.js";
 import {
   PluginDetailRow,
   PluginHookDetails,
+  PluginPermissionSummary,
   PluginWarningList,
 } from "@/settings/InstalledPluginManagement.js";
 import { AddMarketplaceSourceDialog } from "@/settings/AddMarketplaceSourceDialog.js";
@@ -44,13 +44,19 @@ import {
   resolveItemDisplayName,
   resolvePluginDisplayName,
   resolvePluginEnableScope,
+  resolvePluginOriginLabelId,
   type StorePluginItem,
 } from "@/settings/pluginStoreListing.js";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
-import { PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
+import { PluginConsentDialog, PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
 import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { resolvePluginErrorMessage } from "@/settings/pluginErrorMessage.js";
+import {
+  PluginAuditList,
+  PluginAuditSectionHeader,
+  usePluginAudit,
+} from "@/settings/PluginAuditList.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
 import {
   nibiMembershipAllowsPaidPlugins,
@@ -136,6 +142,10 @@ export function PluginStorePage({
   const restoreBuiltin = usePluginManagementStore((state) => state.restoreBuiltin);
   const setEnabled = usePluginManagementStore((state) => state.setEnabled);
   const togglingPluginId = usePluginManagementStore((state) => state.togglingPluginId);
+  const consentPrompt = usePluginManagementStore((state) => state.consentPrompt);
+  const grantConsent = usePluginManagementStore((state) => state.grantConsent);
+  const revokeConsent = usePluginManagementStore((state) => state.revokeConsent);
+  const dismissConsent = usePluginManagementStore((state) => state.dismissConsent);
 
   const [view, setView] = useState<PluginStoreView>("store");
   const operationService = useMemo(() => {
@@ -225,6 +235,10 @@ export function PluginStorePage({
     ],
   );
   const itemById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
+  const consentItem = consentPrompt ? itemById.get(consentPrompt.pluginId) : undefined;
+  const consentPluginName = consentItem
+    ? resolveItemDisplayName(consentItem, locale)
+    : (consentPrompt?.pluginId ?? "");
   const detailItem = detailPluginId ? (itemById.get(detailPluginId) ?? null) : null;
   // 会员专享插件的 UX 门禁（宿主机仍是最终门禁）：未开通/已到期时直接弹开通页，
   // 不再让用户先去市场顶部找入口。缓存非可用时先强制在线检查一次——
@@ -321,17 +335,42 @@ export function PluginStorePage({
   ]);
   // 插件自身 warning 诊断（如声明的技能路径扫描为空）：详情高级区展示，避免静默失败。
   const detailPluginInfo = detailItem?.info;
+  // 来源行只对已发现插件展示；旧 Host 不下发 origin 时整行不渲染。
+  const detailPluginOriginLabelId = detailPluginInfo
+    ? resolvePluginOriginLabelId(detailPluginInfo.origin)
+    : undefined;
   const detailPluginWarnings = detailPluginInfo
     ? pluginDiagnostics.filter(
         (diagnostic) =>
           diagnostic.pluginId === detailPluginInfo.id && diagnostic.severity === "warning",
       )
     : [];
+  // 审计只在详情打开、且插件已被发现时拉取；缺失（未安装候选）时整块不渲染。
+  const loadDetailPluginAudit = useCallback(
+    async (pluginId: string) => {
+      // 没有工作区就没有插件存储根（审计按 workspace 解析），直接返回空而不是打一个必然失败的请求。
+      if (!workspacePath) return [];
+      const result = await pluginManagementService.getPluginsAudit({
+        pluginId,
+        limit: 10,
+        workspaceIdentity: normalizedWorkspaceIdentity ?? undefined,
+        workspacePath,
+      });
+      return result.events;
+    },
+    [normalizedWorkspaceIdentity, pluginManagementService, workspacePath],
+  );
+  const detailPluginAudit = usePluginAudit({
+    enabled: view === "detail" && Boolean(detailPluginInfo),
+    load: detailPluginInfo ? loadDetailPluginAudit : undefined,
+    pluginId: detailPluginInfo?.id,
+  });
 
-  // 详情页数据补齐：已安装但还没有运行时信息的条目按需 describe，拿组件清单 + manifest 回退字段。
-  // 未安装的候选不调 describe：本地没有插件根目录，只会稳定失败，把详情页变成"组件清单加载失败"。
+  // 详情页数据补齐：已安装但还没有运行时信息的条目按需 describe，拿组件清单 + manifest 回退字段；
+  // 未安装的候选也要 describe，从真实包清单取得安装前声明。该调用可能 clone/下载插件源，
+  // 慢且依赖网络；失败或缺省时详情页不渲染任何声明占位。
   useEffect(() => {
-    if (view !== "detail" || !detailItem || !detailItem.installed || detailItem.info) return;
+    if (view !== "detail" || !detailItem || (detailItem.installed && detailItem.info)) return;
     void describePlugin(
       detailItem.id,
       detailItem.name,
@@ -425,7 +464,10 @@ export function PluginStorePage({
       workspaceIdentity: normalizedWorkspaceIdentity,
       skillsService,
     });
-  }, [normalizedWorkspaceIdentity, skillsService, workspacePath]);
+    // 生效边界：内核在建会话时取插件快照，当前会话的工具/命令集合不会热更新。
+    // 不提示的话，用户装完插件回到旧会话敲 `/命令` 会得到「没有匹配」。
+    toast(intl.formatMessage({ id: "settings.plugins.effect.newSession" }));
+  }, [intl, normalizedWorkspaceIdentity, skillsService, workspacePath]);
 
   const uninstall = usePluginUninstall({
     store: usePluginManagementStore,
@@ -501,14 +543,16 @@ export function PluginStorePage({
     async (source: string) => {
       const succeeded = await addMarketplace(source, operationService);
       // 添加市场源的错误要和提交入口同层展示；否则全局错误条会被 Dialog 遮罩压到下面。
+      // 走与页面错误条同一个解析：已知的诊断按界面语言出文案，其余原文回退。
+      const state = usePluginManagementStore.getState();
       setAddMarketplaceError(
-        succeeded ? null : (usePluginManagementStore.getState().error ?? null),
+        succeeded ? null : resolvePluginErrorMessage(intl, state.error, state.errorCode),
       );
       // 自定义市场不属于公开分段；添加成功后直接切到「个人」，让用户立刻看到刚加的来源。
       if (succeeded) setSegment("personal");
       return succeeded;
     },
-    [addMarketplace, operationService],
+    [addMarketplace, intl, operationService],
   );
 
   const handleUsePrompt = useCallback(
@@ -528,6 +572,8 @@ export function PluginStorePage({
           );
           if (enabled) return true;
           const state = usePluginManagementStore.getState();
+          // 同意弹窗已给出下一步；不要再叠一条失败 toast。
+          if (state.consentPrompt?.pluginId === item.id) return false;
           // 启用被会员门禁拒绝（缓存尚未刷新）时回到开通页，不能只弹一条 toast。
           if (state.error && /会员|membership/i.test(state.error)) {
             setMembershipOpen(true);
@@ -609,12 +655,16 @@ export function PluginStorePage({
         // 已安装的会员插件在到期后“启用/使用”同样先弹开通页。
         void (async () => {
           if (enabled && (await requireMembership(itemById.get(pluginId)))) return;
-          await setEnabled(
+          const succeeded = await setEnabled(
             pluginId,
             enabled,
             operationService,
             resolvePluginEnableScope(itemById.get(pluginId)),
           );
+          // 启停只对新会话生效：当前会话仍拿着旧快照，需要把边界讲清楚。
+          if (succeeded) {
+            toast(intl.formatMessage({ id: "settings.plugins.effect.newSession" }));
+          }
         })();
       },
       onInstall: (item) => void handleInstall(item),
@@ -634,6 +684,7 @@ export function PluginStorePage({
       setEnabled,
       togglingPluginId,
       embedded,
+      intl,
       itemById,
       requireMembership,
     ],
@@ -821,6 +872,11 @@ export function PluginStorePage({
           item={detailItem}
           actions={actions}
           describeEntry={describeCache[detailItem.id]}
+          declaration={
+            describeCache[detailItem.id]?.status === "loaded"
+              ? describeCache[detailItem.id]?.data?.declaration
+              : undefined
+          }
           onRetryDescribe={() =>
             void describePlugin(
               detailItem.id,
@@ -875,12 +931,49 @@ export function PluginStorePage({
                       <PluginWarningList warnings={detailPluginWarnings} />
                     </div>
                   ) : null}
+                  {detailPluginOriginLabelId ? (
+                    <PluginDetailRow
+                      label={intl.formatMessage({ id: "settings.plugins.detail.source" })}
+                      value={intl.formatMessage({ id: detailPluginOriginLabelId })}
+                    />
+                  ) : null}
+                  {detailPluginInfo?.packageHash ? (
+                    <PluginDetailRow
+                      label={intl.formatMessage({ id: "settings.plugins.detail.packageHash" })}
+                      value={detailPluginInfo.packageHash}
+                    />
+                  ) : null}
+                  {detailPluginInfo ? (
+                    <div className="space-y-2">
+                      <PluginAuditSectionHeader />
+                      <PluginAuditList
+                        events={detailPluginAudit.events}
+                        status={detailPluginAudit.status}
+                      />
+                    </div>
+                  ) : null}
+                  {detailPluginInfo?.codeBlockedReason ? (
+                    <PluginDetailRow
+                      label={intl.formatMessage({ id: "settings.plugins.detail.codeBlockedReason" })}
+                      value={detailPluginInfo.codeBlockedReason.message}
+                    />
+                  ) : null}
                   <PluginDetailRow
                     label={intl.formatMessage({ id: "settings.plugins.detail.rootPath" })}
                     value={detailItem.info.rootPath}
                   />
                   {(detailItem.info.hookDetails ?? []).length > 0 ? (
                     <PluginHookDetails hooks={detailItem.info.hookDetails ?? []} />
+                  ) : null}
+                  {(detailItem.info.permissions?.required.length ?? 0) > 0 ||
+                  (detailItem.info.permissions?.requested.length ?? 0) > 0 ||
+                  (detailItem.info.capabilities?.requested.length ?? 0) > 0 ? (
+                    <PluginPermissionSummary
+                      requested={detailItem.info.permissions?.requested ?? []}
+                      required={detailItem.info.permissions?.required ?? []}
+                      capabilities={detailItem.info.capabilities?.requested ?? []}
+                      onRevoke={() => void revokeConsent(detailItem.id, operationService)}
+                    />
                   ) : null}
                 </PluginStoreAdvancedSection>
               </div>
@@ -972,6 +1065,15 @@ export function PluginStorePage({
         onAddMarketplace={handleAddMarketplace}
         activeOperations={activeOperations}
         error={addMarketplaceError}
+      />
+      <PluginConsentDialog
+        open={consentPrompt !== null}
+        pluginName={consentPluginName}
+        permissions={consentPrompt?.permissions ?? []}
+        capabilities={consentPrompt?.capabilities ?? []}
+        pending={togglingPluginId === consentPrompt?.pluginId}
+        onCancel={dismissConsent}
+        onConfirm={() => void grantConsent(operationService)}
       />
       <NibiMembershipDialog
         open={membershipOpen}

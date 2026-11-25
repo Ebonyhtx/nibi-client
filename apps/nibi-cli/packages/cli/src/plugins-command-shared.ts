@@ -45,6 +45,7 @@ export interface PluginsCommandDependencies extends PluginsCommandOverrides {
 
 /** `nibi plugins` 子命令专属旗标；由 run.ts 的全局解析器收集后原样透传。 */
 export interface PluginsCommandFlags {
+  acceptPermissions?: boolean;
   all?: boolean;
   available?: boolean;
   keepData?: boolean;

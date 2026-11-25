@@ -559,7 +559,7 @@ export function createDefaultWorkspaceState(
 const DEFAULT_WORKSPACE_STATE = createDefaultWorkspaceState(FALLBACK_PROVIDER);
 
 export function getDefaultWorkspaceState(): WorkspaceNibiUIState {
-  // 单 Nibi Agent 迁移后默认 provider 必须收敛到 glm。
+  // 单 Nibi Agent 迁移后默认 provider 必须收敛到 nibi-agent。
   // 这里返回稳定引用，避免未写入 workspace bucket 的连续 selector 读取产生不同快照。
   return DEFAULT_WORKSPACE_STATE;
 }

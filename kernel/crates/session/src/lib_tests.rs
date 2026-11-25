@@ -312,6 +312,7 @@ async fn asking_session_with(
             model_turns: Vec::new(),
             input_intents: Vec::new(),
             worktree_creations: Vec::new(),
+            subagent_links: Vec::new(),
             draft: false,
         },
         Opened::Created,

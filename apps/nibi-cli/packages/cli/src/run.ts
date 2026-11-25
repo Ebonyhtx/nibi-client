@@ -68,6 +68,7 @@ const pluginsCommandFlags = (
 ): PluginsCommandFlags => ({
   ...(values.all === true ? { all: true } : {}),
   ...(values.available === true ? { available: true } : {}),
+  ...(values["accept-permissions"] === true ? { acceptPermissions: true } : {}),
   ...(values["keep-data"] === true ? { keepData: true } : {}),
   ...(typeof values.scope === "string" ? { scope: values.scope } : {}),
   ...(Array.isArray(values.sparse) ? { sparse: values.sparse as string[] } : {}),

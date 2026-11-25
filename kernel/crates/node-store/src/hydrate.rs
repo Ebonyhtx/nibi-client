@@ -14,7 +14,8 @@
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
-use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::agents::SubagentLink;
+use nibi_kernel_api::ids::{AgentId, MessageId, SessionId, ToolUseId};
 use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL, StopReason,
     ToolResultContent, Usage, UserMessage, UserOrigin,
@@ -68,6 +69,33 @@ pub fn hydrate(active: &[Cow<'_, WithParts>]) -> Vec<Message> {
 
 fn visible_text(part: &Value) -> bool {
     part["type"] == "text" && part["ignored"] != true
+}
+
+/// 已持久化的子代理调用关联：tool part 的 `state.metadata`（`Fact::SubagentLinked`，见
+/// [`crate::tool_parts::link`]）。冷投影据此恢复父会话的 `subagent` 行；Node 自己写的记录同样可读。
+pub fn subagent_links(active: &[Cow<'_, WithParts>]) -> Vec<SubagentLink> {
+    let mut out = Vec::new();
+    for record in active {
+        for part in tool_parts::selected(&record.parts) {
+            let metadata = &part["state"]["metadata"];
+            let text = |key: &str| metadata[key].as_str().filter(|value| !value.is_empty());
+            let (Some(call), Some(child), Some(agent), Some(agent_type)) = (
+                part["callID"].as_str().filter(|value| !value.is_empty()),
+                text("childSessionId"),
+                text("agentId"),
+                text("agentType"),
+            ) else {
+                continue;
+            };
+            out.push(SubagentLink {
+                tool_use: ToolUseId::new(call),
+                agent: AgentId::new(agent),
+                child: SessionId::new(child),
+                agent_type: agent_type.to_owned(),
+            });
+        }
+    }
+    out
 }
 
 /// Node `textPartToProviderText` 的非合成分支：`/init` 与自定义命令的模型输入在 `metadata.modelInput`。

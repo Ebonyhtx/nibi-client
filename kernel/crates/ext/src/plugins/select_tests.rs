@@ -12,7 +12,7 @@ const OFFICIAL: &str = "nibi-official";
 const CACHE: &str = "/Users/dev/.nibi/cli/plugins/cache";
 
 fn manifest(dir: &str, body: &str) -> (String, String) {
-    (format!("{dir}/.nibi-plugin/plugin.json"), body.to_owned())
+    (format!("{dir}/plugin.json"), body.to_owned())
 }
 
 fn env(files: &[(String, String)]) -> MemoryEnvironment {
@@ -333,7 +333,7 @@ async fn installed_paid_records_prune_the_official_cache_copy_too() {
 }
 
 #[tokio::test]
-async fn sources_other_than_the_command_line_need_a_valid_manifest() {
+async fn sources_other_than_the_command_line_need_a_recognized_manifest() {
     let files = [
         (
             "/Users/dev/bare/skills/x/SKILL.md".to_owned(),
@@ -365,17 +365,15 @@ async fn sources_other_than_the_command_line_need_a_valid_manifest() {
     };
     let session = [EnvPath::new("/Users/dev/session")];
     let loaded = load_all(&env(&files), &workspace(), &session, &sources).await;
-    // `--plugin-dir` 没有 manifest 时取目录名；其余来源必须有 NIBI 自有 manifest，
-    // 只有 .claude-plugin/.codex-plugin 的目录不再被发现。
-    assert_eq!(names(&loaded), ["session"]);
+    // `--plugin-dir` 没有 manifest 时取目录名；其余来源必须有可识别 manifest。
+    // 根 plugin.json、.codex-plugin、.claude-plugin、.zcode-plugin 都是只读适配格式。
+    assert_eq!(names(&loaded), ["session", "codex-kit", "claude-kit"]);
     let reasons: Vec<&SkipReason> = loaded.skipped.iter().map(|s| &s.reason).collect();
     assert!(matches!(
         reasons.as_slice(),
         [
             SkipReason::ManifestMissing,
             SkipReason::ManifestInvalid(_),
-            SkipReason::ManifestMissing,
-            SkipReason::ManifestMissing,
             SkipReason::RootMissing
         ]
     ));

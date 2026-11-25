@@ -12,7 +12,9 @@ export {
   type PluginUiRowPinResolver,
 } from "./domain/pluginUiRowPolicy.js";
 export {
+  createPluginUiDerivationCache,
   deriveLogicalUiInstances,
+  type PluginUiDerivationCache,
   type PluginUiInstanceDerivation,
 } from "./domain/pluginUiInstancePolicy.js";
 export {
@@ -27,6 +29,7 @@ export {
   type PluginUiModelContext,
 } from "./domain/pluginUiModelContext.js";
 export {
+  PluginExtensionUiBridge,
   PluginUiWorkspaceProvider,
   PluginUiSessionProvider,
   useOpenPluginUi,
@@ -38,7 +41,9 @@ export { PluginUiModelContextChip } from "./adapters/PluginUiModelContextChip.js
 export { PluginUiFollowUpDialogHost } from "./components/PluginUiFollowUpDialogHost.js";
 export { PluginUiSidePane } from "./PluginUiSidePane.js";
 export {
+  PluginUiComposerSlots,
   PluginUiLauncherItems,
+  PluginUiNavPrimarySlots,
   SidePaneLauncherRow,
   buildPluginUiLauncherItemId,
 } from "@/plugin-ui/components/PluginUiLauncherItems.js";

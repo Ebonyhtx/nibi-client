@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applyTheme, loadThemePreference } from "@/useTheme.js";
+import { applyTheme, applyThemeWithTransition, loadThemePreference } from "@/useTheme.js";
 import { NIBI_PREFS_KEY, NIBI_PREFS_VERSION } from "@/lib/nibiStorage.js";
 
 beforeEach(() => {
@@ -109,5 +109,35 @@ describe("loadThemePreference", () => {
       version: NIBI_PREFS_VERSION,
       theme: "nibi-dark",
     });
+  });
+});
+
+describe("applyThemeWithTransition", () => {
+  it("吞掉 startViewTransition skipped rejection，不抛出 unhandledRejection", async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => {
+      unhandled.push(reason);
+    };
+    process.on("unhandledRejection", onUnhandled);
+    const originalStartViewTransition = document.startViewTransition;
+    document.startViewTransition = ((update: () => void) => {
+      update();
+      return {
+        ready: Promise.reject(new Error("Transition was skipped")),
+        finished: Promise.reject(new Error("Transition was skipped")),
+        updateCallbackDone: Promise.resolve(),
+        skipTransition: () => {},
+      } as unknown as ViewTransition;
+    }) as typeof document.startViewTransition;
+
+    try {
+      applyThemeWithTransition("nibi-dark");
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(document.documentElement.classList.contains("theme-nibi-dark")).toBe(true);
+      expect(unhandled).toEqual([]);
+    } finally {
+      document.startViewTransition = originalStartViewTransition;
+      process.off("unhandledRejection", onUnhandled);
+    }
   });
 });

@@ -34,18 +34,20 @@ export function SidePaneTerminalPane({
   }, []);
 
   return (
-    <section className="h-full min-h-0 overflow-hidden bg-background p-3">
-      <TerminalSession
-        sessionId={sessionId}
-        persistentKey={sessionId}
-        workspaceKey={workspaceKey}
-        services={services}
-        cwd={cwd}
-        isVisible={isVisible}
-        isWindowsDesktop={isWindowsDesktop}
-        onShellLabelChange={handleShellLabelChange}
-        onOpenBrowserUrl={onOpenBrowserUrl}
-      />
+    <section className="h-full min-h-0 overflow-hidden bg-background p-2.5">
+      <div className="h-full w-full overflow-hidden rounded-xl border border-border/75 bg-terminal-bg p-1.5 shadow-[var(--nibi-shadow-card)]">
+        <TerminalSession
+          sessionId={sessionId}
+          persistentKey={sessionId}
+          workspaceKey={workspaceKey}
+          services={services}
+          cwd={cwd}
+          isVisible={isVisible}
+          isWindowsDesktop={isWindowsDesktop}
+          onShellLabelChange={handleShellLabelChange}
+          onOpenBrowserUrl={onOpenBrowserUrl}
+        />
+      </div>
     </section>
   );
 }

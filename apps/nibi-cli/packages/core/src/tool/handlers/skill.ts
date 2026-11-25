@@ -68,6 +68,9 @@ export const skillHandler: ToolHandler = async (input, context) => {
     { signal: context.abortSignal },
   );
 
+  // 执行期复核：发现层只在会话创建时裁剪一次，会员中途到期时技能仍在内存里。
+  // 必须在返回正文之前拦——返回之后模型已经拿到内容，再报错没有意义。
+  context.assertPluginExecutionAllowed?.(loaded.metadata.pluginId ?? "");
   context.recordSkillTelemetryMetadata?.({
     name: loaded.metadata.name,
     ...(loaded.metadata.qualifiedName ? { qualifiedName: loaded.metadata.qualifiedName } : {}),

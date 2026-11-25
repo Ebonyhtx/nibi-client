@@ -1131,9 +1131,10 @@ R3 内删除或禁用的可运行路径：
 
 2026-09-29 视觉收尾：平铺项目导航上线后，删除无生产引用的 `WorkspaceSourceGroupHeader` 及设备分组/折叠偏好辅助函数与旧专属测试；`getWorkspaceSourceServerId` 及精确 legacy alias 解析继续保留。此清理不触及下列 R4 兼容链。
 
-R3 保留源码但已从生产入口不可达、R4 再物理删除：
+2026-11-21 更新：NIBI 无存量用户，R2 旧部署链已物理删除（`connect.ts`、`deploy.ts`、`nibiAgentDeploy.ts`、`remoteAssetCache.ts`、`remoteAssetDeployDecision.ts`、`remoteAssetLiveIdentity.ts`、`runtimeToolDeploy.ts`、`nibiAgentWrapperDeploy.ts`、`nibiAgentOfficialPluginPermissionRepair.ts`、`remoteDeployLock.ts`、`nibiAgentBundleWrapper.ts`、`nibiAgentDevDeploy.ts` 及其测试），不再保留 R2 回滚/迁移窗口。Source Server 只走 descriptor/archive。
 
-- `packages/server/src/remote/connect.ts`（及 `handshake.ts`、`stdio-socket.ts` 直接旧链依赖）、`deploy.ts`（及仍被它静态调用的 `remoteAssetDeployDecision.ts`、`nibiAgentDeploy.ts`）与 `packages/server/src/entry-stdio.ts`。R3 先通过删除 `/api/connect-remote` 和 Desktop 旧调用方切断运行路径，保留一个迁移窗口用于 R2 回滚/升级排查，避免在主链稳定期混入大范围历史模块删除；`pnpm dep:refs` 已确认后两者仍有生产调用方，不能按死代码删除；
+R4 仍需删除：
+
 - `buildRemoteWorkspaceIdentity` 的 SSH/WSL/Docker 构造。Host 仍在没有历史精确值时用它生成 `legacyRouteHint`，它不是正式 stable identity；随 R4 删除 hint 时一并删除；
 - 旧连接记录（`lastWorkspaceSession` remote entry、`remote-workspace:*` credential key）的读取与解析；
 - `parseRemoteWorkspaceIdentity` 对 `remote:ssh/wsl/docker:*` 的解析（远端迁移扫描用）；

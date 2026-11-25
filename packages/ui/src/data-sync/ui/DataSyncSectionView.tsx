@@ -78,9 +78,9 @@ function CategoryTab({
       aria-controls="settings-data-sync-panel"
       data-testid={`settings-data-sync-category-tab-${id}`}
       onClick={() => onSelect(id)}
-      className={`flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-ui-base font-medium transition-colors ${
+      className={`flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-ui-base font-medium transition-[background-color,color,box-shadow] duration-150 ${
         active
-          ? "bg-background text-foreground shadow-sm"
+          ? "bg-card text-foreground shadow-[var(--nibi-shadow-active-row)]"
           : "text-foreground-subtle hover:text-foreground"
       }`}
     >
@@ -271,7 +271,7 @@ function CategoryPanel({ state, busy }: { state: DataSyncCategoryController; bus
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
           {state.rows.map((row) => (
             <DataSyncRowItem
               key={row.key}
@@ -286,7 +286,7 @@ function CategoryPanel({ state, busy }: { state: DataSyncCategoryController; bus
       )}
 
       {state.summary ? (
-        <div className="space-y-2 rounded-lg border border-border bg-surface p-4">
+        <div className="space-y-2 rounded-xl border border-card-border bg-surface/80 p-4">
           <div className="text-ui-base text-foreground">
             {intl.formatMessage(
               { id: "settings.dataSync.push.summary" },

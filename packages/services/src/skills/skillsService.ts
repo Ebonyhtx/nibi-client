@@ -24,7 +24,12 @@ import type {
   SkillsListResult,
   SkillsCapability,
 } from "@nibi/shared";
-import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS, NIBI_AGENT_PROVIDER } from "@nibi/shared";
+import {
+  DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS,
+  NIBI_AGENT_PROVIDER,
+  PLUGIN_MANIFEST_RELATIVE_PATHS,
+  flattenPluginManifest,
+} from "@nibi/shared";
 import type { ISkillsService } from "./skills.js";
 import { SKILL_FILE_NAME, walkSkillMarkdownPaths } from "./skillDiscoveryWalk.js";
 import { readInstalledPluginRoots } from "#src/plugins/installedPluginRoots.js";
@@ -52,9 +57,6 @@ const GIT_MARKER = ".git";
 const HOME_PREFIX = "~/";
 const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official";
 const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
-// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 由 App 管理的
-// 一次性迁移处理，用户 plugins.dirs 不改写，也不在这里回退读取。
-const NIBI_PLUGIN_MANIFEST_PATH = join(".nibi-plugin", "plugin.json");
 
 /** 对齐 apps/nibi-cli/packages/adapters/src/skills/index.ts:19 */
 const MAX_DESCRIPTION_LENGTH = 1024;
@@ -769,8 +771,8 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
     return null;
   }
   try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isObjectRecord(parsed)) {
+    const parsed = flattenPluginManifest(JSON.parse(raw) as unknown);
+    if (!parsed) {
       return null;
     }
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
@@ -784,8 +786,11 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
 }
 
 async function findPluginManifestPath(rootPath: string): Promise<string | null> {
-  const manifestPath = join(rootPath, NIBI_PLUGIN_MANIFEST_PATH);
-  return (await exists(manifestPath)) ? manifestPath : null;
+  for (const relativePath of PLUGIN_MANIFEST_RELATIVE_PATHS) {
+    const manifestPath = join(rootPath, ...relativePath.split("/"));
+    if (await exists(manifestPath)) return manifestPath;
+  }
+  return null;
 }
 
 function resolvePluginSkillRoots(params: {

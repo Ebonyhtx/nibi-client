@@ -1,11 +1,5 @@
 /* eslint-disable max-lines -- 定时任务主视图集中维护列表、创建/编辑整页路由与启停/删除操作，集中更利于交互一致。 */
-import {
-  useCallback,
-  useEffect,
-  useState,
-  type ComponentType,
-  type SVGProps,
-} from "react";
+import { useCallback, useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { CircleCheck, RotateCcw, TriangleAlert } from "lucide-react";
 import {
   AUTOMATION_CREATE_LIMIT,
@@ -137,7 +131,8 @@ interface AutomationsSectionProps {
   }) => void;
 }
 
-export const AUTOMATIONS_TOAST_ANCHOR_ID = "automations-main-toast-anchor";
+import { AUTOMATIONS_TOAST_ANCHOR_ID } from "@/components/ui/toast.js";
+export { AUTOMATIONS_TOAST_ANCHOR_ID };
 
 function toast(message: string, options?: ToastOptions): number {
   return showToast(message, {
@@ -163,7 +158,11 @@ type AutomationsView =
 /** 主视图仅保留 Scheduled 列表。 */
 export type AutomationsTab = "scheduled";
 
-export function resolveVisibleAutomationTabs({ hasAnyTasks }: { hasAnyTasks: boolean }): readonly AutomationsTab[] {
+export function resolveVisibleAutomationTabs({
+  hasAnyTasks,
+}: {
+  hasAnyTasks: boolean;
+}): readonly AutomationsTab[] {
   return hasAnyTasks ? ["scheduled"] : [];
 }
 
@@ -193,9 +192,7 @@ function automationPromptSummary(prompt: string): string {
   return normalized.length > 0 ? normalized : " ";
 }
 
-export function canRestartAutomation(
-  automation: Pick<NibiAutomation, "lifecycleStatus">,
-): boolean {
+export function canRestartAutomation(automation: Pick<NibiAutomation, "lifecycleStatus">): boolean {
   return automation.lifecycleStatus === "failed";
 }
 
@@ -1220,57 +1217,57 @@ export function AutomationsSection({
 
           {/* Scheduled task template：Client Scenes 候选目录；点击只预填新建整页。 */}
           <section
-              data-automations-scheduled-templates
-              aria-busy={automationTemplates.loading}
-              className="flex w-full flex-col gap-4"
-            >
-              <h2 className="text-ui-base font-medium leading-5 text-foreground-subtle">
-                {intl.formatMessage({ id: "automations.moreIdeas" })}
-              </h2>
-              {automationTemplates.loading ? (
-                <AutomationTemplateSkeletonGrid
-                  label={intl.formatMessage({ id: "common.loading" })}
-                />
-              ) : automationTemplates.scheduled.length === 0 ? (
-                <div
-                  data-automation-template-empty-state
-                  className="flex min-h-[114px] w-full items-center justify-center rounded-xl border border-card-border bg-background p-3 text-center text-ui-base font-normal text-foreground-subtlest"
-                >
-                  {intl.formatMessage({ id: "automations.templates.unavailable" })}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {automationTemplates.scheduled.map((template) => {
-                    return (
-                      <button
-                        key={template.id}
-                        type="button"
-                        onClick={() => handleUseTemplate(template)}
-                        className="group flex min-h-[114px] flex-col gap-2 overflow-hidden rounded-xl border border-card-border bg-background p-3 text-left transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
-                      >
-                        <div className="flex min-w-0 items-center gap-1 text-foreground">
-                          <span className="flex size-5 shrink-0 items-center justify-center">
-                            <AutomationScheduledTemplateIcon
-                              iconName={template.iconName}
-                              name={template.icon}
-                            />
-                          </span>
-                          <span className="truncate text-ui-base font-medium leading-5 text-foreground">
-                            {resolveAutomationTemplateText(template.title, locale)}
-                          </span>
-                        </div>
-                        {/* Bug 原因：定时模板首次实现时把周期时间拼进标题行，和闲时模板的底部时间层级不一致。 */}
-                        <p className="line-clamp-2 flex-1 text-ui-base font-normal leading-5 text-foreground-subtle">
-                          {resolveAutomationTemplateText(template.description, locale)}
-                        </p>
-                        <div className="text-ui-base font-normal leading-5 text-foreground-subtle">
-                          {describeAutomationCardSchedule({ cronExpr: template.cronExpr }, intl)}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+            data-automations-scheduled-templates
+            aria-busy={automationTemplates.loading}
+            className="flex w-full flex-col gap-4"
+          >
+            <h2 className="text-ui-base font-medium leading-5 text-foreground-subtle">
+              {intl.formatMessage({ id: "automations.moreIdeas" })}
+            </h2>
+            {automationTemplates.loading ? (
+              <AutomationTemplateSkeletonGrid
+                label={intl.formatMessage({ id: "common.loading" })}
+              />
+            ) : automationTemplates.scheduled.length === 0 ? (
+              <div
+                data-automation-template-empty-state
+                className="flex min-h-[114px] w-full items-center justify-center rounded-xl border border-card-border bg-background p-3 text-center text-ui-base font-normal text-foreground-subtlest"
+              >
+                {intl.formatMessage({ id: "automations.templates.unavailable" })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {automationTemplates.scheduled.map((template) => {
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => handleUseTemplate(template)}
+                      className="group flex min-h-[114px] flex-col gap-2 overflow-hidden rounded-xl border border-card-border bg-background p-3 text-left transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+                    >
+                      <div className="flex min-w-0 items-center gap-1 text-foreground">
+                        <span className="flex size-5 shrink-0 items-center justify-center">
+                          <AutomationScheduledTemplateIcon
+                            iconName={template.iconName}
+                            name={template.icon}
+                          />
+                        </span>
+                        <span className="truncate text-ui-base font-medium leading-5 text-foreground">
+                          {resolveAutomationTemplateText(template.title, locale)}
+                        </span>
+                      </div>
+                      {/* Bug 原因：定时模板首次实现时把周期时间拼进标题行，和闲时模板的底部时间层级不一致。 */}
+                      <p className="line-clamp-2 flex-1 text-ui-base font-normal leading-5 text-foreground-subtle">
+                        {resolveAutomationTemplateText(template.description, locale)}
+                      </p>
+                      <div className="text-ui-base font-normal leading-5 text-foreground-subtle">
+                        {describeAutomationCardSchedule({ cronExpr: template.cronExpr }, intl)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
         </div>
       )}

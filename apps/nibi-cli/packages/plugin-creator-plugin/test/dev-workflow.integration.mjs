@@ -58,7 +58,7 @@ try {
   assert.match(await readFile(join(installed.rootPath, skillPath), "utf8"), /DEV_WORKFLOW_ONE/);
 
   // 编辑源码不会直接修改已安装副本，随后通过原生刷新/更新完成第二轮交付。
-  const manifestPath = join(source, ".nibi-plugin", "plugin.json");
+  const manifestPath = join(source, "plugin.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   manifest.version = "0.1.1";
   await writeFile(manifestPath, JSON.stringify(manifest));

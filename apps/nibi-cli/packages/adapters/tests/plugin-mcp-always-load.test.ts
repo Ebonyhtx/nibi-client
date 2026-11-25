@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createNodePluginAdapter } from "../src/plugins/index.js";
+import { createNodePluginAdapter, writePluginConsent } from "../src/plugins/index.js";
 
 const PLUGIN_NAME = "always-load-plugin";
 const OFFICIAL_AUTH = { type: "zcode_official", provider: "jwt_token" };
@@ -31,18 +31,25 @@ describe.each(["file", "manifest"] as const)("plugin MCP alwaysLoad from %s", (s
       ]),
     );
     try {
-      await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+      await mkdir(join(pluginRoot), { recursive: true });
       await writeFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: PLUGIN_NAME,
           ...(source === "manifest" ? { mcpServers: servers } : {}),
         }),
       );
       if (source === "file") {
-        await writeFile(join(pluginRoot, ".mcp.json"), JSON.stringify({ mcpServers: servers }));
+        await writeFile(join(pluginRoot, "mcp.json"), JSON.stringify({ mcpServers: servers }));
       }
       const storageRoot = join(root, "storage");
+      // 本用例验证 alwaysLoad 的传递语义，不是同意流程；本地 MCP 插件先写入逐版本同意。
+      writePluginConsent({
+        permissions: ["network", "process"],
+        pluginId: `${PLUGIN_NAME}@inline`,
+        storageRoot,
+        version: "0.0.0",
+      });
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
         config: { dirs: [pluginRoot], enabled: true, enabledPlugins: {}, options: {} },
         env: {},

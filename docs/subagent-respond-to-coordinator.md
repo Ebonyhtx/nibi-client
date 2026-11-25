@@ -115,3 +115,32 @@ child completion`，同时验证 child conversation 可观测性、父会话不�
   和“回复失败”、不展示 provider wrapper 或原始错误正文，且卡片不可展开。hover 失败状态后
   通用 tooltip 展示对应 `context.errorText` 的 WDIO 断言尚未补齐，当前覆盖状态保持
   `partial`。
+
+## Rust Kernel
+
+同一份 contract 在 Rust 内核（桌面本地会话的默认运行时）落地为：
+
+- 工具：`kernel/crates/agents/src/coordinator.rs` 的 child-only
+  `RespondToCoordinator`（input 只有 `summary ≤200` / `message ≤20 000` 个 UTF-16 单元，
+  输出 `{status, responseId, message}`，display `{kind:"respond_to_coordinator", status}`）。
+  按子代理身份在 `spawn::run_loop` 构造，收件人（owner 或顶层会话）由运行时绑定，模型不能覆盖；
+  定义点名清单不含它也照样给（`ToolRule::allows` 的 control 分支，deny 仍然生效）。
+- 工具面：`SendMessage` 保持 main-only（`ALL_AGENT_DISALLOWED`）；子代理只有
+  `RespondToCoordinator`。
+- 投递：复用后台通知的排队/唤醒路径（`AgentNoticeKind::SubagentMessage`）。owner 在跑就进邮箱、
+  工具边界按到达顺序并入；停放就续跑；结束/没有 owner 就送顶层会话。carrier 是
+  `<subagent-message>`（`agent-id`/`agent-type`/`summary`/`message`，XML 转义），父会话按
+  `subagent_message` 来源落 model-only；空闲轮用 `subagent_reply` 写法，工具边界并入用
+  `subagent_reply_steer` 写法。
+- 子代理收到的 coordinator 中途消息：`SendMessage` 在子代理在跑时拼
+  `summary\n\nmessage`，`ChildSink` 在工具边界按 `coordinator_steer` 写法并入（运行时输入是
+  独立的 user 文本块；MCS 模型上是对话中间的 system 消息）。
+- 文本轮收口：`RunSink::take_absorbed_at_text_end` 在 text-only 收口前读一次队列，**只有批里有插话
+  （guide 输入）** 才并入并沿同一回合续发请求（Node 的 active-loop text-only drain）；这一批按 **user**
+  身份追加（MCS 模型上也不折成 system）。只有通知时不继续，留给回合结束后的 model-only 轮。
+- 注入安全：`<system-reminder>` 包装会把正文里嵌套的 `<system-reminder` / `</system-reminder>`
+  （大小写变体）的起始 `<` 换成 `&lt;`（Node `escapeNestedSystemReminderTags`）。
+- 卡片：live 投影直接用工具结果的 display；冷恢复（子会话右侧面板）从结果正文确定地重建
+  （`protocol-nibi/src/projection/display.rs`），与 Node 读持久化 `metadata.display` 同一目的。
+- `TaskOutput`（O18/O19 配套）：`kernel/crates/agents/src/task_output.rs`，读后台命令与后台
+  子代理；不认识的 task id 回 `<tool_use_error>No task found with ID: …</tool_use_error>`。

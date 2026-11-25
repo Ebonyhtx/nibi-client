@@ -6,7 +6,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 import { expect, it } from "vitest";
 import { createMcpAdapter } from "../src/mcp/index.js";
-import { createNodePluginAdapter } from "../src/plugins/index.js";
+import { createNodePluginAdapter, writePluginConsent } from "../src/plugins/index.js";
 import { toAiSdkMessages } from "../src/model/transform.js";
 import { toAiSdkTools } from "../src/model/tool-transform.js";
 import { toolSearchHeaders } from "../src/model/tool-search.js";
@@ -66,18 +66,25 @@ it.each(["file", "manifest"] as const)(
         default: endpoint,
       };
       const pluginRoot = join(root, PLUGIN_NAME);
-      await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+      await mkdir(join(pluginRoot), { recursive: true });
       await writeFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: PLUGIN_NAME,
           ...(source === "manifest" ? { mcpServers: servers } : {}),
         }),
       );
       if (source === "file") {
-        await writeFile(join(pluginRoot, ".mcp.json"), JSON.stringify({ mcpServers: servers }));
+        await writeFile(join(pluginRoot, "mcp.json"), JSON.stringify({ mcpServers: servers }));
       }
       const storageRoot = join(root, "storage");
+      // 本用例验证工具面与 wire 语义；本地 MCP 插件先写入逐版本同意，避免被同意门禁停用。
+      writePluginConsent({
+        permissions: ["network", "process"],
+        pluginId: `${PLUGIN_NAME}@inline`,
+        storageRoot,
+        version: "0.0.0",
+      });
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
         config: { dirs: [pluginRoot], enabled: true, enabledPlugins: {}, options: {} },
         env: {},

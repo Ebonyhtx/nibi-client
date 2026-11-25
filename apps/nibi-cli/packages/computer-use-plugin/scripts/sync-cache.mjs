@@ -29,7 +29,8 @@ const ENTRIES = [
   "skills",
   "docs",
   "scripts/computer-use-client.mjs",
-  ".nibi-plugin",
+  "plugin.json",
+  "mcp.json",
   "package.json",
   // CUA screenshot/zoom 的 sharp native closure 属于 CUA plugin 自身；同步开发缓存时
   // 不能只复制 skill/docs，否则下一次 cache seed 会再次丢失原生依赖。

@@ -357,7 +357,7 @@ impl Server {
         let cold = self.bridge.get(session).is_none();
         let live = self
             .bridge
-            .open(session, move |handle, view| {
+            .open(session, move |handle, view, links| {
                 Live::new(
                     context,
                     topics,
@@ -367,6 +367,7 @@ impl Server {
                     local_ttft,
                     spawner,
                     auto_resolution_enabled,
+                    links,
                 )
             })
             .await?;

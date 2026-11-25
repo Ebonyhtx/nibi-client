@@ -21,7 +21,7 @@ export const PendingCommandRecoveryBanner = memo(function PendingCommandRecovery
   return (
     <div
       role="status"
-      className="mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-ui-base text-foreground backdrop-blur-md"
+      className="mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 rounded-xl border border-card-border bg-card/95 px-3.5 py-2.5 text-ui-base text-foreground shadow-[var(--nibi-shadow-card)] backdrop-blur-md"
     >
       <p className="min-w-0 flex-1">
         {intl.formatMessage({ id: "chat.pendingCommand.discarded" })}
@@ -29,7 +29,7 @@ export const PendingCommandRecoveryBanner = memo(function PendingCommandRecovery
       {hasReplayPayload && onResend ? (
         <button
           type="button"
-          className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-primary-foreground hover:bg-primary/80"
+          className="shrink-0 rounded-lg bg-primary px-2.5 py-1 text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] transition-[background-color,filter,transform] duration-150 hover:bg-primary/92 hover:brightness-[1.03] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
           onClick={onResend}
         >
           {intl.formatMessage({ id: "chat.pendingCommand.resend" })}
@@ -37,7 +37,7 @@ export const PendingCommandRecoveryBanner = memo(function PendingCommandRecovery
       ) : null}
       <button
         type="button"
-        className="shrink-0 rounded-md px-2 py-1 text-foreground-subtle hover:bg-hover"
+        className="shrink-0 rounded-md px-2 py-1 text-foreground-subtle transition-colors hover:bg-hover hover:text-foreground"
         onClick={onDismiss}
       >
         {intl.formatMessage({ id: "chat.pendingCommand.dismiss" })}

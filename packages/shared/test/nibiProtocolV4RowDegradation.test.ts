@@ -51,7 +51,7 @@ function baseSnapshot(): ConversationSnapshot {
     inputRouting: { mode: "enqueue" },
     meta: { title: "", titleSource: "default" },
     config: {
-      provider: "glm",
+      provider: "nibi-agent",
       model: "glm-5",
       thought: "medium",
       thoughtLevels: ["medium", "high", "max"],

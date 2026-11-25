@@ -32,6 +32,7 @@ function createPluginServiceMock(overrides?: {
   updatePlugin?: IPluginManagementService["updatePlugin"];
   configurePlugin?: IPluginManagementService["configurePlugin"];
   setPluginEnabled?: IPluginManagementService["setPluginEnabled"];
+  setPluginConsent?: IPluginManagementService["setPluginConsent"];
 }): IPluginManagementService {
   return {
     getPluginsOverview: overrides?.getPluginsOverview ?? vi.fn(async () => makeOverview()),
@@ -53,6 +54,14 @@ function createPluginServiceMock(overrides?: {
     setPluginEnabled:
       overrides?.setPluginEnabled ??
       vi.fn(async () => ({ plugin: makePlugin({ enabled: false }), enabled: false })),
+    setPluginConsent:
+      overrides?.setPluginConsent ??
+      vi.fn(async () => ({
+        pluginId: "skill-creator@nibi-official",
+        granted: true,
+        permissions: [],
+        version: "1.0.0",
+      })),
   } as unknown as IPluginManagementService;
 }
 
@@ -300,6 +309,61 @@ describe("pluginManagementStore", () => {
     const state = usePluginManagementStore.getState();
     expect(state.plugins[0]?.enabled).toBe(false);
     expect(state.togglingPluginId).toBeNull();
+  });
+
+  it("opens a consent prompt when enabling requires permissions and retries after grant", async () => {
+    const plugin = makePlugin({
+      enabled: false,
+      permissions: { requested: ["process"], required: ["process"] },
+      version: "1.0.0",
+    });
+    const consentError = Object.assign(new Error("Plugin requires permission consent: process"), {
+      data: { code: "plugin_consent_required" },
+    });
+    const setPluginEnabled = vi
+      .fn()
+      .mockRejectedValueOnce(consentError)
+      .mockResolvedValueOnce({ plugin: { ...plugin, enabled: true }, enabled: true });
+    const setPluginConsent = vi.fn(async () => ({
+      granted: true,
+      permissions: ["process"],
+      pluginId: plugin.id,
+      version: "1.0.0",
+    }));
+    const pluginService = createPluginServiceMock({
+      listPlugins: vi.fn(async () => ({ plugins: [plugin], diagnostics: [] })),
+      setPluginEnabled:
+        setPluginEnabled as unknown as IPluginManagementService["setPluginEnabled"],
+      setPluginConsent:
+        setPluginConsent as unknown as IPluginManagementService["setPluginConsent"],
+    });
+
+    await usePluginManagementStore.getState().initialize({
+      workspacePath: "/workspace/app",
+      pluginService,
+    });
+    const enabled = await usePluginManagementStore
+      .getState()
+      .setEnabled(plugin.id, true, pluginService);
+
+    expect(enabled).toBe(false);
+    expect(usePluginManagementStore.getState().consentPrompt).toEqual({
+      capabilities: [],
+      permissions: ["process"],
+      pluginId: plugin.id,
+    });
+    expect(usePluginManagementStore.getState().error).toBeNull();
+
+    const granted = await usePluginManagementStore.getState().grantConsent(pluginService);
+
+    expect(granted).toBe(true);
+    expect(setPluginConsent).toHaveBeenCalledWith({
+      workspacePath: "/workspace/app",
+      pluginId: plugin.id,
+      granted: true,
+    });
+    expect(setPluginEnabled).toHaveBeenCalledTimes(2);
+    expect(usePluginManagementStore.getState().consentPrompt).toBeNull();
   });
 
   it("projects the toggle immediately while the write is pending and restores it on failure", async () => {

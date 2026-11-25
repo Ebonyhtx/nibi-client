@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "caseName": "plugin-builtin-ui-uninstall",
+  "spec": "./test/e2e/plugins/plugin-builtin-ui-uninstall.test.ts",
+  "fixtures": []
+}

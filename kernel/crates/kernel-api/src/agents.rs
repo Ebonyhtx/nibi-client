@@ -38,6 +38,16 @@ pub fn subagent_link(tool_use: &ToolUseId, output: &ToolOutput) -> Option<Fact> 
     })
 }
 
+/// 一次已持久化的子代理调用关联（[`Fact::SubagentLinked`]）：冷投影据此恢复父会话 timeline 的
+/// `subagent` 行。`tool_use` 是父会话里触发这次调用的 Agent 工具调用。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SubagentLink {
+    pub tool_use: ToolUseId,
+    pub agent: AgentId,
+    pub child: SessionId,
+    pub agent_type: String,
+}
+
 /// 子循环工厂：用父会话的工具上下文选项改写出子代理的选项。
 pub trait SubagentQueries: Send + Sync {
     /// 用 `tools` 与 `context` 替换主循环的工具注册表与上下文组装，得到子代理的 [`QueryRunner`]。
@@ -46,6 +56,29 @@ pub trait SubagentQueries: Send + Sync {
         tools: Arc<dyn ToolRegistry>,
         context: Arc<dyn ContextBuilder>,
     ) -> Arc<dyn QueryRunner>;
+}
+
+/// 一条会话通知的语义：后台任务终态，或子代理对 coordinator 的回复。
+///
+/// 两者共用 `AgentNotice` 的排队/ack 与“空闲时开 model-only 轮、运行中在工具边界并入”的
+/// 投递路径，但来源不同：终态通知落 `task-notification`（并计入后台任务），coordinator
+/// 回复落 `subagent_message`（`model-only` carrier，不计入后台任务）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentNoticeKind {
+    #[default]
+    TaskNotification,
+    SubagentMessage,
+}
+
+impl AgentNoticeKind {
+    /// 持久化到 `UserOrigin::Meta` 的 source（Node 同名字段）。
+    pub fn source(self) -> &'static str {
+        match self {
+            Self::TaskNotification => crate::message::TASK_NOTIFICATION_SOURCE,
+            Self::SubagentMessage => crate::message::SUBAGENT_MESSAGE_SOURCE,
+        }
+    }
 }
 
 /// 后台子代理的终态通知（排队优先级 `later`）。
@@ -58,6 +91,9 @@ pub struct AgentNotice {
     pub status: String,
     /// 完整的通知文本（含 `<system-reminder>` 包装），作为 meta user 消息提交。
     pub text: String,
+    /// 这条通知的语义；旧序列化数据按 task-notification 读。
+    #[serde(default)]
+    pub kind: AgentNoticeKind,
     /// 结构化的 originMeta（Node `BackgroundResultOriginMeta`：backgroundSource/title/workId，
     /// GUI 的运行卡关联键）——通知轮的轮头行与 meta 记录的 `metadata.originMeta` 都带它。
     /// 工作流 run 的终态/升级通知带；普通子代理通知缺席。

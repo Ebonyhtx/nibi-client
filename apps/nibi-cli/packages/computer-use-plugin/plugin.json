@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "computer-use",
+  "version": "0.6.6",
+  "description": "Computer Use: automate desktop apps with mouse, keyboard, and UI element control.",
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "Apache-2.0",
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1",
+      "descriptionI18n": {
+        "en": "Computer Use: automate desktop apps with mouse, keyboard, and UI element control.",
+        "zh-CN": "电脑操控：通过鼠标、键盘与界面元素控制自动化桌面应用。"
+      }
+    }
+  }
+}

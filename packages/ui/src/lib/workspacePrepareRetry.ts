@@ -16,6 +16,6 @@ export function shouldRestartWorkspaceProcessBeforePrepareRetry(_params: {
   provider: NibiProvider;
   errorMessage: string;
 }): boolean {
-  // 仅剩 glm provider：不再需要针对三方 CLI 崩溃文案的重启重试策略。
+  // 仅剩 NIBI Agent：不再需要针对三方 CLI 崩溃文案的重启重试策略。
   return false;
 }

@@ -1,6 +1,14 @@
 import type { HighlighterTypes } from "@pierre/diffs";
 import type { WorkerInitializationRenderOptions } from "@pierre/diffs/react";
 import type { BundledTheme } from "shiki";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useMemo,
+  type Context,
+  type ReactNode,
+} from "react";
 
 /**
  * @pierre/diffs 默认使用 shiki 的 JavaScript 正则引擎（shiki-js）。该引擎把 TextMate
@@ -34,4 +42,73 @@ export function createDiffsWorkerHighlighterOptions(
     useTokenTransformer: false,
     preferredHighlighter: DIFFS_PREFERRED_HIGHLIGHTER,
   };
+}
+
+let workerPoolRequested = false;
+let poolFactory: (() => unknown) | null = null;
+const activationListeners = new Set<() => void>();
+const FALLBACK_EMPTY_WORKER_POOL_CONTEXT = createContext<unknown>(undefined);
+
+export function registerDiffsWorkerPoolFactory(factory: () => unknown): void {
+  poolFactory = factory;
+}
+
+export function isDiffsWorkerPoolRequested(): boolean {
+  return workerPoolRequested;
+}
+
+export function requestDiffsWorkerPool(): void {
+  if (workerPoolRequested) {
+    return;
+  }
+  workerPoolRequested = true;
+  queueMicrotask(() => {
+    for (const listener of activationListeners) {
+      listener();
+    }
+    activationListeners.clear();
+  });
+}
+
+export function ensureDiffsWorkerPoolSync<T>(): T | undefined {
+  requestDiffsWorkerPool();
+  return poolFactory ? (poolFactory() as T) : undefined;
+}
+
+export function subscribeDiffsWorkerPoolActivation(listener: () => void): () => void {
+  if (workerPoolRequested) {
+    return () => {};
+  }
+  activationListeners.add(listener);
+  return () => {
+    activationListeners.delete(listener);
+  };
+}
+
+export function useEnsuredDiffsWorkerPool<T>(
+  workerPoolContext: Context<T | undefined> | undefined,
+  disabled = false,
+): {
+  activePool: T | undefined;
+  renderWithWorkerPool: (node: ReactNode) => ReactNode;
+} {
+  const existingPool = useContext(
+    (workerPoolContext ?? FALLBACK_EMPTY_WORKER_POOL_CONTEXT) as Context<T | undefined>,
+  );
+  const activePool = useMemo(() => {
+    if (disabled || typeof Worker === "undefined") {
+      return undefined;
+    }
+    return existingPool ?? ensureDiffsWorkerPoolSync<T>();
+  }, [disabled, existingPool]);
+
+  const Provider = workerPoolContext?.Provider;
+  const renderWithWorkerPool = useMemo(() => {
+    if (!Provider || disabled || typeof Worker === "undefined") {
+      return (node: ReactNode) => node;
+    }
+    return (node: ReactNode) => createElement(Provider, { value: activePool }, node);
+  }, [Provider, activePool, disabled]);
+
+  return { activePool, renderWithWorkerPool };
 }

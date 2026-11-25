@@ -17,7 +17,7 @@ export function PluginUiToolCallView(props: PluginUiToolCallViewProps) {
       {props.fallback}
       {props.sidePaneActive ? (
         <div
-          className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 text-ui-sm text-foreground-subtle"
+          className="flex items-center justify-between rounded-xl border border-card-border bg-card/85 px-3 py-2 text-ui-sm text-foreground-subtle shadow-[var(--nibi-shadow-card)]"
           data-testid="plugin-ui-side-pane-placeholder"
         >
           <span>{props.openedLabel}</span>
@@ -31,7 +31,7 @@ export function PluginUiToolCallView(props: PluginUiToolCallViewProps) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="rounded-full bg-background/80"
+                className="rounded-full border border-border/70 bg-card/90 shadow-2xs backdrop-blur-sm hover:bg-card"
                 data-testid="plugin-ui-pin-toggle"
                 data-plugin-ui-pinned={String(props.pinned === true)}
                 aria-label={props.pinned ? props.unpinLabel : props.pinLabel}
@@ -49,7 +49,7 @@ export function PluginUiToolCallView(props: PluginUiToolCallViewProps) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="rounded-full bg-background/80"
+                className="rounded-full border border-border/70 bg-card/90 shadow-2xs backdrop-blur-sm hover:bg-card"
                 data-testid={TID_PLUGIN_UI_OPEN_SIDE_PANE}
                 aria-label={props.openLabel}
                 title={props.openLabel}

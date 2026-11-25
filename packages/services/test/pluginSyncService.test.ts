@@ -33,9 +33,9 @@ async function writeInlinePlugin(
   manifest: Record<string, unknown> = {},
 ): Promise<string> {
   const pluginRoot = join(root, directoryName);
-  await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+  await mkdir(pluginRoot, { recursive: true });
   await writeFile(
-    join(pluginRoot, ".nibi-plugin", "plugin.json"),
+    join(pluginRoot, "plugin.json"),
     `${JSON.stringify({
       name: directoryName,
       description: `${directoryName} description`,
@@ -64,7 +64,7 @@ describe("plugin sync service", () => {
     process.env.HOME = originalHome;
   });
 
-  it("ignores a plugin directory that only has a legacy .claude-plugin manifest", async () => {
+  it("reads a plugin directory that only has a legacy .claude-plugin manifest", async () => {
     const root = makeHome();
     const pluginRoot = join(root, "legacy-only");
     await mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true });
@@ -74,7 +74,10 @@ describe("plugin sync service", () => {
       "utf-8",
     );
 
-    await expect(readPluginManifestInfo(pluginRoot)).resolves.toBeNull();
+    await expect(readPluginManifestInfo(pluginRoot)).resolves.toMatchObject({
+      name: "legacy-only",
+      pluginId: "legacy-only@inline",
+    });
   });
 
   it("lists user inline plugins from zcode plugins.dirs as local candidates", async () => {
@@ -212,7 +215,7 @@ describe("plugin sync service", () => {
       },
     ]);
     const remotePluginRoot = join(remoteHome, ".nibi", "plugins", "remote-tools");
-    expect(existsSync(join(remotePluginRoot, ".nibi-plugin", "plugin.json"))).toBe(true);
+    expect(existsSync(join(remotePluginRoot, "plugin.json"))).toBe(true);
     const remoteConfig = await readNibiUserConfig(remoteHome);
     expect(remoteConfig).toMatchObject({
       plugins: {
@@ -463,7 +466,7 @@ describe("plugin sync service", () => {
       ],
     });
     expect(
-      existsSync(join(imported.path, "plugins", "formatter", ".nibi-plugin", "plugin.json")),
+      existsSync(join(imported.path, "plugins", "formatter", "plugin.json")),
     ).toBe(true);
   });
 

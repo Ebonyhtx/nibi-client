@@ -168,6 +168,7 @@ impl Harness {
             )),
             scope.spawner(),
             true,
+            &[],
         );
         Self {
             live,

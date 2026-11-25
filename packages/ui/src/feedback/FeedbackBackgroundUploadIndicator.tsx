@@ -170,7 +170,7 @@ export function FeedbackBackgroundUploadIndicatorView({
   return (
     <div
       className={cn(
-        "pointer-events-auto overflow-hidden rounded-xl border border-popover-border bg-popover text-foreground shadow-lg transition-[width] duration-200",
+        "pointer-events-auto overflow-hidden rounded-2xl border border-popover-border bg-popover/96 text-foreground shadow-[var(--nibi-shadow-popover)] backdrop-blur-md transition-[width] duration-200 motion-reduce:transition-none",
         expanded ? "w-[min(380px,calc(100vw-1.5rem))]" : "w-[min(320px,calc(100vw-1.5rem))]",
       )}
     >

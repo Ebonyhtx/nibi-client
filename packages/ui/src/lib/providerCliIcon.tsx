@@ -1,9 +1,35 @@
+import type { ImgHTMLAttributes } from "react";
 import { NIBI_AGENT_PROVIDER, type NibiProvider } from "@nibi/shared";
-import { GlmMonochromeIcon } from "@/components/ui/GlmMonochromeIcon.js";
+import nibiBirdIcon from "@/assets/nibi/nibi-bird.png";
+import { cn } from "@/components/lib/utils.js";
+import { useNibiStoreWithDefault } from "@/store/StoreProvider.js";
+import { DEFAULT_THEME, resolveTheme } from "@/useTheme.js";
 
-export function renderProviderCliIcon(_provider: NibiProvider = NIBI_AGENT_PROVIDER, className?: string) {
-  // 仅剩 glm provider；保留原始 logo 轮廓，只做灰白化处理。
-  // 之前的线框化虽然更“纯黑白”，但品牌辨识度下降太明显；
-  // 改成统一滤镜后，页面里仍然是原 logo，同时颜色更克制。
-  return <GlmMonochromeIcon className={className} />;
+type NibiAgentIconProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "src">;
+
+/** NIBI Agent 的统一标识：使用 NIBI 纸质小鸟，按主题压成单色。 */
+export function NibiAgentIcon({ className, alt = "", style, ...props }: NibiAgentIconProps) {
+  const theme = useNibiStoreWithDefault((state) => state.theme, DEFAULT_THEME);
+  const isDark = resolveTheme(theme) === "dark";
+  const filter = isDark
+    ? "grayscale(1) brightness(1.2) contrast(1.1)"
+    : "grayscale(1) brightness(0.74) contrast(1.05)";
+
+  return (
+    <img
+      src={nibiBirdIcon}
+      alt={alt}
+      aria-hidden={alt ? undefined : true}
+      className={cn("shrink-0 object-contain", className)}
+      style={{ filter, ...style }}
+      {...props}
+    />
+  );
+}
+
+export function renderProviderCliIcon(
+  _provider: NibiProvider = NIBI_AGENT_PROVIDER,
+  className?: string,
+) {
+  return <NibiAgentIcon className={className} />;
 }

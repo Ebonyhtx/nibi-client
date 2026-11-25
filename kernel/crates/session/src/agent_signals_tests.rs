@@ -46,6 +46,7 @@ fn notice(seq: u64) -> AgentSignal {
         agent: AgentId::new("agent_1"),
         status: "completed".to_owned(),
         text: "<system-reminder>\nagent done\n</system-reminder>".to_owned(),
+        kind: nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
         origin_meta: None,
     })
 }
@@ -128,6 +129,7 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
             model_turns: Vec::new(),
             input_intents: Vec::new(),
             worktree_creations: Vec::new(),
+            subagent_links: Vec::new(),
             draft: false,
         },
         Opened::Loaded,
@@ -253,6 +255,7 @@ async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
             model_turns: Vec::new(),
             input_intents: Vec::new(),
             worktree_creations: Vec::new(),
+            subagent_links: Vec::new(),
             draft: false,
         },
         Opened::Loaded,

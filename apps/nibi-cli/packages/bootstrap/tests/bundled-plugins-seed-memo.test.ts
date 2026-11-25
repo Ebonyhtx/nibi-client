@@ -179,7 +179,7 @@ describe("bundled official plugin seed fast path", () => {
     const definition = OFFICIAL_PLUGIN_DEFINITIONS.find((item) => item.name === "documents");
     if (!definition) throw new Error("documents definition is missing");
     const requiredPath = definition.requiredSeedPaths?.find(
-      (path) => path !== ".nibi-plugin/plugin.json",
+      (path) => path !== "plugin.json",
     );
     if (!requiredPath) throw new Error("documents requiredSeedPaths is missing");
     const cachedRequiredPath = join(
@@ -239,7 +239,7 @@ describe("bundled official plugin seed fast path", () => {
     // 不允许再读 skills/docs 等资源正文。
     expect(
       sourceReads(fixture.resourceRoot).filter(
-        (path) => !path.endsWith(`${join(".nibi-plugin", "plugin.json")}`),
+        (path) => !path.endsWith(`${join("plugin.json")}`),
       ),
     ).toEqual([]);
   });
@@ -265,7 +265,7 @@ async function createBundledPluginFixture(cleanups: string[]): Promise<BundledPl
     const pluginRoot = join(resourceRoot, relativeRoot);
     pluginRoots.set(definition.name, pluginRoot);
 
-    const manifestPath = join(pluginRoot, ".nibi-plugin", "plugin.json");
+    const manifestPath = join(pluginRoot, "plugin.json");
     await mkdir(dirname(manifestPath), { recursive: true });
     await writeFile(
       manifestPath,
@@ -277,10 +277,17 @@ async function createBundledPluginFixture(cleanups: string[]): Promise<BundledPl
     );
 
     for (const relativePath of definition.requiredSeedPaths ?? []) {
-      if (relativePath === ".nibi-plugin/plugin.json") continue;
+      if (relativePath === "plugin.json") continue;
       const filePath = join(pluginRoot, ...relativePath.split("/"));
       await mkdir(dirname(filePath), { recursive: true });
-      await writeFile(filePath, `fixture ${definition.name} ${relativePath}\n`);
+      // mcp.json / hooks.json 等 JSON 声明会被宿主重写或解析，fixture 必须是合法 JSON；
+      // 其余文件保持纯文本，便于证明快路径不读取清单外内容。
+      await writeFile(
+        filePath,
+        relativePath.endsWith(".json")
+          ? JSON.stringify({ mcpServers: {}, hooks: {} })
+          : `fixture ${definition.name} ${relativePath}\n`,
+      );
     }
 
     // 证明快路径不会读取“marker 必需清单之外”的源文件。

@@ -40,10 +40,11 @@ fn failed_notifications_carry_the_error_and_escape_markup() {
         Some("disk full"),
     );
     assert!(
-        text.contains("<summary>Agent \"Fix &lt;b&gt; &amp; c\" failed: disk full</summary>"),
+        text.contains("<summary>Agent \"Fix &lt;b&gt; &amp; c\" failed. disk full</summary>"),
         "{text}"
     );
     assert!(text.contains("</note>\n<result>partial &lt;x&gt;</result>"));
+    assert!(text.contains("\n<error>disk full</error>\n<usage>"), "{text}");
     assert!(
         text.contains(
             "<usage><subagent_tokens>3</subagent_tokens><tool_uses>0</tool_uses><duration_ms>4</duration_ms></usage>"
@@ -51,7 +52,7 @@ fn failed_notifications_carry_the_error_and_escape_markup() {
         "{text}"
     );
     let unknown = notification("a1", None, "d", Ending::Failed, &report("", 0, 0), None);
-    assert!(unknown.contains("failed: Unknown error</summary>"));
+    assert!(unknown.contains("failed. Unknown error</summary>"));
     // 没有工具调用（SendMessage 留下的消息续跑之后，A8）：没有 `<tool-use-id>` 这一行。
     assert!(
         unknown.starts_with("<system-reminder>\n[SYSTEM NOTIFICATION")
@@ -60,4 +61,23 @@ fn failed_notifications_carry_the_error_and_escape_markup() {
     assert!(!unknown.contains("<result>"));
     // 失败也带 `<usage>`（K4）。
     assert!(unknown.contains("<usage><subagent_tokens>0</subagent_tokens>"), "{unknown}");
+    // `<error>` 与 `<summary>` 一样转义标记字符，父模型不会读到半截 XML。
+    let escaped = notification(
+        "a1",
+        None,
+        "d",
+        Ending::Failed,
+        &report("", 0, 0),
+        Some("a & <b>"),
+    );
+    assert!(escaped.contains("<error>a &amp; &lt;b&gt;</error>"), "{escaped}");
+}
+
+/// 完成与停止不带 `<error>`：只有失败才有 provider 原文。
+#[test]
+fn only_failed_notifications_have_an_error_block() {
+    for (ending, error) in [(Ending::Completed, Some("ignored")), (Ending::Killed, None)] {
+        let text = notification("a1", None, "d", ending, &report("done", 1, 2), error);
+        assert!(!text.contains("<error>"), "{text}");
+    }
 }

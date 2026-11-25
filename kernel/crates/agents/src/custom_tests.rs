@@ -25,7 +25,7 @@ fn workspace(root: &str) -> WorkspaceRef {
     }
 }
 
-const REVIEWER: &str = "---\nname: reviewer\ndescription: Reviews code.\\nUse after edits.\ntools: Read, Grep\nmodel: claude-sonnet-5\nmaxTurns: 4\npermissionMode: acceptEdits\nbackground: true\n---\n\nYou review code.\n";
+const REVIEWER: &str = "---\nname: reviewer\ndescription: Reviews code.\\nUse after edits.\ntools: Read, Grep\nmodel: claude/claude-sonnet-5\nthoughtLevel: high\nmaxTurns: 4\npermissionMode: acceptEdits\nbackground: true\n---\n\nYou review code.\n";
 
 #[test]
 fn parses_the_frontmatter_keys() {
@@ -37,7 +37,14 @@ fn parses_the_frontmatter_keys() {
         Some(vec!["Read".to_owned(), "Grep".to_owned()])
     );
     assert_eq!(agent.prompt, "You review code.");
-    assert_eq!(agent.model.as_deref(), Some("claude-sonnet-5"));
+    let selection = agent.model_selection.as_ref().expect("显式模型");
+    assert_eq!(selection.provider, "claude");
+    assert_eq!(selection.model, "claude-sonnet-5");
+    assert_eq!(selection.reasoning.as_deref(), Some("high"));
+    // 项目级 agent 不受设置页停用；用户级才有 `user:user:<name 小写>` 的状态键。
+    assert_eq!(agent.state_id, None);
+    let user = parse(REVIEWER, AgentSource::User).unwrap();
+    assert_eq!(user.state_id.as_deref(), Some("user:user:reviewer"));
     assert_eq!(agent.max_turns, Some(4));
     assert_eq!(agent.permission_mode, Some(PermissionMode::AcceptEdits));
     assert!(agent.background);

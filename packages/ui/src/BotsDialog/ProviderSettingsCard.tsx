@@ -24,7 +24,11 @@ import { PrivateDeliveryRetry } from "@/BotsDialog/PrivateDeliveryRetry.js";
 import { TELEGRAM_BOTFATHER_URL, formatBindCountdown } from "./shared.js";
 
 function DetailPanel({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg bg-background p-3">{children}</div>;
+  return (
+    <div className="rounded-xl border border-card-border/75 bg-card/80 p-3.5 shadow-[var(--nibi-shadow-card)]">
+      {children}
+    </div>
+  );
 }
 
 function TelegramBotFatherQrPanel({
@@ -70,7 +74,7 @@ function TelegramBotFatherQrPanel({
           <img
             src={qrDataUrl}
             alt={intl.formatMessage({ id: "bots.telegramBotFatherQrAlt" })}
-            className="size-40 shrink-0 rounded-lg border border-border bg-surface p-2"
+            className="size-40 shrink-0 rounded-xl border border-border bg-white p-2 shadow-xs"
           />
         ) : null}
         <div className="min-w-52 flex-1 space-y-3 text-ui-base text-foreground-subtle">
@@ -377,7 +381,7 @@ export function ProviderSettingsCard({
             <img
               src={feishuRegistration.qrDataUrl}
               alt={intl.formatMessage({ id: "bots.feishuRegistrationQrAlt" })}
-              className="size-40 shrink-0 rounded-lg border border-border bg-surface p-2"
+              className="size-40 shrink-0 rounded-xl border border-border bg-white p-2 shadow-xs"
             />
           ) : null}
           <div className="min-w-52 flex-1 space-y-3 text-ui-base text-foreground-subtle">
@@ -414,7 +418,7 @@ export function ProviderSettingsCard({
             <img
               src={weixinRegistration.qrDataUrl}
               alt={intl.formatMessage({ id: "bots.weixinRegistrationQrAlt" })}
-              className="size-40 shrink-0 rounded-lg border border-border bg-surface p-2"
+              className="size-40 shrink-0 rounded-xl border border-border bg-white p-2 shadow-xs"
             />
           ) : null}
           <div className="min-w-52 flex-1 space-y-3 text-ui-base text-foreground-subtle">

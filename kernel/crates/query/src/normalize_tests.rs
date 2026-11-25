@@ -614,3 +614,48 @@ fn notices_and_models_without_system_turns_keep_the_old_place_for_queued_command
         ["<task-notification>done</task-notification>"]
     );
 }
+
+/// 文本轮收口并入的运行时输入（`textEnd`）即使模型支持对话中间的 system 也按 user 呈现
+/// （Node 的 active-loop 在 text-only 收口后以 user 身份追加），且是独立的 `<system-reminder>` 文本块。
+#[test]
+fn text_end_runtime_inputs_stay_user_blocks_with_system_turns() {
+    let text = "Another NIBI session sent a message while you were working:\nhi\n\nAddress this.";
+    let notice = Message::Attachment(AttachmentMessage {
+        id: MessageId::new("n2"),
+        source: "queued_command".to_owned(),
+        text: text.to_owned(),
+        data: serde_json::json!({
+            "prompt": text,
+            "commandMode": "subagent_message",
+            "textEnd": true,
+        }),
+    });
+    let api = normalize(&read_then("ok", "Read", vec![notice]), &ON);
+    let last = api.last().unwrap();
+    assert_eq!(last.role, ApiRole::User);
+    assert_eq!(
+        texts(last)[1..],
+        ["<system-reminder>\nAnother NIBI session sent a message while you were working:\nhi\n\nAddress this.\n</system-reminder>"]
+    );
+}
+
+/// 同伴消息（`commandMode: cross-session`）与后台通知同一类运行时输入：即使模型支持对话中间的
+/// system turn，也作为独立的 system turn 呈现，不能因为来源不同被并进工具结果。
+///
+/// 这条同时钉住 `lane::notice_text` 的移除集合：漏掉 peer 时通知并入后仍留在通道里，
+/// 回合结束会再投一次（cross_session 的双会话用例就是这么红的）。
+#[test]
+fn peer_notices_are_runtime_notices_not_human_prompts() {
+    let text = "Another NIBI session sent a message while you were working:
+hello from B";
+    let notice = Message::Attachment(AttachmentMessage {
+        id: MessageId::new("n3"),
+        source: "queued_command".to_owned(),
+        text: text.to_owned(),
+        data: serde_json::json!({"prompt": text, "commandMode": "cross-session"}),
+    });
+    let api = normalize(&read_then("ok", "Read", vec![notice]), &ON);
+    assert_eq!(api.len(), 4);
+    assert_eq!(api[2].content.len(), 1);
+    assert_eq!(texts(&api[3]), [text]);
+}

@@ -1,5 +1,8 @@
-import { rm } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, resolve, sep, win32 } from "node:path";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
+import { createInterface } from "node:readline";
 import { isDeepStrictEqual } from "node:util";
 import {
   addSuppressedBuiltinInFileConfig,
@@ -15,12 +18,14 @@ import {
 } from "@nibi/adapters/config";
 import {
   addMarketplace,
+  appendPluginAuditEvent,
   comparePluginUpdate,
   describeMarketplacePlugin,
   enrichCachedClaudeMarketplaceIcons,
   ensureDefaultPluginMarketplaces,
   discoverNodePluginsSync,
   ensureMarketplaceManifestAvailable,
+  ensurePluginDataDir,
   getPluginSourceDiagnosticCode,
   getPluginDataDir,
   installMarketplacePlugin,
@@ -29,12 +34,20 @@ import {
   loadMarketplaceManifestSync,
   parseEntryStoreListing,
   parseMarketplaceSourceInput,
+  isSensitivePluginCapability,
+  pluginConsentCovers,
+  pluginGrantsCover,
+  readPluginConsents,
+  readPluginGrants,
+  writePluginConsent,
+  writePluginGrants,
   resolvePaidPluginAccessFromToken,
   PaidPluginMembershipError,
   readNibiLicenseRefusalSync,
   readNibiDeviceIdSync,
   readNibiLicenseTokenSync,
   readPluginSourceIdentityPin,
+  refreshPluginRevocations,
   removeMarketplace,
   uninstallMarketplacePlugin,
   updateMarketplace,
@@ -49,9 +62,11 @@ import {
 } from "@nibi/adapters/plugins";
 import type {
   Logger,
+  PluginCapabilityGrant,
   PluginHookDetail,
   PluginLoadOutcome,
   PluginMetadata,
+  PluginPermission,
   PluginStoreListing,
 } from "@nibi/contracts";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE, isOfficialMarketplaceId } from "@nibi/contracts";
@@ -79,7 +94,7 @@ export interface ResolveNibiPluginsOptions {
    * 显式宿主入口前缀（仅内部/测试使用），透传给内置插件 seed 的 runtime manifest 重写。
    *
    * 生产调用方不传：`officialPluginHostPrefixArgs()` 在测试进程里恒为 undefined（防止
-   * vitest argv 被写进用户缓存），测试需要覆盖 `.mcp.json`/plugin.json 重写路径时注入假前缀。
+   * vitest argv 被写进用户缓存），测试需要覆盖 mcp.json/plugin.json 重写路径时注入假前缀。
    */
   runtimeHostPrefixArgs?: readonly string[];
   skipUserConfig?: boolean;
@@ -99,9 +114,28 @@ export interface GetNibiPluginsOverviewOptions extends ResolveNibiPluginsOptions
 }
 
 export interface SetNibiPluginEnabledOptions extends ResolveNibiPluginsOptions {
+  /** CLI 显式接受插件声明的 required 权限；协议/UI 走独立的 consent 方法。 */
+  acceptPermissions?: boolean;
   enabled: boolean;
   plugin: string;
   scope?: "user" | "workspace";
+}
+
+/** 启用社区/本地插件前的显式同意缺失；协议层把 code 放进 data.code 供 UI 弹同意框。 */
+export class PluginConsentRequiredError extends Error {
+  readonly code = "plugin_consent_required";
+
+  constructor(
+    readonly permissions: PluginPermission[],
+    readonly capabilities: PluginCapabilityGrant[] = [],
+  ) {
+    const required = [
+      ...permissions,
+      ...capabilities.map((grant) => `${grant.id}:${grant.scope}`),
+    ];
+    super(`Plugin requires permission consent: ${required.join(", ")}`);
+    this.name = "PluginConsentRequiredError";
+  }
 }
 
 export interface SetNibiPluginEnabledResult {
@@ -546,8 +580,66 @@ export async function setNibiPluginEnabled(
   const effectiveScope: "user" | "workspace" =
     options.scope === "workspace" && options.enabled ? "user" : (options.scope ?? "user");
   if (options.enabled) {
+    // 同名插件只能有一个 active（计划 A §5.3）：不同来源的同名包可以并存展示，
+    // 但同时启用会让 skills/MCP 的限定名互相覆盖，运行时只会有一个生效，
+    // 用户却以为两个都开了。这里要求先停用另一个，不自动挑一个。
+    const conflict = outcome.plugins.find(
+      (item) => item.id !== plugin.id && item.name === plugin.name && item.enabled,
+    );
+    if (conflict) {
+      throw new Error(
+        `Another plugin with the same name is already enabled: ${conflict.id}. Disable it before enabling ${plugin.id}.`,
+      );
+    }
     // 启用与安装同样要过会员门禁：插件缓存/配置可以被复制，只在安装时拦等于没拦。
     const { pluginStorageRoot } = resolvePluginContext(options);
+    // 社区/本地插件的 hooks、MCP 与扩展代码要执行代码，必须逐版本显式同意；
+    // 读取会话/工作区文件的能力同样要单独授权。
+    // 未同意时不写启用配置：UI 收到 plugin_consent_required 后弹同意框，授权完再重试。
+    if (plugin.trust === "community" || plugin.trust === "local") {
+      const version = plugin.version ?? "0.0.0";
+      const permissionsMissing =
+        plugin.permissions.required.length > 0 &&
+        !pluginConsentCovers(
+          readPluginConsents(pluginStorageRoot).plugins[plugin.id],
+          version,
+          plugin.permissions.required,
+        );
+      const sensitiveCapabilities = plugin.capabilities.requested.filter((grant) =>
+        isSensitivePluginCapability(grant.id),
+      );
+      const capabilitiesMissing =
+        sensitiveCapabilities.length > 0 &&
+        !pluginGrantsCover(
+          readPluginGrants(pluginStorageRoot).plugins[plugin.id],
+          version,
+          sensitiveCapabilities,
+        );
+      if (permissionsMissing || capabilitiesMissing) {
+        if (!options.acceptPermissions) {
+          throw new PluginConsentRequiredError(
+            plugin.permissions.required,
+            sensitiveCapabilities,
+          );
+        }
+        if (permissionsMissing) {
+          writePluginConsent({
+            permissions: plugin.permissions.required,
+            pluginId: plugin.id,
+            storageRoot: pluginStorageRoot,
+            version,
+          });
+        }
+        if (capabilitiesMissing) {
+          writePluginGrants({
+            grants: sensitiveCapabilities,
+            pluginId: plugin.id,
+            storageRoot: pluginStorageRoot,
+            version,
+          });
+        }
+      }
+    }
     const entry = loadMarketplaceManifestSync(pluginStorageRoot, plugin.marketplace)?.plugins.find(
       (item) => item.name === plugin.name,
     );
@@ -562,6 +654,19 @@ export async function setNibiPluginEnabled(
         deviceId: readNibiDeviceIdSync(options.env),
       });
     }
+  }
+  // 项目层只能禁用：在项目里重新启用时先清掉 workspace 的 false 覆盖，
+  // 否则 user=true 仍会被项目 false 压住，UI 的“启用并打开”永远读不到 enabled。
+  // 清除后回退到 user 配置，既尊重“仓库不能反向放权”，也符合用户显式启用的动作。
+  if (options.enabled && options.scope === "workspace") {
+    await removePluginEnabledFromFileConfig(
+      resolvePluginConfigPath(
+        { ...options, scope: "workspace" },
+        configResult,
+        workingDirectory,
+      ),
+      plugin.id,
+    );
   }
   const patch = await updatePluginEnabledInFileConfig(
     resolvePluginConfigPath(
@@ -872,6 +977,36 @@ export async function installNibiMarketplacePlugin(
     ),
     diagnostics: [],
   };
+}
+
+/**
+ * 刷新插件撤销列表（显式入口）。
+ *
+ * 为什么不挂在 marketplace 刷新里：撤销列表刷新要打网络、遵守取消语义，而市场刷新
+ * 的调用方（含测试、离线路径）不应该被它拖成网络依赖。撤销门禁本身读的是本地快照，
+ * 所以刷新失败只影响「拿不到最新撤销」，不影响可用性。
+ *
+ * 调用点：Host 启动后的后台刷新、设置页「检查更新」、以及发布链的运营操作。
+ */
+export async function refreshNibiPluginRevocations(
+  options: ResolveNibiPluginsOptions & { abortSignal?: AbortSignal } = {},
+): Promise<PluginLoadOutcome["diagnostics"]> {
+  const { pluginStorageRoot } = resolvePluginContext(options);
+  try {
+    await refreshPluginRevocations({
+      storageRoot: pluginStorageRoot,
+      ...(options.abortSignal ? { signal: options.abortSignal } : {}),
+    });
+    return [];
+  } catch (error) {
+    return [
+      {
+        code: "plugin_revocation_refresh_failed",
+        message: error instanceof Error ? error.message : String(error),
+        severity: "warning",
+      },
+    ];
+  }
 }
 
 export async function uninstallNibiMarketplacePlugin(
@@ -1426,8 +1561,20 @@ function inferComponentTypesFromMetadata(plugin: PluginMetadata): string[] {
   if (plugin.components.some((group) => group.kind === "agent" && group.items.length > 0)) {
     types.push("agent");
   }
-  if (plugin.commandRootCount > 0) types.push("command");
-  if (plugin.skillRootCount > 0 || plugin.skillCount > 0) types.push("skill");
+  if (
+    plugin.commandRootCount > 0 ||
+    plugin.components.some((group) => group.kind === "command" && group.items.length > 0)
+  ) {
+    types.push("command");
+  }
+  if (
+    plugin.skillRootCount > 0 ||
+    plugin.skillCount > 0 ||
+    // 停用插件走 emptyComponents，按数量会漏报；权威枚举仍能给出组件名。
+    plugin.components.some((group) => group.kind === "skill" && group.items.length > 0)
+  ) {
+    types.push("skill");
+  }
   if (plugin.declaredMcpServerNames.length > 0 || plugin.mcpServerNames.length > 0) {
     types.push("mcp");
   }
@@ -1653,4 +1800,613 @@ function toMarketplaceRefreshDiagnostic(
     pluginId: marketplaceId,
     severity: "error",
   });
+}
+
+// ── NIBI Extension 宿主（T1 共享进程 / T2 社区进程 / T3 本地单插件进程） ─────
+
+export interface PluginExtensionHostHandlers {
+  /** 插件归属随能力调用一起下发：宿主按 id 定位窗口/工作区，扩展不能伪造别的插件。 */
+  showNotification?: (input: {
+    body?: string;
+    pluginId: string;
+    title: string;
+  }) => Promise<void> | void;
+  openView?: (input: { pluginId: string; surfaceId: string }) => Promise<void> | void;
+  /** App 侧会话读取；缺省时 `nibi.sessions.read` 返回 capability_unavailable。 */
+  readSessions?: (input: { limit?: number }) => Promise<unknown> | unknown;
+}
+
+export interface ActivatePluginExtensionsOptions {
+  handlers?: PluginExtensionHostHandlers;
+  logger?: Logger;
+  plugins: readonly PluginMetadata[];
+  storageRoot: string;
+  workspacePath: string;
+}
+
+export interface PluginExtensionHost {
+  dispose: () => Promise<void>;
+}
+
+interface ExtensionCapabilityMessage {
+  capability: string;
+  id: number;
+  params?: Record<string, unknown>;
+  pluginId: string;
+  type: "capability";
+}
+
+interface ExtensionProcessState {
+  child: ChildProcessWithoutNullStreams;
+  pendingActivations: Map<
+    string,
+    { reject: (error: Error) => void; resolve: () => void; timer: NodeJS.Timeout }
+  >;
+  tier: "T1" | "T2" | "T3";
+}
+
+const EXTENSION_ACTIVATION_TIMEOUT_MS = 15_000;
+const EXTENSION_CAPABILITY_TIMEOUT_MS = 30_000;
+const EXTENSION_MAX_FILE_BYTES = 1_048_576;
+
+/**
+ * 子进程脚本（CommonJS）。协议是逐行 JSON：
+ * parent → child：activate / deactivate / capabilityResult
+ * child → parent：activated / activationError / capability / log
+ *
+ * 插件自己的 stdout 与 console 都转成 log，避免污染协议。
+ */
+const PLUGIN_EXTENSION_CHILD_SCRIPT = String.raw`
+const { createInterface } = require("node:readline");
+const { pathToFileURL } = require("node:url");
+const util = require("node:util");
+const writeRaw = process.stdout.write.bind(process.stdout);
+const send = (message) => writeRaw(JSON.stringify(message) + "\n");
+process.stdout.write = (chunk) => {
+  send({ type: "log", level: "info", message: String(chunk) });
+  return true;
+};
+for (const level of ["log", "info", "warn", "error", "debug"]) {
+  console[level] = (...args) => send({ type: "log", level, message: util.format(...args) });
+}
+let nextRequestId = 1;
+const pending = new Map();
+const active = new Map();
+function request(pluginId, capability, params) {
+  const id = nextRequestId++;
+  send({ type: "capability", id, pluginId, capability, params });
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+  });
+}
+function createContext(pluginId, info) {
+  const plugin = Object.freeze({
+    id: pluginId,
+    name: info.name,
+    version: info.version,
+  });
+  const nibi = Object.freeze({
+    plugin,
+    log: (level, message) =>
+      send({ type: "log", level: String(level), message: String(message) }),
+    sessions: Object.freeze({
+      read: (params = {}) => request(pluginId, "nibi.sessions.read", params),
+    }),
+    workspace: Object.freeze({
+      readFile: (path, maxBytes) =>
+        request(pluginId, "nibi.workspace.files.read", { path, maxBytes }),
+    }),
+    ui: Object.freeze({
+      openView: (surfaceId) => request(pluginId, "nibi.ui.view", { surfaceId }),
+    }),
+    settings: Object.freeze({
+      get: () => request(pluginId, "nibi.settings.own", { op: "get" }),
+      set: (patch) => request(pluginId, "nibi.settings.own", { op: "set", patch }),
+    }),
+    notifications: Object.freeze({
+      show: (input) => request(pluginId, "nibi.notifications.show", input),
+    }),
+  });
+  return Object.freeze({
+    plugin,
+    nibi,
+    rootPath: info.rootPath,
+    dataDir: info.dataDir,
+  });
+}
+async function activate(message) {
+  try {
+    const url = pathToFileURL(message.entry).href + "?v=" + Date.now();
+    const module = await import(url);
+    const context = createContext(message.pluginId, message);
+    if (typeof module.activate === "function") await module.activate(context);
+    active.set(message.pluginId, {
+      deactivate: typeof module.deactivate === "function" ? module.deactivate : null,
+    });
+    send({ type: "activated", pluginId: message.pluginId });
+  } catch (error) {
+    send({
+      type: "activationError",
+      pluginId: message.pluginId,
+      error: String(error && error.stack ? error.stack : error),
+    });
+  }
+}
+async function deactivate(pluginId) {
+  const entry = active.get(pluginId);
+  active.delete(pluginId);
+  try {
+    if (entry && entry.deactivate) await entry.deactivate();
+    send({ type: "deactivated", pluginId });
+  } catch (error) {
+    send({ type: "log", level: "warn", message: String(error) });
+    send({ type: "deactivated", pluginId });
+  }
+}
+const lines = createInterface({ input: process.stdin });
+lines.on("line", (line) => {
+  if (!line.trim()) return;
+  let message;
+  try {
+    message = JSON.parse(line);
+  } catch (error) {
+    send({ type: "log", level: "error", message: "Invalid host message" });
+    return;
+  }
+  if (message.type === "activate") void activate(message);
+  else if (message.type === "deactivate") void deactivate(message.pluginId);
+  else if (message.type === "capabilityResult") {
+    const waiter = pending.get(message.id);
+    if (!waiter) return;
+    pending.delete(message.id);
+    if (message.ok) waiter.resolve(message.value);
+    else waiter.reject(new Error(message.error || "Capability denied"));
+  } else if (message.type === "shutdown") {
+    void Promise.all([...active.keys()].map((id) => deactivate(id))).then(() => process.exit(0));
+  }
+});
+send({ type: "ready" });
+`;
+
+function isPluginExtensionRuntime(
+  plugin: PluginMetadata,
+): plugin is PluginMetadata & { runtime: NonNullable<PluginMetadata["runtime"]> } {
+  // codeBlockedReason = 发现层判定「这段代码不能跑」（原生模块 ABI/未声明 native）。
+  // 这里必须一起拦：只靠发现层不注入 runtime 不够，扩展宿主是独立入口，
+  // 漏一处就等于绕过原生模块门禁。声明式组件不受影响。
+  return plugin.enabled && plugin.runtime !== undefined && plugin.codeBlockedReason === undefined;
+}
+
+function extensionTier(plugin: PluginMetadata): "T1" | "T2" | "T3" {
+  if (plugin.trust === "builtin" || plugin.trust === "official") return "T1";
+  if (plugin.trust === "community") return "T2";
+  return "T3";
+}
+
+function extensionEntryPath(plugin: PluginMetadata): string | null {
+  if (!plugin.runtime) return null;
+  const entry = resolve(plugin.rootPath, plugin.runtime.entry);
+  const relativeEntry = relative(plugin.rootPath, entry);
+  if (!relativeEntry || relativeEntry.startsWith(`..${sep}`) || isAbsolute(relativeEntry)) {
+    return null;
+  }
+  return entry;
+}
+
+function extensionPermissionArgs(
+  roots: readonly string[],
+  dataPaths: readonly string[],
+): string[] {
+  // Node permission model 在 Electron 里不保证可用；不可用时只做进程隔离 + 内存上限，
+  // 不能假装已经限制文件系统。
+  if (process.versions.electron || !process.allowedNodeEnvironmentFlags.has("--permission")) {
+    return [];
+  }
+  return [
+    "--permission",
+    ...roots.map((root) => `--allow-fs-read=${canonicalPermissionPath(root)}`),
+    ...dataPaths.flatMap((path) => {
+      const canonical = canonicalPermissionPath(path);
+      return [`--allow-fs-read=${canonical}`, `--allow-fs-write=${canonical}`];
+    }),
+  ];
+}
+
+// macOS 的 /tmp、/var 是符号链接；Node 权限模型对符号链接的 import 校验很严格，
+// 只允许叶子路径或只允许 realpath 都可能 ERR_ACCESS_DENIED。宿主传给子进程的
+// entry/rootPath/dataDir 与白名单统一用 realpath，彻底绕开符号链接段。
+function canonicalPermissionPath(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
+}
+
+function extensionSpawnEnv(): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    ...(process.versions.electron ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
+  };
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export async function activatePluginExtensions(
+  options: ActivatePluginExtensionsOptions,
+): Promise<PluginExtensionHost> {
+  const runtimePlugins = options.plugins.filter(isPluginExtensionRuntime);
+  if (runtimePlugins.length === 0) {
+    return { dispose: async () => undefined };
+  }
+  const producers: ExtensionProcessState[] = [];
+  const pluginsById = new Map(runtimePlugins.map((plugin) => [plugin.id, plugin]));
+  const notificationTimes = new Map<string, number[]>();
+
+  const denyCapability = (
+    plugin: PluginMetadata,
+    capability: string,
+    reason: string,
+  ): never => {
+    appendPluginAuditEvent(options.storageRoot, {
+      at: new Date().toISOString(),
+      capability,
+      pluginId: plugin.id,
+      type: "capability_denied",
+      ...(plugin.version ? { version: plugin.version } : {}),
+    });
+    throw new Error(reason);
+  };
+
+  const readWorkspaceFile = async (
+    plugin: PluginMetadata,
+    params: Record<string, unknown>,
+  ): Promise<unknown> => {
+    const requested = typeof params.path === "string" ? params.path : "";
+    const resolved = resolve(options.workspacePath, requested);
+    const relativePath = relative(options.workspacePath, resolved);
+    if (!requested || isAbsolute(requested) || relativePath.startsWith(`..${sep}`)) {
+      denyCapability(plugin, "nibi.workspace.files.read", "Path escapes workspace roots");
+    }
+    const segments = resolved.split(/[\\/]/u);
+    const name = segments.at(-1) ?? "";
+    if (
+      segments.includes(".ssh") ||
+      segments.includes(".aws") ||
+      segments.includes(".nibi") ||
+      /^\.env(?:\.|$)/u.test(name) ||
+      /\.(?:pem|key)$/iu.test(name) ||
+      (segments.includes(".git") && name === "config")
+    ) {
+      denyCapability(plugin, "nibi.workspace.files.read", "Sensitive file is not readable");
+    }
+    const info = await stat(resolved);
+    if (!info.isFile()) throw new Error("Requested path is not a file");
+    const maxBytes =
+      typeof params.maxBytes === "number" && params.maxBytes > 0
+        ? Math.min(Math.floor(params.maxBytes), EXTENSION_MAX_FILE_BYTES)
+        : EXTENSION_MAX_FILE_BYTES;
+    const content = await readFile(resolved);
+    return {
+      content: content.subarray(0, maxBytes).toString("utf8"),
+      size: content.byteLength,
+      truncated: content.byteLength > maxBytes,
+    };
+  };
+
+  const pluginSettingsPath = (plugin: PluginMetadata): string =>
+    join(plugin.dataPath, "settings.json");
+
+  const readPluginSettings = async (
+    plugin: PluginMetadata,
+  ): Promise<Record<string, unknown>> => {
+    try {
+      const parsed = JSON.parse(await readFile(pluginSettingsPath(plugin), "utf8")) as unknown;
+      return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const handleCapability = async (
+    pluginId: string,
+    capability: string,
+    params: Record<string, unknown> | undefined,
+  ): Promise<unknown> => {
+    const plugin = pluginsById.get(pluginId);
+    if (!plugin) throw new Error("Unknown plugin");
+    const granted = plugin.capabilities.granted.some((grant) => grant.id === capability);
+    if (!granted) denyCapability(plugin, capability, "Capability is not granted");
+    const startedAt = Date.now();
+    try {
+      let value: unknown;
+      if (capability === "nibi.sessions.read") {
+        if (!options.handlers?.readSessions) throw new Error("capability_unavailable");
+        value = await options.handlers.readSessions({
+          ...(typeof params?.limit === "number" ? { limit: params.limit } : {}),
+        });
+      } else if (capability === "nibi.workspace.files.read") {
+        value = await readWorkspaceFile(plugin, params ?? {});
+      } else if (capability === "nibi.ui.view") {
+        if (!options.handlers?.openView) throw new Error("capability_unavailable");
+        const surfaceId = typeof params?.surfaceId === "string" ? params.surfaceId.trim() : "";
+        if (!surfaceId) throw new Error("invalid_params");
+        await options.handlers.openView({ pluginId, surfaceId });
+        value = null;
+      } else if (capability === "nibi.settings.own") {
+        if (params?.op === "set") {
+          const patch =
+            typeof params.patch === "object" && params.patch !== null && !Array.isArray(params.patch)
+              ? (params.patch as Record<string, unknown>)
+              : {};
+          const current = await readPluginSettings(plugin);
+          const next = { ...current, ...patch };
+          ensurePluginDataDir(plugin.dataPath);
+          await writeFile(pluginSettingsPath(plugin), `${JSON.stringify(next, null, 2)}\n`, "utf8");
+          value = next;
+        } else {
+          value = await readPluginSettings(plugin);
+        }
+      } else if (capability === "nibi.notifications.show") {
+        const now = Date.now();
+        const dayAgo = now - 24 * 60 * 60 * 1000;
+        const times = (notificationTimes.get(pluginId) ?? []).filter((time) => time > dayAgo);
+        const lastMinute = times.filter((time) => time > now - 60_000).length;
+        if (lastMinute >= 1 || times.length >= 20) throw new Error("rate_limited");
+        times.push(now);
+        notificationTimes.set(pluginId, times);
+        const title = typeof params?.title === "string" ? params.title.trim() : "";
+        if (!title) throw new Error("invalid_params");
+        const body = typeof params?.body === "string" ? params.body : undefined;
+        if (options.handlers?.showNotification) {
+          await options.handlers.showNotification({
+            pluginId,
+            title,
+            ...(body ? { body } : {}),
+          });
+        } else {
+          options.logger?.info(`[plugin:${pluginId}] ${title}${body ? `: ${body}` : ""}`);
+        }
+        value = null;
+      } else {
+        throw new Error("capability_unavailable");
+      }
+      appendPluginAuditEvent(options.storageRoot, {
+        at: new Date().toISOString(),
+        capability,
+        pluginId: plugin.id,
+        type: "capability_invoked",
+        ...(plugin.version ? { version: plugin.version } : {}),
+      });
+      options.logger?.debug?.("[plugins] extension capability", {
+        capability,
+        durationMs: Date.now() - startedAt,
+        pluginId,
+      });
+      return value;
+    } catch (error) {
+      if (toErrorMessage(error) !== "rate_limited") {
+        appendPluginAuditEvent(options.storageRoot, {
+          at: new Date().toISOString(),
+          capability,
+          pluginId: plugin.id,
+          type: "capability_denied",
+          ...(plugin.version ? { version: plugin.version } : {}),
+        });
+      }
+      throw error;
+    }
+  };
+
+  const spawnHost = (tier: "T1" | "T2" | "T3", plugins: PluginMetadata[]): ExtensionProcessState => {
+    const roots = [
+      ...new Set(plugins.map((plugin) => canonicalPermissionPath(plugin.rootPath))),
+    ];
+    const dataPaths = [
+      ...new Set(
+        plugins.map((plugin) => {
+          ensurePluginDataDir(plugin.dataPath);
+          return canonicalPermissionPath(plugin.dataPath);
+        }),
+      ),
+    ];
+    const args = [
+      ...extensionPermissionArgs(roots, dataPaths),
+      "--max-old-space-size=256",
+      "-e",
+      PLUGIN_EXTENSION_CHILD_SCRIPT,
+    ];
+    const child = spawn(process.execPath, args, {
+      cwd: tier === "T3" && plugins[0] ? canonicalPermissionPath(plugins[0].rootPath) : options.workspacePath,
+      env: extensionSpawnEnv(),
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    const state: ExtensionProcessState = {
+      child,
+      pendingActivations: new Map(),
+      tier,
+    };
+    const lines = createInterface({ input: child.stdout });
+    lines.on("line", (line) => {
+      let message: Record<string, unknown>;
+      try {
+        message = JSON.parse(line) as Record<string, unknown>;
+      } catch {
+        options.logger?.warn?.(`[plugins] invalid extension output: ${line.slice(0, 200)}`);
+        return;
+      }
+      if (message.type === "ready") return;
+      if (message.type === "log") {
+        const text = `[plugin:${String(message.message ?? "")}]`;
+        if (message.level === "error") options.logger?.error?.(text);
+        else if (message.level === "warn") options.logger?.warn?.(text);
+        else options.logger?.debug?.(text);
+        return;
+      }
+      if (message.type === "activated" || message.type === "activationError") {
+        const pluginId = typeof message.pluginId === "string" ? message.pluginId : "";
+        const waiter = state.pendingActivations.get(pluginId);
+        if (!waiter) return;
+        state.pendingActivations.delete(pluginId);
+        clearTimeout(waiter.timer);
+        if (message.type === "activated") waiter.resolve();
+        else waiter.reject(new Error(String(message.error ?? "Plugin activation failed")));
+        return;
+      }
+      if (message.type === "capability") {
+        const capabilityMessage = message as unknown as ExtensionCapabilityMessage;
+        void handleCapability(
+          capabilityMessage.pluginId,
+          capabilityMessage.capability,
+          capabilityMessage.params,
+        )
+          .then((value) => {
+            if (child.stdin.destroyed) return;
+            child.stdin.write(
+              `${JSON.stringify({
+                type: "capabilityResult",
+                id: capabilityMessage.id,
+                ok: true,
+                value,
+              })}\n`,
+            );
+          })
+          .catch((error) => {
+            if (child.stdin.destroyed) return;
+            child.stdin.write(
+              `${JSON.stringify({
+                type: "capabilityResult",
+                id: capabilityMessage.id,
+                ok: false,
+                error: toErrorMessage(error),
+              })}\n`,
+            );
+          });
+      }
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      options.logger?.warn?.(`[plugins] extension stderr: ${chunk.toString("utf8").slice(0, 500)}`);
+    });
+    child.on("exit", (code) => {
+      for (const waiter of state.pendingActivations.values()) {
+        clearTimeout(waiter.timer);
+        waiter.reject(new Error(`Extension host exited before activation (code ${code ?? "?"})`));
+      }
+      state.pendingActivations.clear();
+      if (code !== 0 && code !== null) {
+        options.logger?.warn?.(`[plugins] extension host exited with code ${code}`);
+      }
+    });
+    return state;
+  };
+
+  const activateIn = async (state: ExtensionProcessState, plugin: PluginMetadata): Promise<void> => {
+    const entry = extensionEntryPath(plugin);
+    if (!entry) {
+      options.logger?.warn?.(`[plugins] invalid runtime entry for ${plugin.id}`);
+      return;
+    }
+    try {
+      const info = await stat(entry);
+      if (!info.isFile()) throw new Error("runtime entry is not a file");
+    } catch (error) {
+      options.logger?.warn?.(
+        `[plugins] runtime entry missing for ${plugin.id}: ${toErrorMessage(error)}`,
+      );
+      return;
+    }
+    await new Promise<void>((resolveActivation, rejectActivation) => {
+      const timer = setTimeout(() => {
+        state.pendingActivations.delete(plugin.id);
+        rejectActivation(new Error("Plugin activation timed out"));
+      }, EXTENSION_ACTIVATION_TIMEOUT_MS);
+      state.pendingActivations.set(plugin.id, {
+        resolve: resolveActivation,
+        reject: rejectActivation,
+        timer,
+      });
+      state.child.stdin.write(
+        `${JSON.stringify({
+          type: "activate",
+          pluginId: plugin.id,
+          entry: canonicalPermissionPath(entry),
+          name: plugin.name,
+          version: plugin.version ?? "0.0.0",
+          rootPath: canonicalPermissionPath(plugin.rootPath),
+          dataDir: canonicalPermissionPath(plugin.dataPath),
+        })}\n`,
+      );
+    }).catch((error) => {
+      options.logger?.warn?.(`[plugins] failed to activate ${plugin.id}: ${toErrorMessage(error)}`);
+    });
+  };
+
+  // T1 官方/内置共享一个宿主；T2 社区共享一个；T3 每个本地插件独立进程。
+  const groups: Array<{ plugins: PluginMetadata[]; tier: "T1" | "T2" | "T3" }> = [];
+  const byTier = new Map<string, PluginMetadata[]>();
+  for (const plugin of runtimePlugins) {
+    const tier = extensionTier(plugin);
+    if (tier === "T3") groups.push({ plugins: [plugin], tier });
+    else {
+      const key = tier;
+      const list = byTier.get(key) ?? [];
+      list.push(plugin);
+      byTier.set(key, list);
+    }
+  }
+  for (const [tier, plugins] of byTier) {
+    groups.push({ plugins, tier: tier as "T1" | "T2" });
+  }
+  for (const group of groups) {
+    let state: ExtensionProcessState;
+    try {
+      state = spawnHost(group.tier, group.plugins);
+    } catch (error) {
+      options.logger?.error?.(
+        `[plugins] failed to spawn ${group.tier} extension host: ${toErrorMessage(error)}`,
+      );
+      continue;
+    }
+    producers.push(state);
+    for (const plugin of group.plugins) {
+      await activateIn(state, plugin);
+    }
+  }
+
+  return {
+    dispose: async () => {
+      await Promise.all(
+        producers.map(
+          (state) =>
+            new Promise<void>((resolveDispose) => {
+              if (state.child.exitCode !== null || state.child.killed) {
+                resolveDispose();
+                return;
+              }
+              const timer = setTimeout(() => {
+                state.child.kill();
+                resolveDispose();
+              }, 3_000);
+              state.child.once("exit", () => {
+                clearTimeout(timer);
+                resolveDispose();
+              });
+              try {
+                state.child.stdin.write(`${JSON.stringify({ type: "shutdown" })}\n`);
+                state.child.stdin.end();
+              } catch {
+                clearTimeout(timer);
+                state.child.kill();
+                resolveDispose();
+              }
+            }),
+        ),
+      );
+    },
+  };
 }

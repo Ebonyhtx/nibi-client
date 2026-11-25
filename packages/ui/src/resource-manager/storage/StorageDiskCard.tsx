@@ -111,9 +111,12 @@ export function StorageDiskCard({
     </>
   );
   const className = cn(
-    "w-full rounded-xl border border-card-border bg-card p-4 text-left",
-    selectable && "cursor-pointer transition-colors hover:bg-surface-hover",
-    selected && selectable && "bg-card-selected border-brand",
+    "w-full rounded-xl border border-card-border bg-card p-4 text-left shadow-[var(--nibi-shadow-card)]",
+    selectable &&
+      "cursor-pointer transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:transition-none",
+    selected &&
+      selectable &&
+      "border-primary/60 bg-card-selected shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25",
   );
   return selectable ? (
     <button

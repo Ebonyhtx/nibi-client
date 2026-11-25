@@ -9168,7 +9168,7 @@ export function createBotsService(
             const targetIdentity = customModel?.modelName
               ? {
                   // Bugfix: bot /model 选择 custom provider 时，targetModel 会被降成纯模型名。
-                  // legacy task facade 必须额外拿到原始 provider 身份，否则同名模型会退回 glm/native。
+                  // legacy task facade 必须额外拿到原始 provider 身份，否则同名模型会退回 nibi-agent/native。
                   providerId: customModel.providerId,
                   modelId: customModel.modelName,
                 }

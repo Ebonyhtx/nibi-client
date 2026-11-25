@@ -26,7 +26,6 @@ import {
   getV4ConfigProjection,
   prepareV4ConversationE2E,
   sendV4Prompt,
-  startNewV4Draft,
   switchV4Mode,
   waitForV4Pane,
   waitForV4TimelineContaining,
@@ -62,7 +61,10 @@ describe("会话区 BG25/O18/O19 coordinator 与 TaskOutput 专属卡片 E2E", (
     await rm(FINAL_RELEASE_FILE, { force: true });
     await rm(ERROR_CHILD_RELEASE_FILE, { force: true });
     await writeFile(CONTINUED_WORK_FILE, "E2E_SUBAGENT_CONTINUED_WORK\n", "utf-8");
-    await startNewV4Draft();
+    // Bug 原因：全局新建（`startNewV4Draft`）会造一个没有项目 cwd 的草稿，composer 的
+    // mode 命令写不进去，`selectCurrentV4FullAccessMode` 永远等不到 yolo；实测两次均失败。
+    // 复用夹具项目的空草稿（没有就项目级新建），再在当前 composer 明确切 Full access。
+    await prepareV4ConversationE2E({ resetDraftBeforeProvider: true });
     // Bug 原因：legacy helper 会遍历所有 workspace，只要任一旧 workspace 是 yolo
     // 就误判当前 v4 draft 已切换，实际 session 仍以 build 启动，child Bash 永久等权限。
     // 必须通过当前 v4 composer 明确写入 draft mode，再启动本 case 的 session。
@@ -579,10 +581,31 @@ async function selectCurrentV4FullAccessMode() {
   // 权威投影，且 DOM element.click() 无法稳定确认 Radix Select。复用 V4 helper 的
   // 键盘确认链路，并以 composer 的 data-mode 投影判断配置命令已经回流。
   await switchV4Mode("yolo");
-  await browser.waitUntil(async () => (await getV4ConfigProjection()).mode === "yolo", {
-    timeout: 30_000,
-    timeoutMsg: "BG25 当前 v4 composer 没有收敛到 Full access mode",
-  });
+  // Bug 根因：完全访问现在有二次确认弹窗（产品要求）；只点菜单项不会生效，必须勾选
+  // 风险承诺再按确认。用 testid 定位，不依赖当前语言的按钮文案。
+  await browser.waitUntil(
+    async () => {
+      if ((await getV4ConfigProjection()).mode === "yolo") return true;
+      await browser.execute(() => {
+        const dialog = document.querySelector<HTMLElement>(
+          '[data-testid="full-access-mode-confirm-dialog"]',
+        );
+        if (!dialog) return;
+        const checkbox = dialog.querySelector<HTMLElement>('[role="checkbox"]');
+        if (checkbox && checkbox.getAttribute("aria-checked") !== "true") checkbox.click();
+        const confirm = dialog.querySelector<HTMLButtonElement>(
+          '[data-testid="full-access-mode-confirm"]',
+        );
+        if (confirm && !confirm.disabled) confirm.click();
+      });
+      return (await getV4ConfigProjection()).mode === "yolo";
+    },
+    {
+      timeout: 30_000,
+      interval: 200,
+      timeoutMsg: "BG25 当前 v4 composer 没有收敛到 Full access mode",
+    },
+  );
 }
 
 async function stopIfBusy() {

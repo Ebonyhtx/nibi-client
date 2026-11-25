@@ -31,27 +31,27 @@ export type InputId = string;
 export type QueryId = string;
 // ---- Nibi Provider ----
 
-/** 支持的 Nibi agent 提供方；当前仅保留 glm。 */
+/** 支持的 Nibi agent 提供方；当前仅 nibi-agent。 */
 export type NibiProvider = "nibi-agent";
-export type NibiGlmAgentModelStateUpdateReason =
+export type NibiAgentModelStateUpdateReason =
   | "session_initialized"
   | "model_changed"
   | "thought_level_changed";
-export interface NibiGlmAgentModelStateOption {
+export interface NibiAgentModelStateOption {
   value: string;
   name: string;
 }
-export interface NibiGlmAgentModelStateUpdatePayload {
+export interface NibiAgentModelStateUpdatePayload {
   version: 1;
   sessionId: string;
-  reason: NibiGlmAgentModelStateUpdateReason;
+  reason: NibiAgentModelStateUpdateReason;
   model: {
     currentValue: string;
   };
   thoughtLevel: {
     enabled: boolean;
     currentValue?: string;
-    options: NibiGlmAgentModelStateOption[];
+    options: NibiAgentModelStateOption[];
   };
   contextWindow: {
     tokens: number;
@@ -315,7 +315,7 @@ export interface NibiTaskMeta {
    * 这里记录 runtimeEpoch，用来区分“task 自身模型保持”与“runtime 基线确实变更后需要收敛”。
    */
   runtimeEpoch?: number;
-  /** 创建此 task 时使用的 agent provider，缺省视为 "nibi-agent"（旧数据 "glm" 由 legacy schema 归一） */
+  /** 创建此 task 时使用的 agent provider，缺省视为 "nibi-agent"。 */
   provider?: NibiProvider;
   /** 迁移来源；普通新建任务为空，用于识别 Claude Code 原生历史导入。 */
   migrationSource?: NibiTaskMigrationSource;
@@ -442,7 +442,7 @@ export type TaskStreamMirrorableEvent = (
 ) & { inputId?: InputId };
 export type NibiStreamEvent = (
   | TaskStreamMirrorableEvent
-  | NibiGlmAgentModelStateUpdate
+  | NibiAgentModelStateUpdate
   | NibiGoalIterationStarted
   | NibiTurnSteerQueued
   | NibiTurnSteerStatus
@@ -845,8 +845,8 @@ export interface NibiConfigOptionUpdate {
   inputId?: InputId;
   configOptions: NibiConfigOption[];
 }
-/** nibi-cli/GLM agent 专属：模型变化后同步思考等级选项和上下文窗口。 */
-export interface NibiGlmAgentModelStateUpdate extends NibiGlmAgentModelStateUpdatePayload {
+/** NIBI Agent 专属：模型变化后同步思考等级选项和上下文窗口。 */
+export interface NibiAgentModelStateUpdate extends NibiAgentModelStateUpdatePayload {
   type: "nibi_agent_model_state_update";
   taskId: string;
   traceId: TraceId;

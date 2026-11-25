@@ -145,6 +145,8 @@ export async function initializeMcp(
       ),
       // 插件 UI：display.ui 需要 server → pluginId 的归属；catalog 是 session 冻结的唯一权威。
       pluginIdByServerName: buildPluginIdByServerName(this.config.pluginReferenceCatalog),
+      // 执行期付费门禁：注册期拦一次、每次调用再复核（会员可在会话中途到期）。
+      ...(this.config.paidPluginGate ? { paidPluginGate: this.config.paidPluginGate } : {}),
     });
     if (registered.length > 0) {
       this.invalidateToolCache();
@@ -227,6 +229,7 @@ export async function refreshMcpToolsIfChanged(
       new Set(this.config.mcp?.trustedOfficialCuaServerNames ?? []),
     ),
     pluginIdByServerName: buildPluginIdByServerName(this.config.pluginReferenceCatalog),
+    ...(this.config.paidPluginGate ? { paidPluginGate: this.config.paidPluginGate } : {}),
   });
   this.registeredMcpToolNames = registered;
   this.mcpToolsSignature = signature;

@@ -79,11 +79,14 @@ pub const TOKEN_CLIENT_TYPE: &str = "zcode";
 pub mod vars {
     pub const NIBI_PLUGIN_ROOT: &str = "NIBI_PLUGIN_ROOT";
     pub const CLAUDE_PLUGIN_ROOT: &str = "CLAUDE_PLUGIN_ROOT";
+    pub const ZCODE_PLUGIN_ROOT: &str = "ZCODE_PLUGIN_ROOT";
     /// 插件数据目录（`<插件存储根>/data/<sanitize(id)>`；Node `adapters/src/plugins/mcp.ts` 的 `dataPath`）。
     pub const NIBI_PLUGIN_DATA: &str = "NIBI_PLUGIN_DATA";
     pub const CLAUDE_PLUGIN_DATA: &str = "CLAUDE_PLUGIN_DATA";
+    pub const ZCODE_PLUGIN_DATA: &str = "ZCODE_PLUGIN_DATA";
     pub const NIBI_PROJECT_DIR: &str = "NIBI_PROJECT_DIR";
     pub const CLAUDE_PROJECT_DIR: &str = "CLAUDE_PROJECT_DIR";
+    pub const ZCODE_PROJECT_DIR: &str = "ZCODE_PROJECT_DIR";
     pub const NIBI_SESSION_ID: &str = "NIBI_SESSION_ID";
     pub const CLAUDE_SESSION_ID: &str = "CLAUDE_SESSION_ID";
     pub const CLAUDE_CODE_SESSION_ID: &str = "CLAUDE_CODE_SESSION_ID";

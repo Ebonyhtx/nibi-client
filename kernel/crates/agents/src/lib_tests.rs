@@ -60,14 +60,15 @@ async fn a_foreground_agent_runs_in_a_child_session_and_hands_back_its_report() 
             "Edit",
             "Agent",
             "ListAgents",
-            "SendMessage",
             "TaskStop",
             "TaskCreate",
             "TaskGet",
             "TaskList",
             "TaskUpdate",
             "TodoRead",
-            "TodoWrite"
+            "TodoWrite",
+            // 子代理的控制工具（Node `appendChildControlTool`）：定义清单不含它也照样给。
+            "RespondToCoordinator"
         ]
     );
     assert!(
@@ -162,10 +163,11 @@ async fn a_background_agent_notifies_its_parent_once_it_finishes() {
         listed,
         "Subagents (1):\n  agent_1  ·  Explore  ·  running  ·  started 0s ago"
     );
-    // 后台子代理只有异步白名单里的工具。
+    // 后台子代理只有异步白名单里的工具；SendMessage 是主会话的工具（子代理用
+    // RespondToCoordinator 回复 coordinator）。
     assert_eq!(
         harness.started(1).await[0].tools,
-        ["Bash", "Read", "SendMessage", "TaskStop", "TodoRead", "TodoWrite"]
+        ["Bash", "Read", "TaskStop", "TodoRead", "TodoWrite", "RespondToCoordinator"]
     );
     gate.notify_one();
     let notice = next_notice(&mut stream).await;

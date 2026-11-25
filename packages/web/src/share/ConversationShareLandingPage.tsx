@@ -220,13 +220,13 @@ function formatDate(timestamp: number, locale: ConversationShareLandingLocale): 
 const SHARE_CONTENT_RAIL_CLASS =
   "@container/conversation mx-auto w-full max-w-4xl px-4 sm:px-8 xl:max-w-6xl";
 const SHARE_CONTINUE_LINK_CLASS =
-  "inline-flex max-w-full items-center gap-2 rounded-xl bg-primary px-4 py-2 text-ui-base font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-input-border-focused sm:gap-3 sm:px-5 sm:py-2.5";
+  "inline-flex max-w-full items-center gap-2 rounded-xl bg-primary px-4 py-2 text-ui-base font-medium text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] transition-[background-color,filter,box-shadow,transform] duration-150 hover:bg-primary/92 hover:brightness-[1.03] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused sm:gap-3 sm:px-5 sm:py-2.5";
 const SHARE_CONTINUE_MEASURE_CLASS =
   "inline-flex max-w-none items-center gap-2 rounded-xl bg-primary px-4 py-2 text-ui-base font-medium text-primary-foreground sm:gap-3 sm:px-5 sm:py-2.5";
 const SHARE_CONTINUE_COMPACT_CLASS =
-  "inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-input-border-focused";
+  "inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] transition-[background-color,filter,box-shadow,transform] duration-150 hover:bg-primary/92 hover:brightness-[1.03] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused";
 const SHARE_THEME_TOGGLE_CLASS =
-  "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-foreground transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused";
+  "inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-transparent text-foreground transition-[background-color,border-color,transform] duration-150 hover:border-border/70 hover:bg-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused motion-reduce:transition-none motion-reduce:active:scale-100";
 
 function ShareThemeToggle({
   theme,
@@ -423,7 +423,7 @@ export function ConversationShareLandingPage({
     >
       <header
         data-share-header="true"
-        className="sticky top-0 z-20 border-b border-border bg-background backdrop-blur"
+        className="sticky top-0 z-20 border-b border-border/80 bg-background/88 backdrop-blur-md"
       >
         <div
           ref={headerShellRef}
@@ -567,7 +567,7 @@ export function ConversationShareLandingPage({
           // 因此缺了 inset 的 px-4 / @md:px-6，横幅比上方时间行和下方正文都宽出一截。
           <ShareContentInset>
             <div
-              className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-ui-sm text-foreground-subtle"
+              className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-card-border bg-card px-4 py-3 text-ui-sm text-foreground-subtle shadow-[var(--nibi-shadow-card)]"
               role="status"
             >
               <span>{copy.continueHelp}</span>
@@ -677,21 +677,27 @@ export function ConversationShareLandingStatus({
     );
   return (
     <main className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-background px-4 py-8 text-foreground">
-      <section className="w-full max-w-md rounded-lg border border-card-border bg-card p-6 shadow-sm">
-        <div className="mb-4 text-ui-sm font-medium text-brand">{copy.brand}</div>
-        <h1 className="text-ui-xl font-semibold">{content.title}</h1>
-        <p className="mt-3 text-ui-base leading-6 text-foreground-subtle">{content.description}</p>
+      <section className="w-full max-w-md rounded-2xl border border-card-border bg-card p-6 shadow-[var(--nibi-shadow-card)]">
+        <div className="mb-4 inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-ui-xs font-medium text-brand">
+          {copy.brand}
+        </div>
+        <h1 className="text-ui-xl font-semibold text-balance">{content.title}</h1>
+        <p className="mt-3 text-ui-base leading-6 text-pretty text-foreground-subtle">
+          {content.description}
+        </p>
         {state.kind === "error" &&
         (state.status !== undefined || state.code !== undefined || state.requestId) ? (
-          <details className="mt-4 text-ui-xs text-foreground-subtle">
-            <summary className="cursor-pointer">{copy.errorDetails}</summary>
+          <details className="mt-4 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-ui-xs text-foreground-subtle">
+            <summary className="cursor-pointer font-medium text-foreground">
+              {copy.errorDetails}
+            </summary>
             {[
               ["HTTP", state.status],
               [copy.errorCode, state.code],
               [copy.requestId, state.requestId],
             ].map(([label, value]) =>
               value === undefined ? null : (
-                <p key={label} className="mt-1 break-all select-text">
+                <p key={label} className="mt-1.5 font-mono break-all select-text">
                   {label}: {value}
                 </p>
               ),
@@ -716,14 +722,16 @@ export function ConversationShareLandingStatus({
                 key={provider}
                 type="button"
                 data-share-login-provider={provider}
-                className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-ui-base text-primary-foreground"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-ui-base font-medium text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] transition-[background-color,filter,box-shadow,transform] duration-150 hover:bg-primary/92 hover:brightness-[1.03] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused motion-reduce:transition-none motion-reduce:active:scale-100"
                 onClick={() => onLogin(provider)}
               >
                 {renderOAuthProviderIcon(provider, "size-4")}
                 <span className="min-w-0 truncate">{copy.loginWith[provider]}</span>
-                <span className="ml-1 inline-flex h-5 shrink-0 items-center rounded-full border border-primary-foreground/30 px-2 text-ui-xs font-medium leading-none text-primary-foreground/60">
-                  {copy.loginRegion[provider]}
-                </span>
+                {copy.loginRegion[provider] ? (
+                  <span className="ml-1 inline-flex h-5 shrink-0 items-center rounded-full border border-primary-foreground/30 px-2 text-ui-xs font-medium leading-none text-primary-foreground/60">
+                    {copy.loginRegion[provider]}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -733,7 +741,7 @@ export function ConversationShareLandingStatus({
             {canRetry ? (
               <button
                 type="button"
-                className="rounded-md border border-border px-4 py-2 text-ui-base text-foreground"
+                className="rounded-xl border border-border bg-card px-4 py-2 text-ui-base font-medium text-foreground shadow-2xs transition-[border-color,background-color,transform] duration-150 hover:border-border-hover hover:bg-hover active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
                 onClick={onRetry}
               >
                 {copy.retry}
@@ -741,7 +749,7 @@ export function ConversationShareLandingStatus({
             ) : null}
             {isNotFound ? (
               <a
-                className="rounded-md bg-primary px-4 py-2 text-ui-base text-primary-foreground"
+                className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-ui-base font-medium text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] transition-[background-color,filter,box-shadow,transform] duration-150 hover:bg-primary/92 hover:brightness-[1.03] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
                 href={NIBI_DOWNLOAD_URL}
               >
                 {copy.backToHome}

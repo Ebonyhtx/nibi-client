@@ -102,7 +102,6 @@ import type { Theme } from "@/useTheme.js";
 import { WindowsTopLeftLogo } from "@/WindowsTopLeftLogo.js";
 
 import { DesktopWindowControls } from "@/DesktopWindowControls.js";
-import { WorkspaceHelpMenuButton } from "@/WorkspaceHelpMenuButton.js";
 import { WorkspaceSidebarFooter } from "@/WorkspaceSidebarFooter.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { cn } from "@/components/lib/utils.js";
@@ -182,16 +181,16 @@ function SettingsSidebarButton({
           "max-lg:mx-auto max-lg:size-10 max-lg:justify-center max-lg:px-0",
           "compact-web:mx-0 compact-web:h-8 compact-web:w-auto compact-web:shrink-0 compact-web:px-2.5",
           active
-            ? "bg-surface-hover text-foreground"
-            : "text-remote-foreground-muted hover:bg-surface-hover hover:text-foreground",
+            ? "bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25"
+            : "text-remote-foreground-muted hover:bg-hover/75 hover:text-foreground",
           className,
         )}
       >
         <span className="flex size-4 shrink-0 items-center justify-center text-current">
-          <Icon className="size-4 text-foreground" />
+          <Icon className={cn("size-4", active ? "text-primary" : "text-current")} />
         </span>
         <span className="min-w-0 flex-1 max-lg:sr-only compact-web:not-sr-only">
-          {children ?? <span className="truncate text-ui-base text-foreground">{label}</span>}
+          {children ?? <span className="truncate text-ui-base">{label}</span>}
         </span>
       </button>
     </ControlHintTooltip>
@@ -1721,15 +1720,11 @@ export function SettingsPage({
           {usesInlineWindowControls ? (
             <div
               className={cn(
-                "absolute z-30 mt-px mr-px flex h-12 items-center gap-0.5 px-2 pointer-events-auto [app-region:no-drag]",
-                // 外沿留白变化后，悬浮操作组也必须同步，否则与内容 Header 错位。
+                "absolute z-30 mt-px mr-px flex h-12 items-center px-2 pointer-events-auto [app-region:no-drag]",
+                // 外沿留白变化后，悬浮窗控组也必须同步，保持与系统面板留白一致。
                 isWindowsDesktop ? "right-1.5 top-1.5" : "right-1 top-1",
               )}
             >
-              {/* Bug 原因：Windows/Linux 设置页仍保留旧 caption 下箭头，与主界面和 macOS 的帮助入口不一致。
-                  统一复用问号帮助按钮，并让它在普通 flex 流中紧邻自绘窗控。
-                  Settings 的独立标题层还需计入 4px 外层留白和 1px 边框，才能与 Workspace 控制组对齐。 */}
-              <WorkspaceHelpMenuButton isDesktop={Boolean(isDesktop)} />
               <DesktopWindowControls />
             </div>
           ) : null}
@@ -1755,7 +1750,7 @@ export function SettingsPage({
                       aria-label={intl.formatMessage({
                         id: "workspace.backToWorkspace",
                       })}
-                      className="m-1 w-[calc(100%-0.5rem)] justify-start gap-2 rounded-xl bg-surface px-1.5 text-remote-foreground-muted hover:bg-surface-hover hover:text-foreground max-lg:m-1 max-lg:size-10 max-lg:justify-center max-lg:px-0"
+                      className="m-1 w-[calc(100%-0.5rem)] justify-start gap-2 rounded-xl border border-border/60 bg-card/80 px-2 text-remote-foreground-muted shadow-2xs hover:bg-card hover:text-foreground max-lg:m-1 max-lg:size-10 max-lg:justify-center max-lg:px-0"
                       onClick={() => {
                         runUserAction({
                           input: {
@@ -1867,9 +1862,7 @@ export function SettingsPage({
                                 }}
                               >
                                 <span className="flex min-w-0 flex-1 items-center gap-2">
-                                  <span className="truncate text-ui-base text-foreground">
-                                    {label}
-                                  </span>
+                                  <span className="truncate text-ui-base">{label}</span>
                                   {id === "remoteDevices" ? (
                                     <RemoteConnectionNavigationDot
                                       presentation={remoteDevicesPresentation}
@@ -1925,27 +1918,11 @@ export function SettingsPage({
             <div
               data-settings-panel-frame="true"
               className={cn(
-                "relative flex flex-col min-h-0 h-full border border-border bg-background",
+                "nibi-atelier-panel relative flex flex-col min-h-0 h-full overflow-hidden border border-border bg-background",
                 // 直接写像素圆角会绕过设计 token；设置页与工作区统一复用 rounded-md（默认 6px）。
                 isWindowsDesktop ? "rounded-md" : "rounded-xl",
               )}
             >
-              {!usesInlineWindowControls ? (
-                <div
-                  className={cn(
-                    // Settings 使用和 new task 一致的问号定位：在内容面板内定位，外层让出自绘窗口按钮区，内层保持 top-2.5/right-2.5。
-                    "absolute top-0 z-50 h-10 w-10 pointer-events-auto [app-region:no-drag]",
-                    "right-0",
-                  )}
-                >
-                  <div className="absolute right-2.5 top-2.5 pointer-events-auto [app-region:no-drag]">
-                    <WorkspaceHelpMenuButton
-                      className="relative z-50 [app-region:no-drag]"
-                      isDesktop={Boolean(isDesktop)}
-                    />
-                  </div>
-                </div>
-              ) : null}
               <SettingsBreadcrumbProvider
                 onItemsChange={setSettingsBreadcrumbItems}
                 sectionLabel={settingsBreadcrumbSectionLabel}
@@ -1955,14 +1932,12 @@ export function SettingsPage({
                     <div
                       // Settings 窄布局会像左侧导航一样在 max-lg 收成 icon rail。
                       // 此时外层已经提供 max-lg:h-16 的顶部拖拽/避让区，内层 h-10 再保留会把内容额外压低。
-                      // Electron 的 drag 区不能和右上角帮助/窗口按钮命中区域重叠；
-                      // 这里把右侧按钮区域从拖拽条里让出来，避免真实鼠标点击被标题栏拖拽吞掉。
-                      // Windows/Linux 设置页共同避开右上角菜单与内联窗控组。
-
+                      // Electron 的 drag 区不能和右上角窗口按钮命中区域重叠；
+                      // 这里把右侧窗控按钮区域从拖拽条里让出来，避免真实鼠标点击被标题栏拖拽吞掉。
                       className={cn(
                         "min-w-0 flex-1 [app-region:drag]",
-                        // 四个 28px 按钮、组内 2px 间距和左右 8px padding，共 134px。
-                        usesInlineWindowControls ? "mr-[134px]" : "mr-12",
+                        // 三个 28px 窗控按钮、组内 2px 间距和左右 8px padding，共 104px（mr-26）。
+                        usesInlineWindowControls && "mr-26",
                       )}
                     >
                       <SettingsHeaderBreadcrumb

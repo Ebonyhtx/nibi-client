@@ -30,12 +30,12 @@
     {
       "capability": "tool.RespondToCoordinator",
       "side": "node",
-      "reason": "Node 协调者应答通道；Rust 会话没有同名工具（协作在 Host/agents 层）。"
+      "reason": "Node 协调者应答通道；Rust 由 nibi-kernel-agents 在子代理运行期按身份构造同名控制工具（child-only），不在 tools crate 的静态枚举，门禁按 Node 侧跟踪。"
     },
     {
       "capability": "tool.TaskOutput",
       "side": "node",
-      "reason": "Node 读取后台任务输出；Rust 的对应能力在 agents 层的 TaskGet/后台通知，没有同名工具。"
+      "reason": "Node 读取后台任务输出；Rust 由 nibi-kernel-agents 注册同名工具（主线程与 fork 有、子代理没有），不在 tools crate 的静态枚举，门禁按 Node 侧跟踪。"
     },
     {
       "capability": "tool.js",

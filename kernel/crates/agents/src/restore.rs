@@ -103,24 +103,27 @@ struct RunData {
     started_at_ms: u64,
 }
 
-/// `subagent_result` 的内容。
+/// `subagent_result` 的内容（TaskOutput 也读它取终态与结果正文）。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ResultData {
+pub(crate) struct ResultData {
     #[serde(default)]
-    ending: String,
+    pub(crate) ending: String,
     #[serde(default)]
-    text: String,
+    pub(crate) text: String,
+    /// 失败时的 provider 原文（与终态通知同一份）；旧记录没有这个字段。
     #[serde(default)]
-    tokens: u64,
+    pub(crate) error: Option<String>,
     #[serde(default)]
-    tool_uses: usize,
+    pub(crate) tokens: u64,
     #[serde(default)]
-    duration_ms: u64,
+    pub(crate) tool_uses: usize,
     #[serde(default)]
-    tool_use_id: Option<String>,
+    pub(crate) duration_ms: u64,
     #[serde(default)]
-    finished_at_ms: u64,
+    pub(crate) tool_use_id: Option<String>,
+    #[serde(default)]
+    pub(crate) finished_at_ms: u64,
 }
 
 impl crate::Agents {
@@ -270,7 +273,15 @@ async fn restore_agent(
         );
         core.live.insert(live.clone());
         // 通知里的 `<tool-use-id>` 用产生这条结果的那次运行（续跑产生的通知不属于哪次工具调用）。
-        deliver_result(core, &live, result.tool_use_id.as_deref(), ending, &report).await;
+        deliver_result(
+            core,
+            &live,
+            result.tool_use_id.as_deref(),
+            ending,
+            &report,
+            result.error.as_deref(),
+        )
+        .await;
         return Ok(());
     }
 
@@ -423,8 +434,9 @@ fn placeholder(spawn: &SpawnData) -> AgentDefinition {
         prompt: String::new(),
         source: AgentSource::BuiltIn,
         plugin: None,
-        model: None,
-        effort: None,
+        model_selection: None,
+        model_override: None,
+        state_id: None,
         max_turns: None,
         permission_mode: None,
         background: spawn.background,
@@ -519,7 +531,7 @@ fn blocked_report(spawn: &SpawnData, attempts: u32) -> Option<Report> {
     None
 }
 
-async fn latest_result(
+pub(crate) async fn latest_result(
     core: &Core,
     child: &SessionId,
     agent: &AgentId,
@@ -581,6 +593,7 @@ async fn fail_and_deliver(core: &Arc<Core>, live: LiveAgent, reason: String) {
         data: serde_json::json!({
             "ending": Ending::Failed.status(),
             "text": &report.text,
+            "error": &reason,
             "tokens": 0,
             "toolUses": 0,
             "durationMs": 0,
@@ -598,6 +611,7 @@ async fn fail_and_deliver(core: &Arc<Core>, live: LiveAgent, reason: String) {
         live.tool_use.as_ref().map(ToolUseId::as_str),
         Ending::Failed,
         &report,
+        Some(reason.as_str()),
     )
     .await;
 }
@@ -609,6 +623,7 @@ async fn deliver_result(
     tool_use: Option<&str>,
     ending: Ending,
     report: &Report,
+    error: Option<&str>,
 ) {
     let delivered = match core
         .ports
@@ -632,7 +647,7 @@ async fn deliver_result(
         &live.description,
         ending,
         report,
-        None,
+        error,
     );
     core.hub.notify(
         &live.root,

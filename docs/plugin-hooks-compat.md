@@ -4,18 +4,20 @@
 
 ZCode 已经支持官方插件、inline 插件、skills、commands、MCP server 和插件级 hooks。以 `superpowers` 为代表的现有插件通常把启动上下文注入写在 `hooks/hooks.json`，并使用 shell command hook、插件根目录变量和 `SessionStart` 的 `additionalContext` 输出。
 
-本规范定义 ZCode 对插件 hooks 的兼容边界，目标是让 `.nibi-plugin/plugin.json` 插件成为一等形态，同时兼容 Claude / Codex 插件 manifest 的发现顺序。
+本规范定义 NIBI 对插件 hooks 的兼容边界，目标是让根 `plugin.json` 插件成为一等形态，同时按适配器只读兼容 Claude / Codex / ZCode 插件 manifest。
 
 ## Manifest 发现顺序
 
-插件根目录只认 NIBI 自有清单：
+插件根目录按适配器特异性读取，写入永远只写根 `plugin.json`：
 
-1. `.nibi-plugin/plugin.json`
+1. 根 `plugin.json`（Agent Plugins / NIBI 原生；带 `extensions["com.nibistudio.nibi"]` 时是 native，带 Codex 扩展时是 codex，否则是通用 agent-plugins）
+2. `.claude-plugin/plugin.json`
+3. `.codex-plugin/plugin.json`
+4. `.zcode-plugin/plugin.json`
 
-`.claude-plugin/plugin.json` 与 `.codex-plugin/plugin.json` 不再参与发现；App 管理的旧缓存
-（official seed / marketplace 安装）会在发现前一次性迁到 `.nibi-plugin`。用户自选的
-`plugins.dirs` 不会被改写，旧格式目录按“manifest 缺失”处理。这个规则用于读取插件元数据、
-skills / commands / MCP / hooks 声明和插件 id。
+外来目录只读，不复制、不改写、不重签；App 管理的缓存也不再做一次性迁移。命中的清单解析失败
+就是终态，不退回特异性更低的清单。这个规则用于读取插件元数据、skills / commands / MCP / hooks
+声明和插件 id。
 
 ## Hooks 发现
 
@@ -34,9 +36,33 @@ skills / commands / MCP / hooks 声明和插件 id。
 - `hooks/hooks.json` 使用 `{ "description"?: string, "hooks": { ... } }` 包装结构。
 - manifest inline hooks 直接使用 `{ "SessionStart": [...] }` 结构。
 - 标准 `hooks/hooks.json` 自动加载；manifest 不应重复指向同一个文件，重复时记录诊断并跳过。
-- 只加载当前 ZCode runtime 支持的 hook event；未知 event 记录 warning，不阻断插件加载。
 
 插件 hooks 只在插件启用后进入 runtime。用户/项目 hooks 先执行，插件 hooks 后执行。不同插件的 hook 去重必须带上插件根目录，避免多个插件使用 `${NIBI_PLUGIN_ROOT}` 或 `${CLAUDE_PLUGIN_ROOT}` 模板时互相覆盖。
+
+### 事件集合与「会不会触发」
+
+- 插件清单可声明 **33 个事件**（与内核 `HookEventName` 同序同名）：PreToolUse、PostToolUse、
+  PostToolUseFailure、PostToolBatch、Notification、UserPromptSubmit、UserPromptExpansion、SessionStart、
+  SessionEnd、Stop、StopFailure、SubagentStart、SubagentStop、PreCompact、PostCompact、PreModelSwitch、
+  PostModelSwitch、PermissionRequest、PermissionDenied、Setup、TeammateIdle、TaskCreated、TaskCompleted、
+  Elicitation、ElicitationResult、ConfigChange、WorktreeCreate、WorktreeRemove、InstructionsLoaded、
+  CwdChanged、FileChanged、DirectoryAdded、MessageDisplay。
+- 其中 **14 个有 producer**，会真正派发：PreToolUse、PostToolUse、PostToolUseFailure、Notification、
+  UserPromptSubmit、SessionStart、SessionEnd、Stop、SubagentStop、PreCompact、PostCompact、
+  PermissionRequest、Elicitation、ElicitationResult。
+- 其余 **19 个只有枚举与 matcher 语义**：清单可以声明，但永远不会触发。适配器必须在
+  `hookDetails` 里给出 `runnable: false`，并记 `plugin_hook_unsupported_event` 诊断，不能假装已接线。
+- Workspace hook（`nibi.json` / `.nibi/config.json`）仍然只认 7 个事件：SessionStart、
+  UserPromptSubmit、PreToolUse、PermissionRequest、PostToolUse、PostToolUseFailure、Stop。
+  它的 digest、trust、review 记录都没变；插件事件走独立命名空间。
+- 未知事件名（不在 33 个里）记录 warning 并丢弃，不阻断插件加载。
+
+### PreCompact 的 block 策略
+
+- **手动压缩**：PreCompact hook 返回 block 时中止压缩，把 hook 给的 reason 原样返回给用户。
+- **自动 / 反应式压缩**：忽略 block，继续压缩。被拦的 hook 不贡献 `custom_instructions`；
+  其他成功 hook 的指令照常采用，用户自己的压缩说明优先保留。
+- 原因：自动压缩发生在上下文已经接近上限时，让 hook 拦下会把「压缩失败」变成「请求失败」。
 
 ## Hook 类型
 
@@ -65,12 +91,15 @@ ZCode 保留现有 `process` hook，并新增兼容 `command` hook：
 - `NIBI_PLUGIN_ID`：`<name>@<marketplace>`。
 - `NIBI_PLUGIN_NAME`：插件 manifest name。
 
-为兼容现有插件，同时注入并替换：
+为兼容现有插件，同时只读映射：
 
-- `CLAUDE_PLUGIN_ROOT`
-- `CLAUDE_PLUGIN_DATA`
+- `CLAUDE_PLUGIN_ROOT` / `CLAUDE_PLUGIN_DATA`
+- `ZCODE_PLUGIN_ROOT` / `ZCODE_PLUGIN_DATA`
 
-命令字符串中的 `${NIBI_PLUGIN_ROOT}`、`${NIBI_PLUGIN_DATA}`、`${CLAUDE_PLUGIN_ROOT}`、`${CLAUDE_PLUGIN_DATA}` 在执行前替换为对应路径。替换值来自插件发现阶段解析出的 root / data path，不从用户环境读取。
+命令字符串与 MCP 配置中的 `${NIBI_PLUGIN_ROOT}`、`${NIBI_PLUGIN_DATA}`、`${CLAUDE_PLUGIN_ROOT}`、
+`${CLAUDE_PLUGIN_DATA}`、`${ZCODE_PLUGIN_ROOT}`、`${ZCODE_PLUGIN_DATA}` 在执行前替换为对应路径。
+`${CLAUDE_PROJECT_DIR}` / `${ZCODE_PROJECT_DIR}` 映射到当前工作区。替换值来自插件发现阶段解析出的
+root / data path 与当前 workspace，不从用户环境读取。
 
 ## Hook stdin 兼容字段
 
@@ -127,7 +156,7 @@ Subagent 兼容的完整边界见 `docs/subagent-compatibility.md`。
 
 `superpowers` 作为官方内置插件发布：
 
-- 使用 `.nibi-plugin/plugin.json` 作为主 manifest。
+- 使用根 `plugin.json`（NIBI 组件在 `extensions["com.nibistudio.nibi"]`）作为主 manifest。
 - 默认关闭；用户显式启用后才向 runtime 注入 skills/hooks。
 - 提供 `skills/` 与 `hooks/hooks.json`。
 - `SessionStart` hook 在 `startup|clear|compact` 时注入 `using-superpowers` 上下文。
@@ -142,7 +171,10 @@ Superpowers 的 plugin skills 同时支持裸名和 fully qualified alias。模�
 
 实现完成后必须覆盖：
 
-- `.nibi-plugin` manifest 发现；旧格式目录不再被发现。
+- 根 `plugin.json` 与三种外来清单按特异性发现；外来目录只读且不改写。
+- 33 个插件事件可声明；14 个 runnable 进入 runtime；19 个 enum-only 事件详情标 `runnable: false` 且不注入。
+- Workspace 7 事件的 digest / trust / review 不变。
+- PreCompact 手动 block 中止压缩；自动/反应式忽略 block 并继续。
 - `hooks/hooks.json` 自动加载。
 - manifest `hooks` 文件和 inline hooks 合并。
 - `command` hook 通过 shell 执行，并收到 ZCode / Claude 兼容环境变量。

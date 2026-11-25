@@ -8,6 +8,8 @@ import {
   parseSubagentSelectionFallbackMode,
   DEFAULT_SUBAGENT_SELECTION_FALLBACK_MODE,
   DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS,
+  PLUGIN_MANIFEST_RELATIVE_PATHS,
+  flattenPluginManifest,
   NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID,
   modelSelectionSchema,
   type SubagentRuntimeConfig,
@@ -89,8 +91,6 @@ interface PluginAgentDiscovery {
 }
 
 const BUILT_IN_AGENT_NAMES = new Set(["general-purpose", "Explore"]);
-// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 不再参与发现。
-const PLUGIN_MANIFEST_PATH = join(".nibi-plugin", "plugin.json");
 
 function createBuiltInAgents(
   modelSelectionOverrides: BuiltInSubagentModelSelectionOverrides = {},
@@ -509,13 +509,22 @@ async function collectPluginAgentMarkdownPaths(rootPath: string): Promise<string
 }
 
 async function readPluginManifest(rootPath: string): Promise<Record<string, unknown> | null> {
-  try {
-    const raw = await readFile(join(rootPath, PLUGIN_MANIFEST_PATH), "utf-8");
-    const parsed = JSON.parse(raw) as unknown;
-    return isRecord(parsed) ? parsed : null;
-  } catch {
-    return null;
+  for (const relativePath of PLUGIN_MANIFEST_RELATIVE_PATHS) {
+    let raw: string;
+    try {
+      raw = await readFile(join(rootPath, ...relativePath.split("/")), "utf-8");
+    } catch {
+      // 该候选不存在或不可读：继续按特异性尝试下一个生态清单。
+      continue;
+    }
+    try {
+      // 命中的清单解析失败就是终态：不能退回到特异性更低的清单。
+      return flattenPluginManifest(JSON.parse(raw) as unknown);
+    } catch {
+      return null;
+    }
   }
+  return null;
 }
 
 function collectPluginAgentRoots(rootPath: string, manifestAgents: unknown): string[] {

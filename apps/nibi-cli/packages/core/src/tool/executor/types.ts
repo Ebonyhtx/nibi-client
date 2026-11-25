@@ -102,6 +102,8 @@ export interface ToolExecutorOptions {
   embeddedSearchBackend?: EmbeddedSearchBackend;
   nativeSearchEnhancementsEnabled?: boolean;
   skillPort?: SkillPort;
+  /** 付费插件执行期复核；由 runtime 从 config.paidPluginGate 生成。 */
+  assertPluginExecutionAllowed?: (pluginId: string) => void;
   subagentPort?: SubagentPort;
   coordinatorResponsePort?: CoordinatorResponsePort;
   workflowSubmitPort?: WorkflowSubmitPort;
@@ -221,6 +223,8 @@ export interface ToolExecutorDeps {
   embeddedSearchBackend?: EmbeddedSearchBackend;
   nativeSearchEnhancementsEnabled?: boolean;
   skillPort?: SkillPort;
+  /** 付费插件执行期复核；由 runtime 从 config.paidPluginGate 生成。 */
+  assertPluginExecutionAllowed?: (pluginId: string) => void;
   subagentPort?: SubagentPort;
   coordinatorResponsePort?: CoordinatorResponsePort;
   workflowSubmitPort?: WorkflowSubmitPort;

@@ -13,6 +13,8 @@ import { CheckIcon, CopyIcon, Maximize2Icon, WrapTextIcon } from "lucide-react";
 import type { ComponentProps, CSSProperties, HTMLAttributes } from "react";
 import {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -29,9 +31,18 @@ import {
   getCurrentMermaidDocumentVisibility,
   resolveMermaidAutoRenderDecision,
 } from "@/lib/mermaidRenderBudget.js";
-import { MermaidBlock } from "@/components/ai-elements/mermaid-block.js";
-import { DiagramPreviewDialog } from "@/components/ai-elements/diagram-preview-dialog.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
+
+const MermaidBlock = lazy(() =>
+  import("@/components/ai-elements/mermaid-block.js").then((module) => ({
+    default: module.MermaidBlock,
+  })),
+);
+const DiagramPreviewDialog = lazy(() =>
+  import("@/components/ai-elements/diagram-preview-dialog.js").then((module) => ({
+    default: module.DiagramPreviewDialog,
+  })),
+);
 import { logger } from "@/logger.js";
 import type { Theme } from "@/useTheme.js";
 
@@ -152,7 +163,7 @@ export const CodeBlockContainer = ({
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => (
   <div
     className={cn(
-      "group relative w-full overflow-hidden rounded-xl bg-background text-foreground",
+      "group relative w-full overflow-hidden rounded-xl border border-card-border bg-card text-foreground shadow-[var(--nibi-shadow-card)]",
       className,
     )}
     data-language={language}
@@ -187,7 +198,7 @@ export const CodeBlockHeader = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 px-3 py-2 text-ui-base text-muted-foreground",
+        "flex items-center justify-between gap-3 border-b border-border/70 bg-surface/80 px-3.5 py-2 text-ui-sm text-foreground-subtle",
         className,
       )}
       {...props}
@@ -323,15 +334,17 @@ export const CodeBlock = ({
     <CodeBlockContext.Provider value={contextValue}>
       <CodeBlockContainer className={className} language={language} {...props}>
         {children}
-        <div className={cn("p-2 pt-0 pb-3", contentClassName)}>
+        <div className={cn("p-2.5 pt-2 pb-3", contentClassName)}>
           {shouldRenderMermaid ? (
-            <MermaidBlock
-              code={code}
-              theme={appTheme}
-              onOpenPreview={openMermaidPreview}
-              onPreviewSvgChange={setMermaidPreviewSvg}
-              // className={cn(children ? "border-t border-border" : null)}
-            />
+            <Suspense fallback={null}>
+              <MermaidBlock
+                code={code}
+                theme={appTheme}
+                onOpenPreview={openMermaidPreview}
+                onPreviewSvgChange={setMermaidPreviewSvg}
+                // className={cn(children ? "border-t border-border" : null)}
+              />
+            </Suspense>
           ) : (
             <CodeViewer
               code={code}
@@ -359,12 +372,14 @@ export const CodeBlock = ({
           )}
         </div>
         {shouldRenderMermaid && mermaidPreviewSvg ? (
-          <DiagramPreviewDialog
-            open={mermaidPreviewOpen}
-            onOpenChange={setMermaidPreviewOpen}
-            svg={mermaidPreviewSvg}
-            title={intl.formatMessage({ id: "codeBlock.mermaid.ariaLabel" })}
-          />
+          <Suspense fallback={null}>
+            <DiagramPreviewDialog
+              open={mermaidPreviewOpen}
+              onOpenChange={setMermaidPreviewOpen}
+              svg={mermaidPreviewSvg}
+              title={intl.formatMessage({ id: "codeBlock.mermaid.ariaLabel" })}
+            />
+          </Suspense>
         ) : null}
       </CodeBlockContainer>
     </CodeBlockContext.Provider>

@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import type { NibiTaskMigrationSource, NibiTaskMode } from "./nibi-task-types-core.js";
-import { legacyNibiProviderSchema } from "./nibi-agent-policy.js";
+import { nibiAgentProviderSchema } from "./nibi-agent-policy.js";
 import { nibiPermissionResponseSchema } from "./nibi-protocol-legacy-types.js";
 // merge 冲突解决：两侧分别在相邻行新增独立 import（本分支 hook trust review
 // 决策 schema、staging telemetry error attribution schema），二者无语义交集，均保留。
@@ -62,8 +62,8 @@ const taskMetaRealtimeSchema = z.object({
   mode: z.enum(nibiTaskModeRealtimeValues),
   model: z.string().optional(),
   runtimeEpoch: z.number().int().nonnegative().optional(),
-  // relay payload 可能由旧版本桌面投影；历史 provider 值在此归一为 glm。
-  provider: legacyNibiProviderSchema.optional(),
+  // relay payload 的 agent provider 只接受 nibi-agent；其它值按损坏数据拒绝。
+  provider: nibiAgentProviderSchema.optional(),
   migrationSource: z.enum(nibiTaskMigrationSourceRealtimeValues).optional(),
   forkedFromTaskId: nonEmptyString.optional(),
   unreadAt: z.number().int().nonnegative().optional(),

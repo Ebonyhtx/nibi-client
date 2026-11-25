@@ -32,6 +32,12 @@ export interface NibiAgentPluginViewParams extends NibiAgentWorkspaceTarget {
   configScope?: "user" | "workspace";
 }
 
+/** 插件审计「最近 N 条」：只读投影，不含路径/内容/参数值。 */
+export interface NibiAgentPluginsAuditParams extends NibiAgentWorkspaceTarget {
+  pluginId?: string;
+  limit?: number;
+}
+
 export interface NibiAgentListMcpServerStatusesParams extends NibiAgentWorkspaceTarget {
   mcpServers?: NibiAgentMcpServer[];
   mode?: NibiMcpListMode;
@@ -109,6 +115,11 @@ export interface NibiAgentSetPluginEnabledParams extends NibiAgentPluginMutation
   operationId?: string;
   pluginId: string;
   scope?: "user" | "workspace";
+}
+
+export interface NibiAgentPluginConsentParams extends NibiAgentWorkspaceTarget {
+  granted: boolean;
+  pluginId: string;
 }
 
 // Plugin 对话引用 catalog：

@@ -3,6 +3,7 @@ import { canRetryDatabaseStartup, type DatabaseStartupState } from "@nibi/shared
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { Button } from "@/components/ui/button.js";
 import { RootStartupLoading } from "@/root/RootStartupLoading.js";
+import { useSecondClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 
 export function GlobalDatabaseStartupLoading({
   state,
@@ -16,16 +17,11 @@ export function GlobalDatabaseStartupLoading({
   onExit: () => void;
 }) {
   const { intl } = useNibiIntl();
-  const [now, setNow] = useState(Date.now);
   const [copyStatus, setCopyStatus] = useState<"copied" | "copyFailed" | null>(null);
   const failed = state?.phase === "failed";
   const showProgress = state?.migration !== undefined && state.migration.kind !== "none";
   const visible = failed || showProgress;
-  useEffect(() => {
-    if (failed || !visible) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [failed, visible]);
+  const now = useSecondClock(!failed && visible);
   useEffect(() => setCopyStatus(null), [state?.attemptId]);
   const elapsed = Math.max(
     0,

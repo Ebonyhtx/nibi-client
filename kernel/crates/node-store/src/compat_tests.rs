@@ -433,4 +433,15 @@ async fn a_subagent_link_lands_in_the_tool_part_state() {
             r#"{"schemaVersion":1,"childSessionId":"sess_subagent_agent_1","agentId":"agent_1","agentType":"Explore"}"#
         )]
     );
+    // 冷投影靠同一份 metadata 恢复 subagent 行：加载时读回成结构化关联。
+    let loaded = t.store.load(&SessionId::new("sess_1")).await.unwrap();
+    assert_eq!(
+        loaded.subagent_links,
+        vec![nibi_kernel_api::agents::SubagentLink {
+            tool_use: ToolUseId::new("toolu_1"),
+            agent: AgentId::new("agent_1"),
+            child: SessionId::new("sess_subagent_agent_1"),
+            agent_type: "Explore".into(),
+        }]
+    );
 }

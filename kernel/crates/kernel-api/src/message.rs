@@ -200,6 +200,11 @@ pub const SYNTHETIC_MODEL: &str = "<synthetic>";
 /// 标签——Node 的消息记录顶层写 `source: "background_task"`（另一个判据面，见 node-store）。
 pub const TASK_NOTIFICATION_SOURCE: &str = "task-notification";
 
+/// 子代理通过 `RespondToCoordinator` 发回的回复（`UserOrigin::Meta` 的 `source`；Node 同名字段，
+/// `visibility: "model-only"`）：它是父模型可见的 user-like carrier，但不显示为用户气泡、不参与
+/// 会话标题，也不进入 `ReadSessionContext`。
+pub const SUBAGENT_MESSAGE_SOURCE: &str = "subagent_message";
+
 /// 续写会话时补在最后一条没有回答的 user 消息之后的 assistant 文字（docs/specs/rust-cli/session-lifecycle.md
 /// §6.3.1）：界面不显示；随续写后的第一批提交落库，存成只给模型看的记录（工作线 F77）。
 pub const NO_RESPONSE_REQUESTED: &str = "No response requested.";

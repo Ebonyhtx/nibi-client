@@ -128,7 +128,7 @@ fn skills_list_hides_the_official_visualize_skill_without_a_view_host() {
     let cache = home.path().join(".nibi/cli/plugins/cache/nibi-official");
     for name in ["visualize", "pdf"] {
         let plugin = cache.join(name).join("0.1.0");
-        let manifest = plugin.join(".nibi-plugin/plugin.json");
+        let manifest = plugin.join("plugin.json");
         std::fs::create_dir_all(manifest.parent().unwrap()).unwrap();
         std::fs::write(&manifest, format!(r#"{{"name": "{name}"}}"#)).unwrap();
         let skill = plugin.join("skills").join(name);

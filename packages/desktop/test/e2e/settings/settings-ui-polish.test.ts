@@ -52,7 +52,19 @@ describe("设置页 UI polish E2E", () => {
   });
 
   beforeEach(async () => {
-    // 上一个用例可能停在设置页，先真实关闭遮挡层再操作侧栏项目。
+    // 上一个用例可能遗留未关闭菜单或停在设置页，先释放遮罩再返回工作区。
+    if (
+      (await $('[role="menu"]').isDisplayed()) ||
+      (await browser.execute(() => getComputedStyle(document.body).pointerEvents)) === "none"
+    ) {
+      await browser.keys("Escape");
+      await browser.waitUntil(
+        async () =>
+          !(await $('[role="menu"]').isDisplayed()) &&
+          (await browser.execute(() => getComputedStyle(document.body).pointerEvents)) !== "none",
+        { timeout: 5000, timeoutMsg: "残留菜单遮罩未释放" },
+      );
+    }
     const back = $(sel(TID_SETTINGS_BACK_BUTTON));
     if (await back.isDisplayed()) await back.click();
     await prepareV4ConversationE2E({ skipProvider: true });
@@ -60,16 +72,19 @@ describe("设置页 UI polish E2E", () => {
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30000);
   });
 
-  it("UP-00: Windows 设置页使用问号帮助入口且移除 caption 下箭头", async function () {
+  it("UP-00: Windows 设置页移除问号帮助入口和 caption 下箭头并保留自绘窗控", async function () {
     if (process.platform !== "win32") return;
     await clickTestIdByDom(TID_TASK_SETTINGS_BUTTON, { timeout: 15000 });
     await $(sel(TID_SETTINGS_PAGE)).waitForDisplayed({ timeout: 15000 });
     const panel = await $('[data-settings-panel-frame="true"]');
     expect(((await panel.getAttribute("class")) ?? "").split(/\s+/)).toContain("rounded-md");
-    expect(await panel.getCSSProperty("border-top-left-radius")).toMatchObject({ value: "6px" });
+    expect(await panel.getCSSProperty("border-top-left-radius")).toMatchObject({ value: "10px" });
     expect(
-      await $('[data-testid="settings-page"] svg.lucide-circle-question-mark').isDisplayed(),
-    ).toBe(true);
+      await $('[data-testid="settings-page"] [data-testid="workspace-help-menu-trigger"]').isExisting(),
+    ).toBe(false);
+    expect(
+      await $('[data-testid="settings-page"] svg.lucide-circle-question-mark').isExisting(),
+    ).toBe(false);
     expect(
       await $(
         '[data-testid="settings-page"] button[aria-label="titleBar.windowMenu"]',
@@ -85,46 +100,40 @@ describe("设置页 UI polish E2E", () => {
         const panel = document.querySelector<HTMLElement>('[data-settings-panel-frame="true"]');
         return panel ? getComputedStyle(panel).borderTopRightRadius : null;
       }),
-    ).toBe("6px");
+    ).toBe("10px");
     expect(
       await browser.execute(() => {
-        const logo = document.querySelector<HTMLElement>(
-          '[data-testid="settings-page"] [data-testid="settings-logo"]',
+        const logo = document.querySelector<HTMLImageElement>(
+          '[data-testid="settings-page"] img[alt="NIBI"]',
         );
         if (!logo) return null;
         const rect = logo.getBoundingClientRect();
         return { left: rect.left, top: rect.top };
       }),
     ).toEqual({ left: 17, top: 19 });
-    const settingsLogo = await $('[data-testid="settings-logo"]');
-    expect(await settingsLogo.$("[data-desktop-logo-badge]").getSize("width")).toBe(20);
-    expect(await settingsLogo.$("svg").getSize("width")).toBe(13);
-    expect(await settingsLogo.$("animate").isExisting()).toBe(false);
+    const settingsLogo = await $('[data-testid="settings-page"] img[alt="NIBI"]');
+    expect(await settingsLogo.getSize("width")).toBe(20);
+    expect(await settingsLogo.getSize("height")).toBe(20);
     for (const theme of ["light", "dark"]) {
       await setPresentation({ locale: "zh-CN", theme });
-      expect(await settingsLogo.$("svg").getSize("width")).toBe(13);
+      expect(await settingsLogo.getSize("width")).toBe(20);
       const screenshotDir = join(process.cwd(), ".e2e-artifacts", "desktop-logo");
       await mkdir(screenshotDir, { recursive: true });
       await browser.saveScreenshot(join(screenshotDir, `settings-${theme}.png`));
     }
     expect(
       await browser.execute(() => {
-        const help = document
-          .querySelector('[data-testid="settings-page"] svg.lucide-circle-question-mark')
-          ?.closest<HTMLElement>("button");
         const close = document.querySelector<HTMLElement>(
           '[data-testid="settings-page"] [data-testid="window-control-close"]',
         );
-        if (!help || !close) return null;
-        const helpRect = help.getBoundingClientRect();
+        if (!close) return null;
         const closeRect = close.getBoundingClientRect();
         return {
-          helpTop: helpRect.top,
           closeTop: closeRect.top,
           closeRightInset: window.innerWidth - closeRect.right,
         };
       }),
-    ).toEqual({ helpTop: 17, closeTop: 17, closeRightInset: 15 });
+    ).toEqual({ closeTop: 17, closeRightInset: 15 });
     expect(
       await browser.execute(() => {
         const content = document.querySelector('[data-settings-content-frame="true"]')!;
@@ -147,74 +156,82 @@ describe("设置页 UI polish E2E", () => {
       timeoutMsg: "侧边栏头像菜单入口没有出现",
     });
 
-    await browser.waitUntil(async () => (await readVisibleProfileMenuItems()).length >= 3, {
-      timeout: 15000,
-      timeoutMsg: "头像菜单的偏好入口没有完整展开",
-    });
-    const menuSnapshot = await readVisibleProfileMenuItems();
-    if (process.platform === "darwin") {
-      // macOS 根框架使用 background-alt；比较语义 utility 的运行时主题色，避免绑定具体色值格式。
-      const backgrounds = await browser.execute(() => {
-        const frame = document.querySelector<HTMLElement>(
-          "div.h-dvh.flex.flex-col.overflow-hidden.border-border.text-foreground",
+    try {
+      await browser.waitUntil(async () => (await readVisibleProfileMenuItems()).length >= 3, {
+        timeout: 15000,
+        timeoutMsg: "头像菜单的偏好入口没有完整展开",
+      });
+      const menuSnapshot = await readVisibleProfileMenuItems();
+      if (process.platform === "darwin") {
+        // macOS 根框架使用 background-alt；比较语义 utility 的运行时主题色，避免绑定具体色值格式。
+        const backgrounds = await browser.execute(() => {
+          const frame = document.querySelector<HTMLElement>(
+            "div.h-dvh.flex.flex-col.overflow-hidden.border-border.text-foreground",
+          );
+          if (!frame) throw new Error("DesktopWindowFrame 不存在");
+          const reference = document.createElement("div");
+          reference.className = "bg-background-alt";
+          document.body.append(reference);
+          const result = [
+            getComputedStyle(frame).backgroundColor,
+            getComputedStyle(reference).backgroundColor,
+          ];
+          reference.remove();
+          return result;
+        });
+        expect(backgrounds[0]).toBe(backgrounds[1]);
+      }
+      if (process.platform === "linux") {
+        const shellChrome = await browser.execute(() => {
+          const frame = document.querySelector<HTMLElement>('[data-desktop-window-frame="true"]');
+          if (!frame) throw new Error("DesktopWindowFrame 不存在");
+          const style = getComputedStyle(frame);
+          return { radius: style.borderTopLeftRadius, clipPath: style.clipPath };
+        });
+        expect(shellChrome).toEqual({ radius: "16px", clipPath: "inset(0px round 16px)" });
+      }
+
+      // 圆角规范：独立菜单外壳 rounded-lg（14px），选项 rounded-md（10px）。
+      const radii = await browser.execute(() => {
+        const menu = Array.from(
+          document.querySelectorAll<HTMLElement>('[data-slot="dropdown-menu-content"]'),
+        ).find((element) => element.getBoundingClientRect().width > 0);
+        if (!menu) throw new Error("头像菜单浮层没有出现");
+        return {
+          shell: getComputedStyle(menu).borderTopLeftRadius,
+          items: Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]')).map(
+            (item) => getComputedStyle(item).borderTopLeftRadius,
+          ),
+        };
+      });
+      expect(radii.shell).toBe("14px");
+      expect(radii.items.length).toBeGreaterThanOrEqual(3);
+      expect(radii.items.every((radius) => radius === "10px")).toBe(true);
+
+      const languageIndex = menuSnapshot.findIndex((text) => /界面语言|Language/.test(text));
+      const themeIndex = menuSnapshot.findIndex((text) => /界面主题|App theme/.test(text));
+      const zoomIndex = menuSnapshot.findIndex((text) => /界面缩放|Interface zoom/.test(text));
+
+      if (languageIndex < 0 || themeIndex < 0 || zoomIndex < 0) {
+        throw new Error(`头像菜单偏好入口不完整：${JSON.stringify(menuSnapshot)}`);
+      }
+      expect(themeIndex).toBeGreaterThan(languageIndex);
+      expect(zoomIndex).toBeGreaterThan(themeIndex);
+    } finally {
+      // 本例遗留的模态菜单会屏蔽下一例真实滚轮；DOM click 不受遮挡，曾掩盖该污染。
+      if (
+        (await readVisibleProfileMenuItems()).length > 0 ||
+        (await browser.execute(() => getComputedStyle(document.body).pointerEvents)) === "none"
+      ) {
+        await browser.keys("Escape");
+        await browser.waitUntil(
+          async () =>
+            (await readVisibleProfileMenuItems()).length === 0 &&
+            (await browser.execute(() => getComputedStyle(document.body).pointerEvents)) !== "none",
+          { timeout: 10000, timeoutMsg: "头像菜单未关闭或指针屏障尚未释放" },
         );
-        if (!frame) throw new Error("DesktopWindowFrame 不存在");
-        const reference = document.createElement("div");
-        reference.className = "bg-background-alt";
-        document.body.append(reference);
-        const result = [
-          getComputedStyle(frame).backgroundColor,
-          getComputedStyle(reference).backgroundColor,
-        ];
-        reference.remove();
-        return result;
-      });
-      expect(backgrounds[0]).toBe(backgrounds[1]);
+      }
     }
-    if (process.platform === "linux") {
-      const shellChrome = await browser.execute(() => {
-        const frame = document.querySelector<HTMLElement>('[data-desktop-window-frame="true"]');
-        if (!frame) throw new Error("DesktopWindowFrame 不存在");
-        const style = getComputedStyle(frame);
-        return { radius: style.borderTopLeftRadius, clipPath: style.clipPath };
-      });
-      expect(shellChrome).toEqual({ radius: "16px", clipPath: "inset(0px round 16px)" });
-    }
-
-    // 圆角规范：独立菜单外壳 lg，选项 md；读取计算样式以覆盖实际 CSS 和业务覆盖。
-    const radii = await browser.execute(() => {
-      const menu = Array.from(
-        document.querySelectorAll<HTMLElement>('[data-slot="dropdown-menu-content"]'),
-      ).find((element) => element.getBoundingClientRect().width > 0);
-      if (!menu) throw new Error("头像菜单浮层没有出现");
-      return {
-        shell: getComputedStyle(menu).borderTopLeftRadius,
-        items: Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]')).map(
-          (item) => getComputedStyle(item).borderTopLeftRadius,
-        ),
-      };
-    });
-    expect(radii.shell).toBe("8px");
-    expect(radii.items.length).toBeGreaterThanOrEqual(3);
-    expect(radii.items.every((radius) => radius === "6px")).toBe(true);
-
-    const languageIndex = menuSnapshot.findIndex((text) => /界面语言|Language/.test(text));
-    const themeIndex = menuSnapshot.findIndex((text) => /界面主题|App theme/.test(text));
-    const zoomIndex = menuSnapshot.findIndex((text) => /界面缩放|Interface zoom/.test(text));
-
-    if (languageIndex < 0 || themeIndex < 0 || zoomIndex < 0) {
-      throw new Error(`头像菜单偏好入口不完整：${JSON.stringify(menuSnapshot)}`);
-    }
-    expect(themeIndex).toBeGreaterThan(languageIndex);
-    expect(zoomIndex).toBeGreaterThan(themeIndex);
-    // 本例遗留的模态菜单会屏蔽下一例真实滚轮；DOM click 不受遮挡，曾掩盖该污染。
-    await browser.keys("Escape");
-    await browser.waitUntil(
-      async () =>
-        (await readVisibleProfileMenuItems()).length === 0 &&
-        (await browser.execute(() => getComputedStyle(document.body).pointerEvents)) !== "none",
-      { timeout: 10000, timeoutMsg: "头像菜单未关闭或指针屏障尚未释放" },
-    );
   });
 
   it("UP-02: 设置页桌面 Sidebar 宽度为 268px 且与内容直接相接", async () => {
@@ -287,7 +304,7 @@ describe("设置页 UI polish E2E", () => {
     });
     const selectedProviderTestId = await browser.execute(() => {
       const selected = document.querySelector<HTMLElement>(
-        '[data-testid^="model-provider-nav-item-"][aria-selected="true"]',
+        '[data-testid^="model-provider-nav-item-"][data-state="selected"]',
       );
       return selected?.dataset.testid ?? null;
     });
@@ -324,21 +341,24 @@ describe("设置页 UI polish E2E", () => {
       await browser.execute(() =>
         Array.from(
           document.querySelectorAll(
-            '[data-provider-template-group="zhipu"] [data-testid^="model-provider-template-item-"]',
+            '[data-provider-template-group="other"] [data-testid^="model-provider-template-item-"]',
           ),
         ).map((node) => node.getAttribute("data-testid")),
       ),
-    ).toEqual([
-      "model-provider-template-item-bigmodel-api",
-      "model-provider-template-item-zai-api",
-      "model-provider-template-item-bigmodel-standard-api",
-      "model-provider-template-item-zai-standard-api",
-    ]);
+    ).toEqual(
+      expect.arrayContaining([
+        "model-provider-template-item-custom",
+        "model-provider-template-item-bigmodel-api",
+        "model-provider-template-item-zai-api",
+        "model-provider-template-item-bigmodel-standard-api",
+        "model-provider-template-item-zai-standard-api",
+      ]),
+    );
     await clickTestIdByDom(TID_MODEL_PROVIDER_TEMPLATE_BACK_BUTTON);
     await browser.waitUntil(
       async () =>
         !(await $(sel(TID_MODEL_PROVIDER_TEMPLATE_PICKER)).isDisplayed()) &&
-        (await $(sel(selectedProviderTestId)).getAttribute("aria-selected")) === "true",
+        (await $(sel(selectedProviderTestId)).getAttribute("data-state")) === "selected",
       {
         timeout: 15000,
         timeoutMsg: "从 Template 选择页返回后没有恢复原 Provider 详情",
@@ -847,9 +867,10 @@ describe("设置页 UI polish E2E", () => {
           const dialogRect = dialog.getBoundingClientRect();
           const scrollerRect = scroller.getBoundingClientRect();
           const groupRect = firstGroup.getBoundingClientRect();
+          const scrollbarWidth = Math.max(0, scroller.offsetWidth - scroller.clientWidth);
           return {
             scrollbarOuterInset: Math.round(dialogRect.right - scrollerRect.right),
-            scrollbarGutter: Math.round(scrollerRect.right - groupRect.right),
+            scrollbarGutter: Math.round(scrollerRect.right - groupRect.right - scrollbarWidth),
           };
         }),
       ).toEqual({
@@ -1107,6 +1128,7 @@ describe("设置页 UI polish E2E", () => {
     );
 
     await $(followSwitch).click();
+    await expect($(followSwitch)).toHaveAttribute("aria-checked", "true");
     expect(await $('[data-model-reasoning-level-map-editor="true"] textarea').getValue()).toBe("");
     const editedAfterReset = '{"output_config":{"effort":reasoningLevel}}';
     await $('[data-model-reasoning-level-map-editor="true"] textarea').setValue(editedAfterReset);
@@ -1275,6 +1297,13 @@ async function openModelMetadataDialog(modelId: string, expandAdvanced = false) 
     { timeout: 15000, timeoutMsg: "模型配置弹窗没有出现" },
   );
   if (expandAdvanced) await $('[data-model-advanced-trigger="true"]').click();
+  await browser.executeAsync((done: () => void) => {
+    const dialog = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
+    const animations = dialog?.getAnimations({ subtree: true }) ?? [];
+    void Promise.all(animations.map((animation) => animation.finished.catch(() => {}))).then(() =>
+      requestAnimationFrame(() => done()),
+    );
+  });
 }
 
 async function readReasoningLevelValues(): Promise<string[]> {

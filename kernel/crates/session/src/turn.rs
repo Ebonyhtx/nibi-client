@@ -215,18 +215,27 @@ impl Actor {
         }
         let turn = self.deps.ids.turn();
         // 通知轮的轮头 origin（Node `turnHeaderOrigin`）：后台通知开的是 backgroundResult；
-        // 同伴消息（subagent_message）在 Node 的表里落默认 userInput，不带标记。
+        // 同伴消息在 Node 的表里落默认 userInput，不带标记；子代理的 coordinator 回复带
+        // `subagent_message`（它也是 model-only，不显示成人类输入）。
         let input_source = if notices
             .iter()
             .all(|notice| matches!(notice, Waiting::Peer(_)))
         {
             None
+        } else if notices.iter().all(|notice| {
+            matches!(notice, Waiting::Agent(notice) if notice.kind == nibi_kernel_api::agents::AgentNoticeKind::SubagentMessage)
+        }) {
+            Some(TurnInputSource::SubagentMessage)
         } else {
             Some(TurnInputSource::BackgroundTask)
         };
+        // 模型轮也带一个内部 command id：V4 遥测监督器只对带 sourceCommandId 的
+        // background_task 轮建 seed，否则后台通知/子代理完成不会上报 message_completion。
+        // 它不是用户输入，别处不按队列命令消费。
+        let command = Some(self.deps.ids.command());
         self.log.append(KernelEvent::TurnStarted {
             turn: turn.clone(),
-            command: None,
+            command,
             execution_kind: None,
             workflow_launch: None,
             input_source,

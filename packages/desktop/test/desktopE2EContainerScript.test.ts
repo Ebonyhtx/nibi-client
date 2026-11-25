@@ -54,7 +54,13 @@ describe("desktop E2E container presets", () => {
       scripts: Record<string, string>;
     };
 
-    expect(script).toContain('PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC=""');
+    const preset = script.match(/^PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC="([^"]*)"$/m)?.[1] ?? "";
+    const specs = preset.split(",").filter(Boolean);
+    expect(specs.length).toBeGreaterThan(0);
+    for (const spec of specs) {
+      expect(spec).toMatch(/^\.\/test\/e2e\/plugins\/[^/]+\.test\.ts$/);
+      expect(spec).not.toContain("manual-review");
+    }
     expect(script).toContain("plugins-verified)");
     expect(script).toContain("No plugin-management spec has completed human review");
     expect(packageJson.scripts["test:e2e:container:plugins"]).toContain("plugins-verified");
@@ -72,7 +78,7 @@ describe("desktop E2E container presets", () => {
     expect(missingPaths).toEqual([]);
   });
 
-  it("keeps the empty Docker plan table writable by the admission command", () => {
+  it("writes verified rows into the Docker plan table", () => {
     // Bugfix：仓库只对 *.mjs / *.sh 声明了 `eol=lf`，Markdown 在 `core.autocrlf=true`
     // 的 Windows 检出里是 CRLF。下面断言的表格骨架是跨行片段，`\n` 匹配不到 `\r\n`，
     // 用例在 Windows 上必然失败；这里要断言的是文档结构，与换行字节无关，故归一成 LF。
@@ -81,15 +87,17 @@ describe("desktop E2E container presets", () => {
       "utf-8",
     ).replaceAll("\r\n", "\n");
 
-    expect(dockerPlan).toContain(
-      "| Spec | 迁移状态 |\n| --- | --- |\n<!-- conversation-session-verified-table-end -->",
-    );
-
+    // 真实文档已经登记过 spec，不能再假设表格为空；插入逻辑用独立空表验证。
+    const emptyPlan =
+      "| Spec | 迁移状态 |\n| --- | --- |\n<!-- conversation-session-verified-table-end -->";
     const spec = "./test/e2e/conversation-session/example.test.ts";
-    const updated = insertVerifiedDockerSpecRow(dockerPlan, spec);
+    const updated = insertVerifiedDockerSpecRow(emptyPlan, spec);
     expect(updated.inserted).toBe(true);
     expect(updated.text).toContain(
       `| \`${spec}\` | verified |\n<!-- conversation-session-verified-table-end -->`,
+    );
+    expect(dockerPlan).toContain(
+      "| `./test/e2e/conversation-session/conversation-session-plugin-marketplace-installed-roundtrip.test.ts` | verified |",
     );
   });
 });
@@ -133,13 +141,105 @@ function runContainerScriptWithFakeDocker(env: Record<string, string>) {
   }
 }
 
+describe("desktop E2E verified spec source", () => {
+  // `--print-spec` 必须在任何 Docker 检查之前退出：这里把 docker 换成必然失败的桩，
+  // 一旦脚本仍去探测 daemon，status 就会变成 1。
+  function printSpec(preset: string) {
+    const dir = mkdtempSync(join(tmpdir(), "nibi-e2e-print-spec-"));
+    try {
+      const binDir = join(dir, "bin");
+      mkdirSync(binDir);
+      writeFileSync(join(binDir, "docker"), "#!/usr/bin/env bash\nexit 42\n", { mode: 0o755 });
+      const result = spawnSync("bash", [containerScriptPath, "--print-spec", preset], {
+        cwd: repoRoot,
+        encoding: "utf8",
+        env: { ...process.env, PATH: `${binDir}:${process.env.PATH ?? ""}` },
+      });
+      return {
+        status: result.status,
+        stdout: (result.stdout ?? "").trim(),
+        stderr: result.stderr ?? "",
+      };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  function assignment(name: string) {
+    return (
+      readFileSync(containerScriptPath, "utf-8").match(
+        new RegExp(`^${name}="([^"]*)"$`, "m"),
+      )?.[1] ?? ""
+    );
+  }
+
+  it("prints the plugins-verified preset without touching Docker", () => {
+    const result = printSpec("plugins-verified");
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain("Docker daemon is not reachable");
+    expect(result.stdout).toBe(assignment("PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC"));
+    expect(result.stdout.split(",").filter(Boolean).length).toBeGreaterThan(0);
+  });
+
+  it("prints the conversation-session-verified preset without touching Docker", () => {
+    const result = printSpec("conversation-session-verified");
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe(assignment("CONVERSATION_SESSION_VERIFIED_E2E_SPEC"));
+  });
+
+  it("keeps the default preset and rejects unknown preset names", () => {
+    expect(printSpec("default").stdout).toBe(assignment("DEFAULT_E2E_SPEC"));
+    expect(printSpec("no-such-preset").status).not.toBe(0);
+  });
+});
+
+describe("desktop E2E native CI selection", () => {
+  const workflowPath = resolve(repoRoot, ".github/workflows/desktop-e2e-native.yml");
+
+  it("selects the same verified presets on macOS and Windows", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+
+    expect(workflow).toContain("macos-latest");
+    expect(workflow).toContain("windows-latest");
+    // 预设的唯一事实源是容器脚本；workflow 不得自带第二份 spec 路径。
+    expect(workflow).toContain("--print-spec plugins-verified");
+    expect(workflow).toContain("--print-spec conversation-session-verified");
+    expect(workflow).not.toContain("./test/e2e/");
+    expect(workflow).toContain("E2E_PROVIDER_HTTP_MODE: replay");
+  });
+
+  it("limits the push trigger to the preset source and this workflow", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+
+    expect(workflow).toMatch(/^on:\n {2}workflow_dispatch:/m);
+    expect(workflow).toMatch(
+      /^ {2}push:\n {4}branches: \[dev\]\n {4}paths:\n {6}- "scripts\/test-desktop-e2e-container\.sh"\n {6}- "\.github\/workflows\/desktop-e2e-native\.yml"/m,
+    );
+    expect(workflow).not.toMatch(/^ {2}pull_request:/m);
+    // push 没有 inputs，必须回落到插件域集合，不能把 TARGETS 解析成空串。
+    expect(workflow).toContain("github.event_name == 'push' && 'plugins' || inputs.targets");
+  });
+
+  it("pins every action to a full commit SHA", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+    const uses = [...workflow.matchAll(/^\s*(?:-\s*)?uses:\s*(\S+)/gm)].map((match) => match[1]);
+
+    expect(uses.length).toBeGreaterThan(0);
+    for (const spec of uses) expect(spec).toMatch(/@[0-9a-f]{40}$/);
+  });
+});
+
 describe.skipIf(process.platform === "win32")("desktop E2E container upstream provider env", () => {
   it("ci 预设把默认 smoke 与已验证的会话 spec 合成一份清单", () => {
     const result = runContainerScriptWithFakeDocker({ E2E_SPEC_PRESET: "ci" });
 
     expect(result.status).toBe(0);
     expect(result.runArgs).toContain("NIBI_E2E_SPEC=./test/e2e/container-boot.test.ts");
-    expect(result.runArgs).toContain("conversation-session-ask-user-question-keyboard-default-focus.test.ts");
+    expect(result.runArgs).toContain(
+      "conversation-session-ask-user-question-keyboard-default-focus.test.ts",
+    );
   });
 
   it("capture 模式把上游地址、模型与 preset 透传给容器", () => {

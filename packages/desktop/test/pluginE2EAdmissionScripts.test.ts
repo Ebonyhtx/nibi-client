@@ -5,8 +5,23 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const repoRoot = process.cwd();
 const desktopDir = resolve(repoRoot, "packages/desktop");
-const pendingSpec =
-  "./packages/desktop/test/e2e/plugins/manual-review/pending/plugin-management-personal-lifecycle.test.ts";
+const pendingProbeCase = "plugin-promotion-probe";
+const pendingSpec = `./packages/desktop/test/e2e/plugins/manual-review/pending/${pendingProbeCase}.test.ts`;
+const pendingProbeSpec = resolve(
+  desktopDir,
+  "test/e2e/plugins/manual-review/pending",
+  `${pendingProbeCase}.test.ts`,
+);
+const pendingProbeFixture = resolve(
+  desktopDir,
+  "test/e2e/fixtures/upstream/plugin-management",
+  `${pendingProbeCase}.json`,
+);
+const pendingProbeManifest = resolve(
+  desktopDir,
+  "test/e2e/fixtures/cases/plugins",
+  `${pendingProbeCase}.json`,
+);
 const manualOnlySpec =
   "./packages/desktop/test/e2e/plugins/manual-review/pending/plugin-cdn-zip-official-cdn-smoke.test.ts";
 const fixtureCheckCase = "plugin-fixture-check-probe";
@@ -23,6 +38,39 @@ const formalProbeManifest = resolve(
 );
 
 beforeAll(() => {
+  // 修复原因：真实 pending 用例会随复核持续转正，不能把它当作脚本探针；探针必须
+  // 由测试自己创建，才能长期验证“pending 可预览、apply 必须 --reviewed”的合同。
+  writeProbeFile(
+    pendingProbeSpec,
+    'describe("E2E_PLUGIN_PROMOTION_PROBE", () => {});\n',
+  );
+  writeProbeFile(
+    pendingProbeFixture,
+    `${JSON.stringify(
+      {
+        version: 1,
+        caseName: pendingProbeCase,
+        spec: `./test/e2e/plugins/manual-review/pending/${pendingProbeCase}.test.ts`,
+        fixtures: [],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  writeProbeFile(
+    pendingProbeManifest,
+    `${JSON.stringify(
+      {
+        version: 1,
+        caseName: pendingProbeCase,
+        spec: `./test/e2e/plugins/manual-review/pending/${pendingProbeCase}.test.ts`,
+        providerFixtures: [],
+        requests: [],
+      },
+      null,
+      2,
+    )}\n`,
+  );
   writeProbeFile(formalProbeSpec, 'describe("E2E_PLUGIN_FIXTURE_CHECK_PROBE", () => {});\n');
   writeProbeFile(
     formalProbeFixture,
@@ -76,6 +124,9 @@ beforeAll(() => {
 });
 
 afterAll(() => {
+  rmSync(pendingProbeSpec, { force: true });
+  rmSync(pendingProbeFixture, { force: true });
+  rmSync(pendingProbeManifest, { force: true });
   rmSync(formalProbeSpec, { force: true });
   rmSync(formalProbeFixture, { force: true });
   rmSync(formalProbeManifest, { force: true });

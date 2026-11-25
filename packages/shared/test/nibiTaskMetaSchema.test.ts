@@ -12,7 +12,7 @@ describe("nibiTaskMetaSchema", () => {
         createdAt: 1,
         updatedAt: 2,
         mode: "default",
-        provider: "codex",
+        provider: "nibi-agent",
         unreadAt: 12,
       },
       messages: [],
@@ -95,7 +95,7 @@ describe("nibiTaskMetaSchema", () => {
         createdAt: 1,
         updatedAt: 2,
         mode: "default",
-        provider: "claude",
+        provider: "nibi-agent",
         status: "error",
         lastError: {
           code: "EMPTY_REPLY",

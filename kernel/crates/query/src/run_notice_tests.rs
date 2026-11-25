@@ -114,18 +114,26 @@ async fn notices_join_the_run_after_the_steering_input() {
         notice.data,
         json!({"prompt": NOTICE, "commandMode": "task-notification"})
     );
-    // 不是 user 角色的 attachment：模型支持对话中间的 `role: system` 时去掉包装折进去；这里的测试模型不支持，按 user 角色带着包装跟在插话后面，两段都并进前面的工具结果
-    //（context.md §3 第 9 条）。
+    // 运行时输入（这里模型不支持对话中间的 `role: system`）：工具结果之后是**独立的**文本块
+    // （`<system-reminder>` 包装），不并进工具结果（Node 的 runtime user entry 与工具结果并列）。
     let requests = model.requests();
     let last = requests[1].messages.last().unwrap();
-    let ContentBlock::ToolResult { content, .. } = &last.content.last().unwrap().block else {
-        panic!("expected the tool result: {last:?}");
+    assert_eq!(last.role, nibi_kernel_api::model::ApiRole::User);
+    let ContentBlock::ToolResult { content, .. } = &last.content.first().unwrap().block else {
+        panic!("expected the tool result first: {last:?}");
     };
     let [ToolResultContent::Text { text }] = content.as_slice() else {
         panic!("expected one text in the tool result: {content:?}");
     };
-    assert!(
-        text.ends_with(&format!("</system-reminder>\n\n{NOTICE}")),
-        "{text}"
-    );
+    assert!(!text.contains(NOTICE), "{text}");
+    let texts: Vec<&str> = last
+        .content
+        .iter()
+        .filter_map(|item| match &item.block {
+            ContentBlock::Text { text } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts, [NOTICE]);
 }
+

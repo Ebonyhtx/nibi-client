@@ -118,7 +118,7 @@ export function ResourceManagerApp({
       className="flex h-dvh min-h-0 flex-col bg-background text-foreground"
       data-testid="resource-manager"
     >
-      <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border bg-header px-4">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border/60 bg-background px-4">
         <div className="min-w-0">
           <h1 className="truncate text-ui-base font-medium">
             {intl.formatMessage({ id: "resourceManager.title" })}
@@ -135,13 +135,13 @@ export function ResourceManagerApp({
           ) : null}
         </div>
         <Tabs value={tab} onValueChange={(value) => setTab(value as ResourceManagerTab)}>
-          <TabsList variant="line" className="h-8 gap-1 p-0">
+          <TabsList className="flex h-8 gap-0.5 rounded-full border border-border/60 bg-surface/90 p-0.5 shadow-[var(--nibi-shadow-input-inset)] group-data-horizontal/tabs:h-8">
             {RESOURCE_MANAGER_TABS.map((item) => (
               <TabsTrigger
                 key={item}
                 value={item}
                 data-testid={testId(TID_RESOURCE_MANAGER_TAB, item)}
-                className="h-8 flex-none rounded-full px-3 hover:bg-hover data-active:!bg-selected data-active:hover:!bg-hover after:hidden"
+                className="h-7 flex-none rounded-full border-transparent bg-transparent px-3 text-ui-sm font-medium text-foreground-subtle transition-[color,background-color,box-shadow] duration-150 hover:text-foreground data-active:border-primary/25 data-active:bg-card data-active:text-foreground data-active:shadow-[var(--nibi-shadow-active-row)] dark:data-active:border-primary/25 dark:data-active:bg-card"
               >
                 {intl.formatMessage({ id: TAB_LABEL_IDS[item] })}
               </TabsTrigger>
@@ -150,7 +150,7 @@ export function ResourceManagerApp({
         </Tabs>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto bg-background-alt p-4">
+      <div className="min-h-0 flex-1 overflow-auto bg-background p-4">
         {tab === "storage" ? (
           <StorageSection bridge={storage} active={tab === "storage"} />
         ) : tab === "network" ? (

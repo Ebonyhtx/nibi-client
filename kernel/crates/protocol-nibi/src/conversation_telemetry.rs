@@ -105,6 +105,7 @@ impl ConversationTelemetry {
                     input_source: input_source.map(|source| {
                         match source {
                             TurnInputSource::BackgroundTask => "background_task",
+                            TurnInputSource::SubagentMessage => "subagent_message",
                         }
                         .to_owned()
                     }),

@@ -6,6 +6,8 @@
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_prompts::agents as texts;
 
+use crate::selection::AgentModelSelection;
+
 pub(crate) const GENERAL_PURPOSE: &str = "general-purpose";
 pub(crate) const EXPLORE: &str = "Explore";
 pub(crate) const PLAN: &str = "Plan";
@@ -47,9 +49,13 @@ pub struct AgentDefinition {
     pub source: AgentSource,
     /// 插件 agent 所属插件名（执行期付费门禁用）；内置/用户/项目 agent 为 None。
     pub plugin: Option<String>,
-    /// `inherit` 或缺省时继承父会话的模型；其余是模型 ID。
-    pub model: Option<String>,
-    pub effort: Option<String>,
+    /// 定义里的显式选择（`model` + `thoughtLevel`）；None 继承父会话。
+    pub model_selection: Option<AgentModelSelection>,
+    /// 设置页写入的覆盖（`agents-state.json`）：派发子会话时替换整份选择。
+    pub model_override: Option<AgentModelSelection>,
+    /// 设置页的状态键：内置类型名、`plugin:<pluginId>:<name 小写>`、`user:user:<name 小写>`；
+    /// 项目 agent 没有（设置页不按项目停用/覆盖）。
+    pub state_id: Option<String>,
     pub max_turns: Option<u32>,
     pub permission_mode: Option<PermissionMode>,
     /// frontmatter `background: true`：总在后台运行。
@@ -114,8 +120,9 @@ fn built_in(agent_type: &str, when_to_use: &str, prompt: &str) -> AgentDefinitio
         prompt: prompt.to_owned(),
         source: AgentSource::BuiltIn,
         plugin: None,
-        model: None,
-        effort: None,
+        model_selection: None,
+        model_override: None,
+        state_id: Some(agent_type.to_owned()),
         max_turns: None,
         permission_mode: None,
         background: false,
@@ -134,7 +141,6 @@ pub fn builtins() -> Vec<AgentDefinition> {
     };
     let read_only = |agent_type, when_to_use, prompt| AgentDefinition {
         disallowed_tools: names(READ_ONLY_DISALLOWED),
-        model: Some("inherit".to_owned()),
         ..built_in(agent_type, when_to_use, prompt)
     };
     vec![

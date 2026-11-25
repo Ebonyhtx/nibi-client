@@ -20,13 +20,17 @@ use crate::doing::Doing;
 use crate::report::{Ending, Report};
 use crate::stall::{Activity, StallAgent, StallStamp};
 
-/// 发给某个子代理的一条通知：它派生的后台子代理结束了，或它自己长时间没有进展（`stall`）。
+/// 发给某个子代理的一条通知：它派生的后台子代理结束了、它自己长时间没有进展（`stall`），
+/// 或它的子代理通过 `RespondToCoordinator` 发回了 coordinator 回复。
 #[derive(Debug, Clone)]
 pub(crate) struct Notice {
     pub(crate) from: AgentId,
     pub(crate) status: &'static str,
-    /// `<task-notification>` 或 `<background-agent-stall>` 信封（不带说明与包装）。
+    /// `<task-notification>`、`<background-agent-stall>` 或 `<subagent-message>` 信封
+    /// （不带说明与包装；是否包装由 `kind` 决定）。
     pub(crate) envelope: String,
+    /// 这条通知的语义：决定并入时的 source 与是否包 `<system-reminder>`。
+    pub(crate) kind: nibi_kernel_api::agents::AgentNoticeKind,
     /// 无进展提醒的时效条件：并入前再核对一次，不成立就丢弃（stall.rs）。
     pub(crate) stall: Option<StallStamp>,
 }
@@ -446,6 +450,46 @@ impl Live {
             .filter_map(|mail| match mail {
                 Mail::Message(text) => Some(text),
                 Mail::Notice(_) => None,
+            })
+            .collect()
+    }
+
+    /// 邮箱里有没有 SendMessage 排进来的消息（coordinator 的中途输入）：文本轮收口据此决定是否
+    /// 沿本轮继续（Node 的 active-loop 只被 guide 输入拉长回合）。不取走。
+    pub(crate) fn has_steering(&self, agent: &AgentId) -> bool {
+        match self.agents().get(agent).map(|entry| &entry.state) {
+            Some(AgentState::Running { mailbox, .. }) => {
+                mailbox.iter().any(|mail| matches!(mail, Mail::Message(_)))
+            }
+            _ => false,
+        }
+    }
+
+    /// 工具边界按到达顺序取走整个邮箱（插话与通知交错）：子代理的 `take_absorbed` 用它，
+    /// 让 coordinator 回复（`Mail::Notice` 的 SubagentMessage）与普通通知保持同一条顺序。
+    /// 无进展提醒在并入前再核对一次时效条件（与 [`Self::take_notices`] 同一条规则）。
+    pub(crate) fn take_absorbed_mail(&self, agent: &AgentId) -> Vec<Mail> {
+        let taken = match self.agents().get_mut(agent).map(|entry| &mut entry.state) {
+            Some(AgentState::Running { abort, mailbox }) if !abort.is_aborted() => {
+                std::mem::take(mailbox)
+            }
+            _ => Vec::new(),
+        };
+        if taken.is_empty() {
+            return taken;
+        }
+        let agents = self.agents();
+        taken
+            .into_iter()
+            .filter(|mail| match mail {
+                Mail::Notice(notice) if notice.kind == nibi_kernel_api::agents::AgentNoticeKind::TaskNotification => {
+                    notice.stall.as_ref().is_none_or(|stamp| {
+                        agents
+                            .get(&notice.from)
+                            .is_some_and(|entry| stamp.matches(entry))
+                    })
+                }
+                _ => true,
             })
             .collect()
     }

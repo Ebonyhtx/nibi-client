@@ -27,6 +27,7 @@ function pluginMetadata(
     hookDetails: [],
     manifestPath: `/plugins/${overrides.name}/plugin.json`,
     mcpServerNames: [],
+    origin: "community",
     rootPath: `/plugins/${overrides.name}`,
     skillCount: 0,
     skillRootCount: 0,

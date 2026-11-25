@@ -62,7 +62,7 @@ export const EditInlineDiffContent = memo(function EditInlineDiffContent({
   return (
     <div className="space-y-3">
       <div
-        className="mb-2 max-h-60 overflow-auto rounded-xl border border-border bg-card"
+        className="mb-2 max-h-60 overflow-auto rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]"
         data-inline-diff-preview
       >
         {/* 聊天内联 diff 展开时直接挂载 @pierre/diffs 会把高亮和 Shadow DOM 汇总渲染压到主线程，

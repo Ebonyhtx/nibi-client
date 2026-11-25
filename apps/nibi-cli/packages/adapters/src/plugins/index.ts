@@ -1,20 +1,22 @@
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { NIBI_PLUGIN_MANIFEST_DIR } from "@nibi/shared";
-import { basename, dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import type {
   CustomCommandRoot,
   HookConfig,
-  HookEventName,
   HookMatcherConfig,
   HookPluginContext,
   PluginAcceptanceContract,
   PluginAcceptanceParseResult,
+  PluginCapabilityProfile,
   PluginConfig,
   PluginDiagnostic,
   PluginDiscoverRequest,
   PluginHookDetail,
+  PluginHookEventName,
   PluginLoadOutcome,
   PluginManifest,
+  PluginPermission,
+  PluginRuntimeDeclaration,
   PluginUiSurfaceDefinition,
   PluginMetadata,
   PluginOperationOptions,
@@ -22,25 +24,44 @@ import type {
   SkillRoot,
 } from "@nibi/contracts";
 import {
-  HookEventName as HookEventNameValue,
   HookMatcherConfigSchema,
   NIBI_INLINE_PLUGIN_MARKETPLACE,
   NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
   isPluginAcceptanceUsable,
+  isPluginHookEventName,
+  isRunnablePluginHookEvent,
   parsePluginAcceptance,
+  resolvePluginHookEventSupport,
+  resolvePluginOrigin,
 } from "@nibi/contracts";
 import {
+  createCanonicalPlugin,
   directoryExists,
+  ensurePluginDataDir,
   fileExists,
+  findPluginManifest,
   isMissingPath,
   isNotFoundError,
   isRecord,
-  migrateLegacyPluginManifest,
   parsePathList,
+  pluginConsentCovers,
+  pluginGrantsCover,
+  readPluginConsents,
+  readPluginGrants,
+  readPluginManifestDocument,
   resolveInside,
+  resolvePluginCapabilities,
+  resolvePluginContentTrust,
+  resolvePluginRuntime,
+  resolveRequiredPluginPermissions,
   sanitizePluginId,
+  sensitivePluginCapabilityGrants,
   throwIfAborted,
 } from "./helpers.js";
+import type { DetectedPluginManifest } from "./helpers.js";
+import { checkPluginNativeModules, scanBundledNodeBinaries } from "./native-modules.js";
+import { materializePluginViewRootSync } from "./view-root.js";
+import { checkPluginRevocation } from "./plugin-revocations.js";
 import { scanSkillFilesUnderRootSync } from "../skills/scan.js";
 import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.js";
 import { parsePluginUiSurfaces } from "./ui-surfaces.js";
@@ -68,15 +89,20 @@ export {
   enrichCachedClaudeMarketplaceIcons,
   ensureDefaultPluginMarketplaces,
   ensureMarketplaceManifestAvailable,
+  evaluateInstalledPluginRevocation,
   getPluginDataDir,
   installMarketplacePlugin,
   listInstalledPluginRecords,
+  loadInstalledPluginsStateSync,
   loadKnownMarketplacesSync,
   loadMarketplaceManifestSync,
+  MARKETPLACE_SCHEMA_VERSION_MAX,
+  MARKETPLACE_SCHEMA_VERSION_MIN,
   normalizeAuthorValue,
   parseEntryStoreListing,
   parsePluginIconSources,
   parseMarketplaceSourceInput,
+  pruneRemovedPluginRecords,
   readPluginSourceIdentityPin,
   readPluginSourceSha,
   removeMarketplace,
@@ -88,6 +114,7 @@ export {
   type DescribeMarketplacePluginResult,
   type InstalledPluginRecord,
   type KnownMarketplaceRecord,
+  type MarketplacePluginDeclaration,
   type MarketplaceSource,
   type PluginComponentGroup,
   type PluginComponentItem,
@@ -105,6 +132,88 @@ export {
 export { getPluginSourceDiagnosticCode } from "./source-errors.js";
 
 export {
+  PLUGIN_AUDIT_FILE,
+  PLUGIN_AUDIT_RETENTION_DAYS,
+  PLUGIN_CONSENT_FILE,
+  PLUGIN_GRANTS_FILE,
+  appendPluginAuditEvent,
+  backfillPluginConsentHash,
+  ensurePluginDataDir,
+  isSensitivePluginCapability,
+  pluginConsentCovers,
+  pluginGrantsCover,
+  prunePluginAuditEvents,
+  readPluginConsents,
+  readPluginGrants,
+  readRecentPluginAuditEvents,
+  resetPluginAuditPruneThrottleForTests,
+  resolvePluginCapabilities,
+  resolvePluginContentTrust,
+  resolvePluginRuntime,
+  resolveRequiredPluginPermissions,
+  revokePluginConsent,
+  revokePluginGrants,
+  sensitivePluginCapabilityGrants,
+  writePluginConsent,
+  writePluginGrants,
+  type PluginAuditEvent,
+  type PluginAuditEventType,
+  type PluginConsentFile,
+  type PluginConsentRecord,
+  type PluginContentTrustResult,
+  type PluginGrantFile,
+  type PluginGrantRecord,
+} from "./helpers.js";
+
+export {
+  PLUGIN_PACKAGE_HASH_PREFIX,
+  PluginPackageHashError,
+  computePluginPackageHash,
+  isPluginPackageHash,
+  type ComputePluginPackageHashOptions,
+} from "./package-hash.js";
+
+export {
+  PLUGIN_REVOCATIONS_FETCH_TIMEOUT_MS,
+  PLUGIN_REVOCATIONS_FILE,
+  PLUGIN_REVOCATIONS_REFRESH_ENV,
+  PLUGIN_REVOCATIONS_REFRESH_META_FILE,
+  PLUGIN_REVOCATIONS_REFRESH_TTL_MS,
+  PLUGIN_REVOCATIONS_SIGNATURE_FILE,
+  PLUGIN_REVOCATIONS_URL,
+  checkPluginRevocation,
+  evaluatePluginRevocation,
+  maybeRefreshPluginRevocations,
+  parsePluginRevocations,
+  readPluginRevocations,
+  readPluginRevocationsRefreshMeta,
+  refreshPluginRevocations,
+  type MaybeRefreshPluginRevocationsInput,
+  type MaybeRefreshPluginRevocationsResult,
+  type PluginRevocationAction,
+  type PluginRevocationDocument,
+  type PluginRevocationEntry,
+  type PluginRevocationMatch,
+  type PluginRevocationsRefreshMeta,
+  type RefreshPluginRevocationsInput,
+  type RefreshPluginRevocationsResult,
+} from "./plugin-revocations.js";
+
+export {
+  assertPluginNativeModulesDeclared,
+  assertPluginRuntimeNotBundled,
+  checkPluginNativeModules,
+  isPluginRootDirectory,
+  PluginBundledRuntimeError,
+  PluginNativeModuleInstallError,
+  scanBundledNodeBinaries,
+  scanPluginNativeModules,
+  type NativeModuleCheckInput,
+  type NativeModuleScanResult,
+  type NativeModuleVerdict,
+} from "./native-modules.js";
+
+export {
   NIBI_LICENSE_DEVICE_ID_KEY,
   NIBI_LICENSE_STATE_KEY,
   NIBI_LICENSE_TOKEN_KEY,
@@ -120,25 +229,32 @@ export {
   type PaidPluginAccess,
 } from "./paid-plugin-access.js";
 
+export { createBuiltinPaidPluginGate } from "./paid-plugin-discovery-gate.js";
+
 export {
   comparePluginUpdate,
   comparePluginVersions,
   type PluginUpdateStatus,
 } from "./version-compare.js";
 
-// NIBI 插件只认自有清单目录；旧格式（.claude-plugin/.codex-plugin）不再参与发现，
-// App 管理的缓存由 migrateLegacyPluginManifest 一次性迁移。
-const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
+export {
+  PLUGIN_VIEWS_DIR,
+  getPluginViewRoot,
+  listPluginViewRoots,
+  materializePluginViewRoot,
+  removePluginViewRoot,
+  type MaterializePluginViewRootInput,
+} from "./view-root.js";
+
 const DEFAULT_VERSION = "0.0.0";
 const FIRST_PLUGIN_PRIORITY = 1_000;
 const PRIORITY_STEP = 10;
 const PLUGIN_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 const UNSUPPORTED_COMPONENT_KEYS = ["channels", "lspServers", "outputStyles", "settings"] as const;
-const SUPPORTED_HOOK_EVENTS = new Set<string>(Object.values(HookEventNameValue));
 
 interface PluginHookInspection {
   details: PluginHookDetail[];
-  events: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  events: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>;
 }
 
 export interface NodePluginAdapterOptions {
@@ -163,6 +279,8 @@ export class NodePluginAdapter implements PluginPort {
 
     const diagnostics: PluginDiagnostic[] = [];
     const dataRoot = join(request.storageRoot || this.options.storageRoot, "data");
+    const pluginConsents = readPluginConsents(request.storageRoot);
+    const pluginGrants = readPluginGrants(request.storageRoot);
     const candidates = this.resolveCandidates(request, diagnostics, options);
     // 未显式提供门禁时使用内置 license 门禁（fail-closed）：任何调用方都无法
     // 通过"忘记传门禁"让付费插件绕过会员校验。
@@ -186,14 +304,20 @@ export class NodePluginAdapter implements PluginPort {
 
     for (const candidate of candidates) {
       throwIfAborted(options);
-      // 官方 seed 与市场安装目录由 App 管理：发现前把旧格式清单一对一迁到 .nibi-plugin，
-      // 保证升级前已安装的插件（如 math-modeling）不会因删除旧格式扫描而消失。
-      // 用户自选的 plugins.dirs（inline）保持只读，不在这里改写。
-      if (candidate.source !== "inline") {
-        migrateLegacyPluginManifest(candidate.rootPath);
-      }
       const loaded = loadPlugin(candidate, diagnostics);
       if (!loaded) continue;
+      // 已安装插件（Host 自己缓存的包）优先读视图根：宿主用自己的、规范化的只读视图
+      // 作为运行时输入，而不是直接读缓存目录。物化不出来（文件系统不支持链接且复制
+      // 校验不过）就退回源目录并报诊断——回退后功能完整，只是少了隔离。
+      if (loaded.source === "cache") {
+        const viewRoot = resolveInstalledViewRoot({
+          diagnostics,
+          loaded,
+          packageHash: candidate.packageHash,
+          storageRoot: request.storageRoot,
+        });
+        if (viewRoot) loaded.rootPath = viewRoot;
+      }
       // 内置（官方）插件被「卸载」后只在 user config 写 suppressedBuiltins 标记。这里在发现层
       // 用插件的权威 id（manifest 名 @ marketplace）过滤，不依赖缓存文件是否已被物理删除——
       // 这样即便 app 升级遗留了旧版本缓存目录、或会话内 facade 持有过时配置，被卸载的内置插件
@@ -232,7 +356,45 @@ export class NodePluginAdapter implements PluginPort {
         candidateDefaultEnabled,
       );
       let enabled = configuredEnabled;
-      if (configuredEnabled) {
+      let blockedReason: { code: PluginDiagnostic["code"]; message: string } | undefined;
+      // 撤销名单是最外层的安全决定：命中 block 时不论用户怎么配置都不加载，
+      // 也不能被本地信任覆盖（计划 §7.4「撤销不可被用户覆盖」）。
+      const revocation = checkPluginRevocation({
+        pluginId: loaded.id,
+        storageRoot: request.storageRoot,
+        ...(candidate.packageHash
+          ? { sha256: candidate.packageHash.replace(/^sha256:/u, "") }
+          : {}),
+        ...(loaded.manifest.version ? { version: loaded.manifest.version } : {}),
+      });
+      if (revocation?.action === "block") {
+        enabled = false;
+        blockedReason = {
+          code: "plugin_revoked",
+          message: revocation.reason
+            ? `Plugin has been revoked: ${revocation.reason}`
+            : "Plugin has been revoked",
+        };
+        diagnostics.push({
+          ...blockedReason,
+          path: loaded.manifestPath,
+          pluginId: loaded.id,
+          severity: "error",
+        });
+      } else if (revocation?.action === "warn") {
+        // 续用但要让用户/日志知道：发布链用它表达「已知问题但仍可用」。
+        // 用独立的 code：plugin_revoked 在 UI 里等同于「已停用」，warn 必须不触发它。
+        diagnostics.push({
+          code: "plugin_revocation_warning",
+          message: revocation.reason
+            ? `Plugin is flagged by the revocation list: ${revocation.reason}`
+            : "Plugin is flagged by the revocation list",
+          path: loaded.manifestPath,
+          pluginId: loaded.id,
+          severity: "warning",
+        });
+      }
+      if (configuredEnabled && !blockedReason) {
         const gate = paidGate({
           id: loaded.id,
           marketplace: candidate.marketplace,
@@ -240,9 +402,75 @@ export class NodePluginAdapter implements PluginPort {
         });
         if (!gate.allowed) {
           enabled = false;
-          diagnostics.push({
+          blockedReason = {
             code: gate.code ?? "plugin_membership_required",
             message: gate.message ?? "Plugin requires an active NIBI membership",
+          };
+          diagnostics.push({
+            ...blockedReason,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "error",
+          });
+        }
+      }
+      // 原生模块门禁：挡的是**代码面**（扩展代码、MCP server、hooks），声明式组件照常可用（计划 §8.4）。
+      // 不能只看 `loaded.runtime`：只有 MCP/hook 的包同样会起子进程加载 `.node`，
+      // 漏扫会让 ABI 不匹配在运行时炸成底层 NODE_MODULE_VERSION 错误。
+      let codeBlockedReason: { code: PluginDiagnostic["code"]; message: string } | undefined;
+      const declaresCodeSurface =
+        loaded.runtime !== undefined ||
+        Object.keys(loaded.manifest.mcpServers ?? {}).length > 0 ||
+        loaded.manifest.hooks !== undefined ||
+        existsSync(join(loaded.rootPath, "mcp.json")) ||
+        existsSync(join(loaded.rootPath, ".mcp.json"));
+      if (!blockedReason && declaresCodeSurface) {
+        const nativeVerdict = checkPluginNativeModules({
+          rootPath: loaded.rootPath,
+          runtime: loaded.runtime,
+        });
+        if (nativeVerdict.status === "undeclared") {
+          codeBlockedReason = {
+            code: "plugin_native_module_blocked",
+            message: `Plugin ships native modules without declaring runtime.native: ${nativeVerdict.files
+              .slice(0, 3)
+              .join(", ")}`,
+          };
+        } else if (
+          nativeVerdict.status === "platform_unsupported" ||
+          nativeVerdict.status === "abi_unsupported"
+        ) {
+          codeBlockedReason = {
+            code: "plugin_runtime_abi_mismatch",
+            message:
+              nativeVerdict.status === "platform_unsupported"
+                ? `Plugin native modules do not support this platform (${nativeVerdict.platform})`
+                : nativeVerdict.reason,
+          };
+        }
+        if (codeBlockedReason) {
+          diagnostics.push({
+            ...codeBlockedReason,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "error",
+          });
+        }
+      }
+      // 官方/内置插件自带 Node 运行时：计划 §8.5 禁止。已经装好的包只挡代码面，
+      // 声明式组件仍可用；新安装由 assertPluginRuntimeNotBundled 在安装期直接拒绝。
+      if (
+        codeBlockedReason === undefined &&
+        (loaded.canonical.trust === "builtin" || loaded.canonical.trust === "official")
+      ) {
+        const bundledNode = scanBundledNodeBinaries(loaded.rootPath);
+        if (bundledNode.length > 0) {
+          codeBlockedReason = {
+            code: "plugin_bundled_runtime_forbidden",
+            message: `Official and built-in plugins must not bundle a Node runtime: ${bundledNode.join(", ")}`,
+          };
+          diagnostics.push({
+            ...codeBlockedReason,
             path: loaded.manifestPath,
             pluginId: loaded.id,
             severity: "error",
@@ -261,15 +489,132 @@ export class NodePluginAdapter implements PluginPort {
         loaded,
         runnable: hooksRunnable,
       });
+      const declaredMcpServerNames = Object.keys(mcpServerDefinitions);
+      const adapterId = loaded.canonical.adapter.adapterId;
+      const hasCode = Boolean(
+        loaded.runtime && (adapterId === "native" || adapterId === "agent-plugins"),
+      );
+      const requiredPermissions = resolveRequiredPluginPermissions(loaded.manifest, {
+        // 只有真正会注入 runtime 的事件才算要执行子进程；enum-only 详情不算。
+        // 代码面被原生模块门禁挡住时，不再为它要求 code/network/process 同意。
+        hasCode: hasCode && codeBlockedReason === undefined,
+        hasHooks:
+          codeBlockedReason === undefined && Object.keys(hookInspection.events).length > 0,
+        hasMcp: codeBlockedReason === undefined && declaredMcpServerNames.length > 0,
+        trust: loaded.canonical.trust,
+      });
+      const capabilityResult = resolvePluginCapabilities(
+        loaded.manifest,
+        loaded.canonical.trust,
+      );
+      if (enabled && capabilityResult.problems.length > 0) {
+        enabled = false;
+        for (const problem of capabilityResult.problems) {
+          diagnostics.push({
+            code: "plugin_capability_unsupported",
+            message: problem,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "error",
+          });
+        }
+      }
+      const sensitiveCapabilities = sensitivePluginCapabilityGrants(capabilityResult.profile);
+      const capabilityCovered = pluginGrantsCover(
+        pluginGrants.plugins[loaded.id],
+        loaded.manifest.version ?? DEFAULT_VERSION,
+        sensitiveCapabilities,
+      );
+      if (
+        enabled &&
+        (loaded.canonical.trust === "community" || loaded.canonical.trust === "local") &&
+        sensitiveCapabilities.length > 0 &&
+        !capabilityCovered
+      ) {
+        enabled = false;
+        diagnostics.push({
+          code: "plugin_capability_consent_required",
+          message: `Plugin requires capability consent: ${sensitiveCapabilities
+            .map((grant) => grant.id)
+            .join(", ")}`,
+          path: loaded.manifestPath,
+          pluginId: loaded.id,
+          severity: "warning",
+        });
+      }
+      const capabilityProfile: PluginCapabilityProfile = {
+        granted:
+          loaded.canonical.trust === "builtin" ||
+          loaded.canonical.trust === "official" ||
+          capabilityCovered
+            ? capabilityResult.profile.requested
+            : capabilityResult.profile.requested.filter(
+                (grant) => !sensitiveCapabilities.some((wanted) => wanted.id === grant.id),
+              ),
+        requested: capabilityResult.profile.requested,
+      };
+      // 社区/本地插件的 hooks 与 MCP 会启动子进程，必须逐版本显式同意；
+      // builtin/official 沿用签名/内置信任，不要求用户再点一次。
+      //
+      // 缓存安装件还要把同意绑定到**包 hash**（计划 §7.5 的等价实现）：同版本原地换内容
+      // 在 consent 只比版本/权限时是看不出来的。目录扫描的本地插件（inline）没有安装记录、
+      // 也就没有 hash——它们由本地信任覆盖，仍按版本/权限判断，不因此拦死开发流程。
+      if (
+        enabled &&
+        (loaded.canonical.trust === "community" || loaded.canonical.trust === "local") &&
+        requiredPermissions.length > 0
+      ) {
+        const pluginVersion = loaded.manifest.version ?? DEFAULT_VERSION;
+        const contentTrust = candidate.packageHash
+          ? resolvePluginContentTrust({
+              packageHash: candidate.packageHash,
+              pluginId: loaded.id,
+              record: pluginConsents.plugins[loaded.id],
+              requiredPermissions,
+              requireHashBound: true,
+              storageRoot: request.storageRoot,
+              version: pluginVersion,
+            })
+          : pluginConsentCovers(
+                pluginConsents.plugins[loaded.id],
+                pluginVersion,
+                requiredPermissions,
+              )
+            ? { allowed: true as const }
+            : { allowed: false as const, reason: "consent_missing" as const };
+        if (!contentTrust.allowed) {
+          enabled = false;
+          const message =
+            contentTrust.reason === "hash_mismatch"
+              ? "Plugin content changed since consent was granted; re-approve to run the new code"
+              : contentTrust.reason === "hash_missing"
+                ? "Plugin code is not bound to a package hash; re-approve to establish trust"
+                : `Plugin requires permission consent: ${requiredPermissions.join(", ")}`;
+          diagnostics.push({
+            code:
+              contentTrust.reason === "hash_mismatch"
+                ? "plugin_package_hash_mismatch"
+                : contentTrust.reason === "hash_missing"
+                  ? "plugin_trust_required"
+                  : "plugin_consent_required",
+            message,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "warning",
+          });
+        }
+      }
       const component = enabled
         ? resolveEnabledComponents({
             dataPath,
             diagnostics,
             env: request.env ?? {},
-            hookEvents: hooksRunnable ? hookInspection.events : {},
+            hookEvents:
+              hooksRunnable && codeBlockedReason === undefined ? hookInspection.events : {},
             hookDetails: hookInspection.details,
             loaded,
-            mcpServerDefinitions,
+            // 代码面被原生模块门禁挡住：不注入 MCP（它同样是会加载 .node 的子进程）。
+            mcpServerDefinitions: codeBlockedReason === undefined ? mcpServerDefinitions : {},
             options: request.config.options[loaded.id] ?? {},
             priority,
             workingDirectory: request.workingDirectory,
@@ -281,7 +626,6 @@ export class NodePluginAdapter implements PluginPort {
       mergeHookEvents(hooks, component.hooks);
       skillRoots.push(...component.skillRoots);
       commandRoots.push(...component.commandRoots);
-      const declaredMcpServerNames = Object.keys(mcpServerDefinitions);
       plugins.push(
         createPluginMetadata(
           loaded,
@@ -292,6 +636,10 @@ export class NodePluginAdapter implements PluginPort {
           request.config.options[loaded.id] ?? {},
           // 插件 UI 面板入口（A5）：与启用态无关地解析，禁用插件的入口由 listUiSurfaces 过滤。
           parsePluginUiSurfaces({ loaded, declaredMcpServerNames, diagnostics }),
+          requiredPermissions,
+          capabilityProfile,
+          loaded.runtime,
+          { blockedReason, codeBlockedReason, packageHash: candidate.packageHash },
         ),
       );
     }
@@ -318,6 +666,7 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: NIBI_INLINE_PLUGIN_MARKETPLACE,
         rootPath: resolve(rootPath),
         source: "inline",
+        trust: "local",
       });
     }
     for (const rootPath of request.officialPluginRoots ?? []) {
@@ -326,6 +675,7 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
         rootPath: resolve(rootPath),
         source: "official",
+        trust: "builtin",
       });
     }
     candidates.push(
@@ -334,6 +684,7 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
         rootPath,
         source: "official" as const,
+        trust: "official" as const,
       })),
     );
     for (const installed of listInstalledPluginRecords(request.storageRoot)) {
@@ -342,6 +693,10 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: installed.marketplace,
         rootPath: resolveInstalledPluginRoot(request.storageRoot, installed),
         source: "cache",
+        // 官方市场安装件沿用官方信任；其余第三方市场一律按 community 起步。
+        trust:
+          installed.marketplace === NIBI_OFFICIAL_PLUGIN_MARKETPLACE ? "official" : "community",
+        ...(installed.packageHash ? { packageHash: installed.packageHash } : {}),
       });
     }
     return candidates;
@@ -444,9 +799,52 @@ function pruneCapabilityLeakForDisabledPlugins(outcome: PluginLoadOutcome): Plug
       }
       return keptHooks.length > 0 ? [{ ...matcher, hooks: keptHooks }] : [];
     });
-    if (keptMatchers.length > 0) hooks[eventName as HookEventName] = keptMatchers;
+    if (keptMatchers.length > 0) hooks[eventName as PluginHookEventName] = keptMatchers;
   }
   return { ...outcome, commandRoots, diagnostics, hooks, mcpServers, skillRoots };
+}
+
+/**
+ * 为已安装插件物化视图根，成功时返回应使用的根目录。
+ *
+ * 只在 `source === "cache"`（Host 自己的安装缓存）上做：内置插件位于应用资源内，
+ * 直接读只读资源即可；用户配置目录（inline）按既定决策「只读加载，不复制、不改写」，
+ * 不在这里接管。
+ */
+function resolveInstalledViewRoot(input: {
+  diagnostics: PluginDiagnostic[];
+  loaded: LoadedPlugin;
+  packageHash?: string;
+  storageRoot: string;
+}): string | null {
+  const { loaded } = input;
+  const relativeManifestPath = relative(loaded.rootPath, loaded.manifestPath)
+    .split(sep)
+    .join("/");
+  const result = materializePluginViewRootSync({
+    manifest: loaded.manifest as unknown as Record<string, unknown>,
+    ...(relativeManifestPath && !relativeManifestPath.startsWith("..")
+      ? { manifestRelativePath: relativeManifestPath }
+      : {}),
+    origin: resolvePluginOrigin(loaded.canonical.trust, loaded.canonical.adapter.adapterId),
+    ...(input.packageHash ? { packageHash: input.packageHash } : {}),
+    pluginId: loaded.id,
+    rootPath: loaded.rootPath,
+    storageRoot: input.storageRoot,
+    ...(loaded.manifest.version ? { version: loaded.manifest.version } : {}),
+  });
+  if (!result) {
+    // 回退是安全的（继续读源目录），但必须留下痕迹：否则「视图根生效了吗」无法判断。
+    input.diagnostics.push({
+      code: "plugin_view_root_unavailable",
+      message: `Plugin view root could not be materialized; reading the installed source directory instead: ${loaded.id}`,
+      path: loaded.rootPath,
+      pluginId: loaded.id,
+      severity: "warning",
+    });
+    return null;
+  }
+  return result.viewRoot;
 }
 
 function createPluginMetadata(
@@ -457,6 +855,14 @@ function createPluginMetadata(
   declaredMcpServerNames: string[],
   configuredOptions: Record<string, string | number | boolean>,
   uiSurfaces: PluginUiSurfaceDefinition[],
+  requiredPermissions: PluginPermission[],
+  capabilities: PluginCapabilityProfile,
+  runtime: PluginRuntimeDeclaration | undefined,
+  gate: {
+    blockedReason?: { code: PluginDiagnostic["code"]; message: string };
+    codeBlockedReason?: { code: PluginDiagnostic["code"]; message: string };
+    packageHash?: string;
+  } = {},
 ): PluginMetadata {
   // manifest 的 author/homepage 作为详情页信息区的回退来源（商店 listing 优先）。
   const author = normalizeAuthorValue(loaded.manifest.author);
@@ -469,9 +875,13 @@ function createPluginMetadata(
     ...(loaded.acceptanceDiagnostics
       ? { acceptanceDiagnostics: loaded.acceptanceDiagnostics }
       : {}),
+    adapter: loaded.canonical.adapter,
     ...(author?.name ? { author: author.name } : {}),
     ...(author?.url ? { authorUrl: author.url } : {}),
     ...(homepage ? { homepage } : {}),
+    ...(gate.blockedReason ? { blockedReason: gate.blockedReason } : {}),
+    ...(gate.codeBlockedReason ? { codeBlockedReason: gate.codeBlockedReason } : {}),
+    ...(gate.packageHash ? { packageHash: gate.packageHash } : {}),
     commandRootCount: component.commandRoots.length,
     // 详情 UI 过去靠 plugin.skillCount（权威计数）+ 一条 UI 侧 join（按 pluginName 过滤
     // skillsService 结果）拿名称，二者数据源分离。停用插件走 emptyComponents() 使 skillCount=0、
@@ -490,10 +900,19 @@ function createPluginMetadata(
     mcpServerNames: Object.keys(component.mcpServers),
     name: loaded.manifest.name,
     hookDetails: component.hookDetails,
+    permissions: {
+      ...loaded.canonical.permissions,
+      required: requiredPermissions,
+    },
+    capabilities,
+    ...(runtime ? { runtime } : {}),
     rootPath: loaded.rootPath,
     skillCount: component.skillCount,
     skillRootCount: component.skillRoots.length,
     source: loaded.source,
+    // 派生来源：信任等级优先，外来生态适配器附加 `external:<adapterId>`；不参与身份与门禁。
+    origin: resolvePluginOrigin(loaded.canonical.trust, loaded.canonical.adapter.adapterId),
+    trust: loaded.canonical.trust,
     ...(uiSurfaces.length > 0 ? { uiSurfaces } : {}),
     userConfig: loaded.manifest.userConfig,
     version: loaded.manifest.version,
@@ -505,14 +924,14 @@ function resolveEnabledComponents(input: {
   diagnostics: PluginDiagnostic[];
   env: Record<string, string | undefined>;
   hookDetails: PluginHookDetail[];
-  hookEvents: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  hookEvents: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>;
   loaded: LoadedPlugin;
   mcpServerDefinitions: Record<string, unknown>;
   options: Record<string, string | number | boolean>;
   priority: number;
   workingDirectory: string;
 }): PluginComponents {
-  mkdirSync(input.dataPath, { recursive: true });
+  ensurePluginDataDir(input.dataPath);
 
   const skillRoots = resolveSkillRoots(input, input.priority);
   return {
@@ -682,7 +1101,7 @@ function parsePluginHookEvents(input: {
 
   const plugin = createHookPluginContext(input.loaded, input.pluginDataPath, input.sourcePath);
   for (const [eventName, matcherConfigs] of Object.entries(hooksRoot)) {
-    if (!SUPPORTED_HOOK_EVENTS.has(eventName)) {
+    if (!isPluginHookEventName(eventName)) {
       input.diagnostics.push({
         code: "plugin_hook_unsupported_event",
         message: `Plugin hook event is not supported by this Nibi runtime: ${eventName}`,
@@ -691,6 +1110,20 @@ function parsePluginHookEvents(input: {
         severity: "warning",
       });
       continue;
+    }
+    // 33 个事件都可声明；只有 14 个有 producer。enum-only 事件保留详情（runnable=false），
+    // 让详情页能显示「不会触发」，但不能进入 runtime 配置假装已接线。
+    const eventRunnable = isRunnablePluginHookEvent(eventName);
+    if (!eventRunnable) {
+      // 原因来自契约的支持度登记表（计划 §9.5），与 hook-sources 的诊断同源。
+      const reason = resolvePluginHookEventSupport(eventName)?.reason;
+      input.diagnostics.push({
+        code: "plugin_hook_unsupported_event",
+        message: `Plugin hook event is declared but will never trigger in this Nibi runtime: ${eventName}${reason ? ` (${reason})` : ""}`,
+        path: input.sourcePath,
+        pluginId: input.loaded.id,
+        severity: "warning",
+      });
     }
     if (!Array.isArray(matcherConfigs)) {
       input.diagnostics.push({
@@ -703,7 +1136,7 @@ function parsePluginHookEvents(input: {
       continue;
     }
 
-    const event = eventName as HookEventName;
+    const event = eventName;
     for (const matcherConfig of matcherConfigs) {
       const validation = HookMatcherConfigSchema.safeParse(matcherConfig);
       if (!validation.success) {
@@ -722,14 +1155,16 @@ function parsePluginHookEvents(input: {
         ...validation.data,
         hooks: validation.data.hooks.map((hook) => attachPluginToHook(hook, plugin)),
       };
-      (inspection.events[event] ??= []).push(withPlugin);
+      if (eventRunnable) {
+        (inspection.events[event] ??= []).push(withPlugin);
+      }
       for (const hook of validation.data.hooks) {
         inspection.details.push(
           toPluginHookDetail({
             event,
             hook,
             ...(validation.data.matcher !== undefined ? { matcher: validation.data.matcher } : {}),
-            runnable: input.runnable,
+            runnable: input.runnable && eventRunnable,
             sourcePath: input.sourcePath,
           }),
         );
@@ -741,7 +1176,7 @@ function parsePluginHookEvents(input: {
 }
 
 function toPluginHookDetail(input: {
-  event: HookEventName;
+  event: PluginHookEventName;
   hook: HookConfig;
   matcher?: string;
   runnable: boolean;
@@ -789,11 +1224,11 @@ function attachPluginToHook(hook: HookConfig, plugin: HookPluginContext): HookCo
 }
 
 function mergeHookEvents(
-  target: Partial<Record<HookEventName, HookMatcherConfig[]>>,
-  source: Partial<Record<HookEventName, HookMatcherConfig[]>>,
+  target: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>,
+  source: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>,
 ): void {
   for (const [eventName, matchers] of Object.entries(source) as Array<
-    [HookEventName, HookMatcherConfig[]]
+    [PluginHookEventName, HookMatcherConfig[]]
   >) {
     if (matchers.length > 0) {
       (target[eventName] ??= []).push(...matchers);
@@ -1118,8 +1553,8 @@ function loadPlugin(
     return null;
   }
 
-  const manifestPath = findManifest(candidate.rootPath);
-  if (!manifestPath) {
+  const detected = findManifest(candidate.rootPath);
+  if (!detected) {
     diagnostics.push({
       code: "plugin_manifest_not_found",
       message: `Plugin manifest not found: ${candidate.rootPath}`,
@@ -1129,17 +1564,31 @@ function loadPlugin(
     return null;
   }
 
-  const manifest = readManifest(manifestPath, diagnostics);
-  if (!manifest) return null;
+  const read = readManifest(detected, candidate, diagnostics);
+  if (!read) return null;
+  const { canonical, manifest } = read;
+  const manifestPath = detected.path;
+  const runtimeResult = resolvePluginRuntime(manifest);
+  if (runtimeResult.problem) {
+    diagnostics.push({
+      code: "plugin_runtime_invalid",
+      message: `Plugin runtime declaration is invalid: ${runtimeResult.problem}`,
+      path: manifestPath,
+      pluginId: `${manifest.name}@${candidate.marketplace}`,
+      severity: "error",
+    });
+  }
   const acceptance = resolvePluginAcceptance(manifest, manifestPath, diagnostics);
   return {
     ...(acceptance.contract ? { acceptance: acceptance.contract } : {}),
     acceptanceDiagnostics: acceptance.diagnostics,
+    canonical,
     id: `${manifest.name}@${candidate.marketplace}`,
     manifest,
     manifestPath,
     marketplace: candidate.marketplace,
     rootPath: candidate.rootPath,
+    ...(runtimeResult.runtime ? { runtime: runtimeResult.runtime } : {}),
     source: candidate.source,
   };
 }
@@ -1175,27 +1624,40 @@ function resolvePluginAcceptance(
   return { contract: parsed.contract, diagnostics: parsed };
 }
 
-function findManifest(rootPath: string): string | null {
-  const nibiPath = join(rootPath, NIBI_MANIFEST_PATH);
-  return fileExists(nibiPath) ? nibiPath : null;
+function findManifest(rootPath: string): DetectedPluginManifest | null {
+  return findPluginManifest(rootPath);
 }
 
-function readManifest(path: string, diagnostics: PluginDiagnostic[]): PluginManifest | null {
+function readManifest(
+  detected: DetectedPluginManifest,
+  candidate: PluginCandidate,
+  diagnostics: PluginDiagnostic[],
+): { canonical: ReturnType<typeof createCanonicalPlugin>; manifest: PluginManifest } | null {
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
-    if (!isRecord(parsed)) throw new Error("Manifest must be a JSON object");
+    const document = readPluginManifestDocument(detected.path, detected.adapterId);
+    const parsed = document.manifest;
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
     if (!PLUGIN_NAME_PATTERN.test(name)) throw new Error(`Invalid plugin name: ${name}`);
-    return {
+    const manifest = {
       ...parsed,
       name,
       version: typeof parsed.version === "string" ? parsed.version : DEFAULT_VERSION,
     } as PluginManifest;
+    return {
+      canonical: createCanonicalPlugin({
+        adapterId: document.adapterId,
+        manifest,
+        manifestPath: detected.path,
+        rootPath: candidate.rootPath,
+        trust: candidate.trust,
+      }),
+      manifest,
+    };
   } catch (error) {
     diagnostics.push({
       code: "plugin_manifest_invalid",
-      message: error instanceof Error ? error.message : `Invalid plugin manifest: ${path}`,
-      path,
+      message: error instanceof Error ? error.message : `Invalid plugin manifest: ${detected.path}`,
+      path: detected.path,
       severity: "error",
     });
     return null;

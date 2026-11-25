@@ -1,0 +1,447 @@
+# NIBI vs ZCode 3.18.2 parity report
+
+- Date: 2026-11-21 (post-4.1.4 cleanup refresh).
+- NIBI baseline for this snapshot: `dev` at `981bbc51` (cleanup commit); product version `4.1.4`, released as tag `v4.1.4` = `8a1a1de7`. `dev` has since advanced past `9e632534` (2026-11-26 docs cleanup and 4.1.5 prep); plugin-platform changes after this snapshot are tracked in `docs/plugin-platform-status-2026-11-25.md`.
+- Upstream baseline: unchanged — ZCode `3.18.2` = `fec97590` (Source-Commit `7535935d`, per `<workspace>\ZCODE3.17.2到3.18.2\README.md` "版本坐标").
+- Upstream reference clone: `<workspace>\.ref-zcode` (read-only; plan README "版本坐标").
+- Planning sources: `<workspace>\ZCODE3.17.2到3.18.2\04-NIBI-ABSORPTION-PLAN.md` (hereafter **04**), `05-NIBI-UPSTREAM-FOLLOWUP-PLAN.md` (**05**), `06-POST-BRANDING-REAUDIT-CHECKLIST.md` (**06**), and `README.md` in the same directory.
+- Evidence rule: every status below cites either a tracked repository file or a named plan section. This report does not claim a status that could not be located in one of those two places.
+
+### 2026-11-21 current status
+
+- **4.1.4 released** (tag `v4.1.4` = `8a1a1de7`): R09/R10/B08/B01/B03 client side/B07, the performance 4.2 slice, Host reload crash fix, permission-dialog mode switch, local project identity card, remote reinstall, and R07 catalog revision 37 + `gpt-6.1-terra`.
+- **Cleanup commit `981bbc51`**: removed all `glm` agent-lane compatibility (legacy provider constants/enums, SQL double-reads, migration 0007, remote component fallback) and the legacy R2 SSH deploy chain. B03 needs **no** production CDN dual-publish anymore; B05 product icon is the NIBI bird.
+- **Still open / deferred (updated 2026-11-26):** U33/U07 were superseded on 2026-11-25 — the extension host, capability grants and T1/T2/T3 isolation are implemented; upstream 5 slots are intentionally not adopted and resident plugin UI is deferred (see `docs/plugin-platform-status-2026-11-25.md`). U05 voice input (local STT only; no cloud ASR) and U10 share list/revoke/TTL (operator deferred; client expiry display is done) remain deferred.
+- **Plan definition:** Tier 0/1 complete; Tier 2 items have an explicit decision; Tier 3 items are N/A. U33/U07 now have an explicit decision in the 2026-11-25 status doc.
+
+## 0. Scope and status vocabulary
+
+| Status | Meaning |
+| --- | --- |
+| Aligned | Code and contract exist in NIBI; this pass did not find a missing upstream behavior in the cited area. |
+| Aligned, acceptance pending | Code exists, but the plan still records real-device/manual acceptance as outstanding. |
+| Partial | The agreed NIBI slice exists; the full upstream feature is larger and is explicitly not done. |
+| Open | No implementation found for the plan item; the plan item remains open. |
+| Not adopted | Deliberately out of scope for NIBI; recorded in 04 §7 or 05 §15. |
+| Blocked | Cannot be completed client-side; the external prerequisite is named. |
+
+This report distinguishes **implementation status** from **acceptance status**. A plan line that still lists an item as "未完成" is not treated as proof that no code exists; the code path is cited and the divergence is called out in §6.
+
+## 1. Executive summary
+
+- **Aligned:** the 12 session-control tools (8 CLI + 4 App), `ReadTopicResource`, `ListModels`, `TodoRead`/`TodoWrite`, the NIBI protocol-v4 command/inbound schema, the main v4 conversation UI, five locales, the SQLite backup v2, log redaction, PowerShell restricted mode, explicit-install updater behavior, and the Rust 0.1.88 R1–R4 backfills. The 2026-11-20 refresh adds U06 (managed worktrees), U08 (browser design mode), U22 (runtime exit banner), U30 (cross-session source), U34 (MCP Host row removal), U23 (behavior/tools settings), U38 (subagent faces), S9 (HostQuitBlocker), U09 (archive preview), U37 (mobile history), U27 (image preview actions) and U28 (narrow settings). Evidence: 04 §5.2, §5.3, §6, §12; 05 §8.1, §8.2, §8.3, §13; the repository paths in §2, §4 and §11.
+- **Not adopted by design:** upstream account/ZCode JWT/membership, CN Start Plan, system keychain bridge, upstream extension host and plugin marketplace, unsigned Authenticode, and upstream `protocol-v5`/`pg-store`/`plugin-store` architecture. Evidence: 04 §7; 05 §15.
+- **Still open or deferred:** U33 (extension logs/permissions/startup; pending a product decision on an extension runtime), voice input (deferred pending a local STT decision) and share TTL/management (deferred). Closed in the 2026-11-21 batch: R09 (`SessionPrompt`), R10 (hooks permission updates/Elicitation), B08 (directory rename), B01/B07 brand residue, B03, plus the 4.1.4 items (permission mode switch, local identity card, remote reinstall, R07). B03 is closed by deleting the legacy R2 deploy chain and the `glm` component id; no CDN dual-publish is required. Evidence: 05 §8.3, §15, and the R07/R09/R10/B08 rows; §4.9, §4.12–§4.15; §6.
+- **Plan status (current):** 05 §8.2/§8.3 and the dated 04 §12 status block record S9, U09, U37, U06, U08, U22, U27, U28, U30, U34, U23 and U38 as complete; the older backlog table and some section headings in those plan files are historical. The 2026-11-20 audit corrected R07, R09/R10, B08, U02/U03, U13, N11 and the U08 screenshot cap — see §6.
+- **X04 brand/release items:** product icons are now sourced from the official NIBI artwork and pinned by a manifest; `TOKEN_CLIENT_TYPE` remains `"zcode"` by external contract; the remote component id is now `nibi-agent` and the legacy `glm` component chain is deleted; `claim_zcode_plan` remains accepted but fail-closed. Evidence: §5.
+
+## 2. Aligned areas
+
+### 2.1 Tools
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| Session control, CLI 8 tools: `ListSessions`, `ReadSession`, `CreateSession`, `ForkSession`, `SendToSession`, `WaitSessions`, `InterruptSession`, `RenameSession` | Aligned in Node and Rust | `packages/session-control/src/CONTRACT.md` §"NIBI 移植范围（Phase 1）"; `packages/session-control/src/application/cli/index.ts`; `apps/nibi-cli/packages/core/src/tool/handlers/session-control.ts`; `kernel/crates/tools/src/session_control.rs` |
+| Session control, App-only 4 tools: `ListProjects`, `OpenSession`, `SetSessionArchived`, `SetSessionPinned` | Aligned in Node and Rust | `packages/session-control/src/application/app/index.ts`; `packages/session-control/src/contract/app.ts`; `apps/nibi-cli/packages/core/src/tool/handlers/app-session-control.ts`; `kernel/crates/tools/src/app_control.rs` |
+| Session-control permission naming `session_control.<camelCase method>` | Aligned | `apps/nibi-cli/packages/core/src/tool/handlers/session-control.ts:282-283`; `apps/nibi-cli/packages/core/src/tool/handlers/app-session-control.ts:184-185`; `packages/session-control/src/CONTRACT.md` §"NIBI 移植范围（Phase 1）" |
+| `ReadTopicResource` replacing `ReadSessionContext(topic, attachment)` | Aligned | `apps/nibi-cli/packages/core/src/tool/handlers/read-topic-resource.ts`; `apps/nibi-cli/packages/core/src/tool/handlers/index.ts:221`; `kernel/crates/tools/src/topic_tools.rs:23` |
+| `ListModels` | Aligned in Node and Rust | `apps/nibi-cli/packages/core/src/tool/handlers/list-models.ts`; `kernel/crates/tools/src/workflow_authoring.rs:43,770`; registration rule in `kernel/crates/tools/src/policy_filter.rs:72-80` |
+| `TodoRead` / `TodoWrite` | Aligned | `apps/nibi-cli/packages/core/src/tool/scheduler.ts:239-240`; `kernel/crates/agents/src/todo.rs`; `kernel/crates/tools/src/parity_tests.rs:239` (agents-layer registration) |
+| `GoalRead` | Aligned | `apps/nibi-cli/packages/core/src/tool/handlers/target.ts:29-67` |
+| `EnterWorktree` / `ExitWorktree` + `WorktreeBoard` | Aligned (kernel tools plus the U06 managed-worktree stack) | `kernel/crates/tools/src/lib.rs:131`; `kernel/crates/agents/src/toolset.rs:43-44`; `kernel/crates/kernel-api/src/env_worktree.rs`; `packages/services/src/managed-worktree-tasks/service.ts:85`; see §4.2 |
+| `TaskOutput` / `TaskStop` / `SendMessage` / `RespondToCoordinator` | Aligned | `packages/shared/src/tool-identity.ts` (known tool names); `kernel/crates/tools/src/workflow_authoring.rs` (TaskOutput/stop semantics); plan 04 §5.1 reports the K-series parity work complete |
+
+### 2.2 Protocol
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| NIBI protocol-v4 command and snapshot contracts | Aligned | `packages/shared/src/nibi-protocol-v4/command.ts`; `packages/shared/src/nibi-protocol-v4/snapshot.ts`; `docs/nibi-protocol.md` |
+| Rust kernel inbound/command schema | Aligned | `kernel/crates/protocol-nibi/schema/nibi-commands.json`; `kernel/crates/protocol-nibi/schema/inbound.json`; `kernel/crates/protocol-nibi/src/live.rs` |
+| Session-control receipt/idempotency contract (`requestId` / `retryOf`, 32 KiB artifact, self-wait) | Aligned | `packages/session-control/src/CONTRACT.md`; `packages/session-control/src/application/common/wait.ts`; plan 04 §6 L1 |
+| `HostQuitBlocker` wire shape (`worktree-creating`) | Aligned | `packages/shared/src/validation.ts:1287-1299`; `packages/desktop/src/host/index.ts:859-877`; `packages/desktop/src/main/appShutdownPolicy.ts:51-78` |
+| Project config whitelist (P0-0) | Aligned | `kernel/crates/cli/src/config/project_scope.rs`; plan 04 §4.0 and §10.1 |
+| Bash read-only/executionId contract (P0.5 / N07) | Aligned | `kernel/crates/policy/src/readonly.rs:41-51`; plan 04 §4.3 and §10.1 |
+| DWF workflow VM sandbox (P0-1) | Aligned | `apps/nibi-cli/packages/dynamic-workflow-runtime/src/child-source.ts`; `apps/nibi-cli/packages/dynamic-workflow-runtime/tests/security.test.ts`; plan 04 §4.1 and plan 06 §4 P0-1 (completion in `82ae3d56`) |
+
+### 2.3 UI
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| v4 conversation timeline, turn grouping, composer, queue panel | U02 统一摘要分组、U03 Composer 编辑态、U04 文本批注、U36 队列编辑锁已在本批落地（见 §10）；旧路径保留一个版本 | `packages/ui/src/v4/ConversationTimeline.tsx`; `packages/ui/src/v4/ConversationTurnGroup.tsx`; `packages/ui/src/v4/ConversationComposer.tsx`; `packages/ui/src/v4/ConversationQueuePanel.tsx`; 04 §12; 05 §8.2 |
+| Task-row identity hover card (U26) | Aligned | `packages/ui/src/task-row-hover/TaskRowIdentityHoverCard.tsx`; `packages/ui/src/project-sidebar/grouped/task-row.tsx:453-460`; plan 05 §8.2 U26 |
+| Data-sync minimized progress (U11) | Aligned | `packages/ui/src/data-sync/ui/DataSyncMinimizedProgress.tsx`; `packages/ui/src/data-sync/ui/DataSyncDialogProvider.tsx`; plan 05 §8.3 U11 |
+| Five locales: en-US, zh-CN, ja-JP, ko-KR, ru-RU | Aligned as a releasable slice; plan records 613 NIBI-only keys falling back to English | `packages/ui/src/i18n/localeMessages.ts:4-18`; `packages/ui/src/i18n/locales/{en-US,zh-CN,ja-JP,ko-KR,ru-RU}.ts`; plan 05 §8.3 U32 |
+| Share receipt expiry display | Aligned for display only | `packages/ui/src/v4/ConversationShareSuccessDock.tsx:97-108`; `packages/shared/src/conversation-share.ts:250,272`; plan 05 §8.3 U10 |
+| Managed worktree stack (U06) | Aligned for the documented scope (local desktop Host; remote projects and mobile do not show the entry) | `packages/shared/src/managed-worktree/contract.ts`; `packages/services/src/managed-worktree-tasks/service.ts:85`; `packages/services/src/project-storage/schema.ts:43-44`; `packages/ui/src/managed-worktrees/WorktreeComposerControls.tsx:26,63`; `packages/ui/src/v4/SessionPane.tsx:673-680,731-737,6117-6118`; §4.2 |
+| Browser design mode (U08) | Aligned | `packages/design-runtime/src/contract.ts:5,11-21,144-178`; `packages/design-runtime/src/CONTRACT.md:7-8`; `packages/ui/src/browser-use/useBrowserDesignMode.ts:40,439,605-614`; `packages/ui/src/browser-use/BrowserDesignInspector.tsx:145-207`; §4.3 |
+| Archive deletion preview (U09) | Aligned | `packages/ui/src/project-sidebar/useArchiveManagement.ts:80-130,191-209`; `packages/ui/test/archiveManagement.test.ts`; commit `57cce74e`; §4.4 |
+| Runtime exit banner (U22) | Aligned | `packages/services/src/nibi-agent/nibiAgent.ts:234-247`; `packages/ui/src/v4/AgentRuntimeExitBanner.tsx:25,72-101`; `packages/ui/src/v4/agentRuntimeExitNotice.ts:6-42`; `packages/ui/src/v4/SessionPane.tsx:656,5747`; §4.5 |
+| Behavior and tools settings section (U23) | Aligned | `packages/ui/src/settings/settingsPageConfig.ts:367-421`; `packages/ui/src/SettingsPage.tsx:1722`; `packages/ui/test/agentBehaviorSettingsSection.test.ts`; commit `f18275ea`; §11 |
+| Image preview action bar (U27) | Aligned | `packages/ui/src/image-preview-editor/ImagePreviewActions.tsx`; `packages/ui/src/image-preview-editor/imagePreviewDownload.ts`; `packages/ui/src/image-preview-editor/copyImage.ts`; §4.6 |
+| Narrow settings page (U28) | Aligned | `packages/ui/src/styles.css` (`compact-web`); `packages/ui/src/settings/SettingsPageParts.tsx`; `packages/ui/test/settingsNarrowLayout.test.ts`; §4.7 |
+| Cross-session source hint (U30) | Aligned | `packages/ui/src/lib/conversationSessionSource.ts:1-52`; `packages/ui/src/v4/ConversationSessionSourceHint.tsx:18,67`; `packages/ui/src/v4/ConversationRowView.tsx:115,1553`; §4.8 |
+| MCP Host built-in row removal (U34) | Aligned (operator decision 2026-11-20: remove) | `packages/ui/src/settings/McpSettingsSection.tsx:460-463`; `packages/ui/src/settings/pluginManagedResourceGroups.ts:89,247-259`; commit `2026ab27`; §4.10 |
+| Mobile remote browser history (U37) | Aligned | `packages/ui/src/WebRemoteControlMobileShell.tsx:28-57,115-145`; `packages/ui/test/webRemoteControlMobileShell.test.ts:132-150`; §4.11 |
+| Subagent workflow faces (U38) | Aligned | `packages/ui/src/lib/subagentColors.ts:4-24`; `packages/ui/src/settings/SubagentsSection.tsx:520-548`; `packages/ui/src/components/workflow-timeline/WorkflowAgentFace.tsx:18,92`; `packages/ui/src/ToolCallBlocks/renderers/agent.tsx:217,242`; §11 |
+
+### 2.4 Platform, security, updater, installer
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| Data-root relocation with key verification and rollback (P0-2) | Aligned | `packages/services/src/data-root/relocate.ts`; plan 04 §4.2 and §10.1; plan 06 §4 P0-2 |
+| Update install is always explicit (S2) | Aligned | `packages/desktop/src/main/autoUpdater.ts`; plan 04 §5.2 S2; plan 06 §2 B00–B08 table |
+| SQLite migration backup v2 (S1) | Aligned | `packages/shared/src/sqlite-migrations/backup.ts:24`; `packages/shared/src/sqlite-migrations/backup-volumes.ts`; plan 04 §5.2 S1 |
+| Structured recursive log redaction (S5) | Aligned | `packages/desktop/src/main/exportLogs.ts`; plan 04 §5.2 S5 |
+| Unified shutdown policy 7.5 s / 9 s (S6) | Aligned | `packages/desktop/src/main/appShutdownPolicy.ts:14-17`; plan 04 §5.2 S6 |
+| PowerShell restricted language/quoting (S8) | Aligned | `packages/desktop/scripts/powershell-command.mjs:41-73`; plan 04 §5.2 S8 |
+| Windows runtime host (L12) | Aligned for the Host/Job-object slice; full-path installer cleanup remains S7 | `packages/services/src/windows-runtime-host/`; `packages/desktop/scripts/windows-runtime-host/CMakeLists.txt`; plan 04 §5.2 S7 and §6 L12 |
+| HostQuitBlocker (S9) | Aligned | `packages/desktop/src/main/appShutdownPolicy.ts:51-78`; `packages/desktop/src/host/index.ts:859-877`; `packages/desktop/src/main/desktopHostProcess.ts:588-603`; `packages/shared/src/validation.ts:1287-1299`; commit `a5f2b9f1`; §4.1 |
+| Rust 0.1.88 R1–R4 backfills | Aligned | `kernel/crates/cli/src/config/project_scope.rs` (R1); `kernel/crates/agents/src/lib.rs:404` (R2 per plan 06 §4); `kernel/crates/tools/src/report_findings.rs:84-94` (R3); `kernel/crates/tools/src/tool_search.rs:291-294` (R4); plan 06 §4 |
+| Kernel safety gates R06/R12 | Aligned | `scripts/check-kernel-upstream-gates.mjs`; `.github/workflows/client-gates.yml` "Brand and kernel source gates" step; plan 06 §1 |
+
+## 3. Intentionally not adopted
+
+These are NIBI product decisions, not missing work. The canonical list is 04 §7 (N1–N12) and 05 §15; the table records only the items that affect parity claims.
+
+| Item | Decision | Evidence |
+| --- | --- | --- |
+| CN Start / `zai_cn` / Start Plan deduplication | Not adopted; NIBI keeps only its own `zai`/`bigmodel`/`nibi` provider experience | 04 §7 N1; 05 §15 |
+| ZCode account / `zcodejwttoken` / membership | Not adopted; NIBI uses its own account/license. The `oauth:nibi:access_token` key is NIBI's, not an upstream token | 04 §7 N2; `kernel/crates/platform/src/account.rs:37,63-65` |
+| System keychain (`@napi-rs/keyring`) / Linux Secret Service / credential bridge | Not adopted; NIBI uses a per-install key shared across processes | 04 §7 N3; `kernel/crates/platform/src/credentials.rs` |
+| Upstream extension host (34 capabilities, single utility process, 5 slot ids) | Not adopted; NIBI plans its own T0–T3 model | 04 §7 N4; 05 §15 |
+| Upstream plugin marketplace / third-party discovery | Not adopted; NIBI ships 14 built-in plugins plus `math-modeling` | 04 §7 N5; `apps/nibi-cli/packages/bootstrap/src/app/official-plugin-definitions.ts` |
+| Upstream login region switcher (Z.ai/BigModel) | Not adopted; NIBI has its own single-button login | 04 §7 N6; `packages/ui/src/hooks/useOAuth.ts` is the NIBI path |
+| Unsigned Windows Authenticode verification | Not adopted for the unsigned beta; signature verification is planned with the signing pipeline | 04 §7 N8 and §6 L10; 05 §15 |
+| Upstream `protocol-v5`, `pg-store`, `plugin-store`, `keyring`, `relay-connect`, `request-security-edition` | Not adopted as architectures; only selected validation patterns are borrowed | 05 §15 |
+| Deleting the old tool-grouping settings before U02 | Not adopted now; deletion would remove both old grouping and the new summary | 04 §7 N9; 05 §15 |
+| Removing the image eraser and archive confirmation | Not adopted; NIBI keeps both by user value | 05 §15 |
+
+## 4. Item status detail
+
+The statuses below are implementation status at `84b3febd`; each item names the tracked code/test that carries it. Device evidence that is not tracked by git (screenshots, `wdio-facts.json`) is named by directory and is not claimed to have been re-reviewed in this refresh.
+
+### 4.1 S9 — HostQuitBlocker
+
+**Status: aligned.**
+
+- Code: `packages/desktop/src/host/index.ts:859-877` reports the complete `worktree-creating` blocker set; `packages/desktop/src/main/appShutdownPolicy.ts:51-78` counts it; `packages/shared/src/validation.ts:1287-1299` defines the wire schema.
+- Host recording: `packages/desktop/src/main/desktopHostProcess.ts:588-603` replaces or clears the per-host blocker set and logs the aggregate `worktree-creating` count; `packages/desktop/test/desktopHostProcess.test.ts:505-568` covers set, clear, zero and negative counts.
+- Tests: `packages/desktop/test/appShutdownPolicy.test.ts:60-78`.
+- Commit: `a5f2b9f1` (`feat(tier2): add worktree tasks, browser export and quit blocker`), verified with `git log -- packages/desktop/src/main/appShutdownPolicy.ts`.
+- Plan: 04 §5.2 S9 and the dated 04 §12 status block record completion; 05 §13.4 requires "HostQuitBlocker 不卡退出".
+- Acceptance: 04 §5.2 records completion; the tracked evidence is the unit tests above. No separate device artifact for the quit path was found in this refresh.
+
+### 4.2 U06 — managed worktree stack
+
+**Status: aligned for the documented scope (local desktop Host; the mobile attachment does not expose the channel).**
+
+- Shared contract: `packages/shared/src/managed-worktree/contract.ts`, `layout.ts`, `CONTRACT.md`.
+- Services: `packages/services/src/managed-worktree-tasks/service.ts:85` (`createManagedWorktreeService`; `startNewTask`/`forkToWorktree`/`removeWorktree` at `:496-704`), `packages/services/src/managed-worktree-tasks/removal-gate.ts:6-35`, `packages/services/src/managed-worktree-tasks/removal.ts`, `packages/services/src/managed-worktree-tasks/reaper.ts:76`; `packages/services/src/git/managed-worktree/gitWorktreeRepo.ts`; Host assembly at `packages/services/src/node.ts:2324`.
+- Task DB: `worktree_root` column and `idx_tasks_host_worktree` at `packages/services/src/project-storage/schema.ts:43-44`; migration `0008_task_worktree_root` at `packages/services/src/project-storage/index.ts:62`.
+- Renderer: `packages/ui/src/managed-worktrees/{WorktreeComposerControls.tsx:26,63, ForkDestinationMenu.tsx:16, ManagedWorktreesDialog.tsx:28, ManagedWorktreeHandoffNotice.tsx:7, WorktreeCreatedMarker.tsx:7}`; `packages/ui/src/v4/SessionPane.tsx:673-680,731-737,6117-6118`; project menu entry `packages/ui/src/project-sidebar/ProjectSidebarNode.tsx:93-105` (hidden for remote projects and mobile).
+- Kernel: capability `worktreeCwd` and `session/releaseUnderDirectory` at `kernel/crates/protocol-nibi/src/server.rs:726-727,866`; command guards at `kernel/crates/protocol-nibi/src/commands.rs:652-654`; `worktree_creation` persistence at `kernel/crates/node-store/src/append.rs:107-146`.
+- Tests: `packages/ui/test/managedWorktrees.test.ts`, `packages/ui/test/managedWorktreeHandoff.test.ts`, `apps/nibi-cli/packages/core/tests/worktree-creation-timeline.test.ts`.
+- Earlier Option A helpers remain in use: `packages/services/src/git/managedWorktree.ts` and `managedWorktreeCleanup.ts` (wired at `packages/services/src/node.ts:463-464,2313`), and `packages/ui/src/root/managedWorktreeTask.ts` (used by `packages/ui/src/root/useRootWorkspaceActions.ts:37`). The old Option A *creation* path was removed; these files now serve cleanup/draft handling.
+- Device evidence: `packages/desktop/test/e2e/bots/manual-review/pending/tier2-sixth-batch-evidence.test.ts`; `packages/desktop/.e2e-artifacts/tier2-sixth-batch/02-u06-worktree-toggle-branch.png`, `02b-u06-worktrees-dialog.png`; `packages/desktop/.e2e-artifacts/worktree-handoff/` with `worktree-handoff-evidence.test.ts`.
+- Commit: `11801c77`; plan 05 §8.3 U06.
+- Scope: `packages/services/src/managed-worktree-tasks/CONTRACT.md:3-4` states "仅本地桌面 Host；手机 attachment 不放行该通道". The legacy Option A creation path was removed in `0230a434`; only the managed path remains.
+
+### 4.3 U08 — browser design mode
+
+**Status: aligned.**
+
+- Runtime contract: `packages/design-runtime/src/contract.ts:5` (`DESIGN_RUNTIME_VERSION = "22"`), `:11-21` page limits, `:144-178` events/commands; `packages/design-runtime/src/CONTRACT.md:7-8` defines host-owned pins, the active variant and the undo/redo stack.
+- The core slice from `a6dd1926` remains the base (`packages/design-runtime/src/hostScripts.ts`, `pageRuntime.ts`); the full parity features above were added in `11801c77`.
+- Renderer: `packages/ui/src/browser-use/useBrowserDesignRuntime.ts`, `useBrowserDesignMode.ts:40,439,605-614`, `useBrowserDesignSourceWriter.ts:101-116,337`, `BrowserDesignInspector.tsx:145-207`, `BrowserDesignToolbar.tsx:59`, `useBrowserFileLiveReload.ts:238`, `useBrowserDesignPluginGate.ts:14-41`, `browserPageExport.ts:22-67`.
+- Screenshot bound: the main process rejects element captures above 20 MiB of PNG bytes (`packages/desktop/src/main/browserView/browserGuestManager.ts:57-59,1029-1033`); there is no pixel-area cap. This corrects the earlier "pixel area" wording.
+- Tests: `packages/ui/test/browserDesign.test.ts`, `packages/ui/test/browserElementScreenshot.test.ts`, `packages/design-runtime/src/contract.test.ts`.
+- Device evidence: `packages/desktop/test/e2e/bots/manual-review/pending/tier2-sixth-batch-evidence.test.ts` seeds the official Design plugin in an isolated HOME and records `05-u08-design-toolbar-and-inspector.png` / `05b-u08-design-inspector-selected.png` under `packages/desktop/.e2e-artifacts/tier2-sixth-batch/`.
+- Commit: `11801c77`; plan 05 §8.3 U08.
+
+### 4.4 U09 — archive preview
+
+**Status: aligned.**
+
+- `packages/ui/src/project-sidebar/useArchiveManagement.ts:80-130` builds a deletion preview (will delete / will keep / cannot delete / completed / blocked reasons) and `:191-209` feeds it into the confirmation dialog.
+- Test: `packages/ui/test/archiveManagement.test.ts`.
+- Commit: `57cce74e` (`feat(tier2): add correctness batch, permanent deletion and platform hardening`), verified with `git log -- packages/ui/src/project-sidebar/useArchiveManagement.ts`.
+- Plan 05 §8.2 U09 and the dated 04 §12 status block now record completion; the older `deleteAll + confirm` description predates `57cce74e`.
+
+### 4.5 U22 — runtime exit banner
+
+**Status: aligned.**
+
+- Host event: `packages/services/src/nibi-agent/nibiAgent.ts:234-247` defines the unexpected-exit event (exit code, signal, `classifyExit` category, bounded redacted summary); it is fired at `packages/services/src/nibi-agent/nibiAgentProcessManager.ts:830-857` and exposed at `packages/services/src/nibi-agent/nibiAgentService.ts:6537-6538`. User-initiated dispose/restart does not publish the event. The earlier diagnostics paths remain: `packages/services/src/process/runtimeProcessLifecycle.ts:37` models `terminationKind: "unexpected"`, and `packages/services/src/nibi-agent/nibiAgentProcessManager.ts:1425-1455` classifies the unexpected exit and parses stderr diagnostics.
+- Renderer: `packages/ui/src/v4/AgentRuntimeExitBanner.tsx:25,72-101` renders a non-blocking `role="status"` banner in the bottom dock with a dismiss button; the copy is produced by `packages/ui/src/v4/agentRuntimeExitNotice.ts:6-42`. The transport subscription is `packages/ui/src/v4/agentConversationTransport.ts:143,636-649`; the banner is mounted at `packages/ui/src/v4/SessionPane.tsx:656,5747`.
+- Tests: `packages/ui/test/agentRuntimeExitBanner.test.ts`, `packages/ui/test/agentRuntimeExitNotice.test.ts`.
+- Device evidence: `tier2-sixth-batch-evidence.test.ts`; `packages/desktop/.e2e-artifacts/tier2-sixth-batch/06-u22-runtime-exit-banner.png`.
+- Commit: `11801c77`; plan 05 §8.2 U22.
+
+### 4.6 U27 — image preview action bar
+
+**Status: aligned.**
+
+- The preview action bar exposes save-and-open, save-as, copy, add-to-conversation, draw and more, with platform gating and visible failure toasts: `packages/ui/src/image-preview-editor/ImagePreviewActions.tsx`.
+- Download/copy helpers were extracted to the managed module and remain re-exported from `packages/ui/src/components/ai-elements/image-preview-dialog.tsx`: `packages/ui/src/image-preview-editor/imagePreviewDownload.ts`, `packages/ui/src/image-preview-editor/copyImage.ts`.
+- Windows window-control avoidance uses the existing `platform-windows-desktop` variant below `env(titlebar-area-height)`; spec is `docs/ui/image-preview-actions.md`.
+- Tests: `packages/ui/test/imagePreviewActions.test.ts`, `packages/ui/test/imagePreviewSaveToConversation.test.ts`, `packages/ui/test/nodeReplToolCallBlockInteraction.test.ts`.
+- Plan: 05 §8.2 U27.
+
+### 4.7 U28 — narrow settings page
+
+**Status: aligned.**
+
+- `packages/ui/src/styles.css` defines the `compact-web` variant (viewport `< 40rem` and no desktop platform class).
+- The settings page switches to a two-row layout with a horizontally scrolling nav under `compact-web`; rows use wrapping flex: `packages/ui/src/SettingsPage.tsx`, `packages/ui/src/settings/SettingsPageParts.tsx`, `packages/ui/src/settings/SettingsResourceHeaderActions.tsx`.
+- Spec: `docs/settings-narrow-layout.md`.
+- Test: `packages/ui/test/settingsNarrowLayout.test.ts`.
+- Plan: 05 §8.2 U28 ("compact-web 两行 + 横向滚动 nav + 行 flex 换行").
+
+### 4.8 U30 — cross-session source
+
+**Status: aligned.**
+
+- Data: `fromSessionId` is in `packages/ui/src/lib/taskChatMessageTypes.ts:66`, `packages/shared/src/validation.ts:746`, and `packages/services/src/session/sessionMailbox.ts:4`.
+- UI: `packages/ui/src/lib/conversationSessionSource.ts:1-52` builds the source fact (session id is identity; title only comes from an old snapshot; unreachable rows do not expose the id); `packages/ui/src/v4/ConversationSessionSourceHint.tsx:18,67` renders the hint/jump; it is used at `packages/ui/src/v4/ConversationRowView.tsx:115,1553`.
+- Tests: `packages/ui/test/conversationSessionSource.test.ts`.
+- Device evidence: `tier2-sixth-batch-evidence.test.ts`; `packages/desktop/.e2e-artifacts/tier2-sixth-batch/04-u30-cross-session-source.png`, `04b-u30-cross-session-source-unreachable.png`.
+- Commit: `11801c77`; plan 05 §8.2 U30.
+
+### 4.9 U33 — extension logs/permissions/startup
+
+**Status: superseded (2026-11-25).** The extension host, five NIBI Extension capabilities and T1/T2/T3 isolation are implemented; upstream 5 slots are intentionally not adopted and resident plugin UI is deferred. See `docs/plugin-platform-status-2026-11-25.md`.
+
+- No extension log/permission/startup settings surface was found under `packages/ui/src/settings` at the time of this snapshot (the MCP and plugin sections are separate).
+- Plan: 05 §8.3 U33 ("依赖插件改造 runtime 状态模型"); 04 §6 L3 said the extension host is not started (historical).
+
+### 4.10 U34 — MCP Host built-in row removal
+
+**Status: aligned (operator decision 2026-11-20: remove).**
+
+- `packages/ui/src/settings/McpSettingsSection.tsx:460-463` now uses `settings.mcp.plugin.activeDescription` for every plugin MCP row; `hostProvided` remains only in the item model (`packages/ui/src/settings/pluginManagedResourceGroups.ts:89,247-259`) to drive active/runtime resolution.
+- The locale keys `settings.mcp.host.active` and `settings.mcp.host.activeDescription` are absent from all five locales (checked with grep over `packages/ui/src/i18n/locales/*.ts`).
+- Commit: `2026ab27` (`refactor(settings): drop Host built-in MCP status description`).
+- Plan: 05 §8.3 U34 records the decision and the removal.
+
+### 4.11 U37 — mobile remote history stack
+
+**Status: aligned.**
+
+- `packages/ui/src/WebRemoteControlMobileShell.tsx:28-57` pushes a single `nibiMobilePage: "chat"` history entry and restores it on refresh; `:115-145` handles `popstate` and calls `history.back()` for the back arrow.
+- Test: `packages/ui/test/webRemoteControlMobileShell.test.ts:132-150` ("restores chat from browser history state after refreshing on the chat page").
+- The implementation uses `pushState`/`popstate` rather than the upstream helper names `recordMobileChatHistory`/`replaceState`; the naming difference does not change behavior.
+- Plan: 05 §8.2 U37 and the dated 04 §12 status block record completion.
+
+### 4.12 Voice input
+
+**Status: deferred.**
+
+- A browser `SpeechInput` component exists at `packages/ui/src/components/ai-elements/speech-input.tsx`, but it is not imported by the v4 composer or session pane (no usages outside its own file).
+- Decision: 05 §8.3 U05 and 04 §6 L4 record the operator decision: no cloud ASR; evaluate a local STT model later, optional and undecided.
+- Prerequisite: local STT selection (model size, latency, offline/privacy) and a runtime to host it. Do not add a dead microphone button.
+
+### 4.13 Share TTL / share management
+
+**Status: deferred (display only).**
+
+- `expires_at` is displayed in `packages/ui/src/v4/ConversationShareSuccessDock.tsx:97-108`; the contract carries `ttl_ms` and `expires_at` in `packages/shared/src/conversation-share.ts:167,250,272`.
+- There is no client-side list/revoke/TTL-management UI; `packages/services/src/conversation-share/` exposes publish and import paths, not a share-management list/revoke contract.
+- Decision: 04 §6 L7 and 05 §8.3 U10 record "运营者 2026-11-19 决定暂缓；等产品/服务端排期；客户端不做假列表".
+- Prerequisite: server-side list/revoke/optional TTL endpoints plus a product schedule. Do not add a fake list.
+
+### 4.14 Gaps confirmed on 2026-11-20 and closed in the 4.1.4 batch
+
+These were re-checked against `1c765bb8` as open, then implemented on 2026-11-20. The statuses below describe the 4.1.4 work; the evidence and final commit are recorded in §11.
+
+#### 4.14.1 Permission dialog per-request mode switch
+
+**Status: done.** The shared V4 payload now carries an optional `modeSwitch: "choose" | "fullAccessOnly"` (`packages/shared/src/nibi-protocol-v4/snapshot.ts`), with `PERMISSION_GUARDED_OPTION_ID = "allowAndSwitchGuarded"` and `permissionGrantMode()`. The Rust kernel projects `modeSwitch` (and `fullAccessOption`) only for main-thread asks (`asked_by` empty); subagent asks get neither. `resolve` maps `fullAccess` to `BypassPermissions` and `allowAndSwitchGuarded` to `Guarded` before allowing the call (`kernel/crates/protocol-nibi/src/commands.rs`). `PermissionDialog` renders a guarded/yolo picker when the session is not already guarded/yolo, labels the row “Allow and switch …”, and routes the yolo branch through `useFullAccessModeConfirmation`; `fullAccessOnly` is a fixed full-access switch with the same confirmation. Legacy payloads without `modeSwitch` keep the old single-grant semantics.
+
+#### 4.14.2 Local-project identity hover card
+
+**Status: done.** `packages/ui/src/project-sidebar/ProjectIdentityHoverCard.tsx` replaces `RemoteIdentityHoverCard.tsx`. The `host` prop is optional; local projects now show the card with the project name and root paths, while device/connection rows and the pending-device settings entry render only when a remote `host` exists. The component also ports upstream's container-query layout, 300 ms open intent, pointer/focus handling and 4 px hover bridge.
+
+#### 4.14.3 Remote "reinstall remote service"
+
+**Status: done.** The device lifecycle menu in `packages/ui/src/settings/SourceServerManagementPanel.tsx` now offers “Reinstall remote service” between restart and stop, and the failed-connection banners (device card and `RemoteConnectionConnectingStep`) expose the same action. Both reuse the existing update chain (`runSourceServerUpdate`), so the running-task guard and force confirmation are unchanged. To make same-version reinstall actually repair a corrupted installation, `packages/nibi-server-cli/src/runtime/immutableRelease.ts` now replaces an identical release directory whose contents no longer match its integrity record (identity mismatches still fail closed).
+
+### 4.15 Plan items outside this report's scope
+
+- U02/U03/U04/U36 landed in `9da3afb5`; see §10 for code paths and tests. The U02/U03 rollback switches are compile-time constants, not runtime flags.
+- Landed before the 4.1.3 tag: K5–K10, N06/N13, R05, L11, P11, R13 (`57cce74e`); S3/S4/S7/S10 (`9da3afb5`); U06/U08/U22/U27/U28/U30 and N02/X02 (`11801c77`); U34 (`2026ab27`).
+- Landed on `dev` after the 4.1.3 tag: U23/U38 (`f18275ea`), the plugin catalog admission fix (`6faa44b9`), and the 2026-11-20 settings/workspace batch (`84b3febd`, §11), with evidence capture `c5d032b9`.
+- Still open: voice input and share TTL (deferred by the operator). U33/U07 were decided on 2026-11-25 (extension host implemented; upstream 5 slots not adopted; resident UI deferred). Closed in the 2026-11-21 batch: R09, R10, B08, B01, B07, B03 (legacy R2 chain deleted), and the 4.1.4 items (§4.14, §6).
+
+## 5. X04 brand/release items
+
+### 5.1 Product icon
+
+**Status: done, with a deterministic source and regression pin.**
+
+- Official source: `packages/ui/src/assets/nibi/nibi-app-icon.png`, SHA-256 `92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a`, 1024×1024 RGBA. The same bytes are present at `<workspace>\NIBI-Client-Private\docs\planning\ui-rebrand\preview\assets\nibi-app-icon.png` (verified by `sha256sum`).
+- Shipping surfaces covered by `packages/desktop/build/brand/icon-manifest.json`: `icon.png`, `icon_windows.png`, `icon_macos_1024.png`, `icon_installer.png`, `icons/16x16.png` through `icons/1024x1024.png`, `icon.ico`, `icon_installer.ico`, `icon.icns`, `icon_installer.icns`, and `packages/desktop/src/renderer/public/nibi-app-icon.png`.
+- Every existing ICO/ICNS frame and every `icons/*.png` was compared pixel-by-pixel against the official source with Pillow; the mean absolute channel difference was `0.0` for all frames. This is recorded as the audit result, not a visual approximation.
+- Generator: `packages/desktop/scripts/generate-brand-icons.py` (`--check` / `--write`), with `packages/desktop/package.json` scripts `generate:brand-icons` and `check:brand-icons`. The generator reproduces the checked-in ICO/ICNS/PNG files byte-for-byte with Pillow 13.0.0.
+- Regression test: `packages/desktop/test/brandIconManifest.test.ts` pins the source hash, every derived file hash, the expected surface list, PNG dimensions, ICO entry counts, ICNS length, and rejects pinned upstream artwork hashes.
+- Actual GLM product-icon use found and fixed: `packages/ui/src/root/PostUpdateReleaseNotesDialog.tsx` now renders `packages/ui/src/assets/nibi/nibi-bird.png`. The 2026-11-21 cleanup deleted the GLM icon component/assets, `prepare:glm`, and `download-glm.*`; NIBI Agent rows use `packages/ui/src/lib/providerCliIcon.tsx`.
+- Updater surface: `packages/desktop/src/main/forceUpdatePrompt.ts` previously resolved `build/icon.png` from `process.cwd()` and fell back to the letter `"Z"`. It now resolves `process.resourcesPath/icon.png` when packaged (the electron-builder `extraResources` mapping is at `packages/desktop/electron-builder.config.js:800-801`) and uses `N` as the failure fallback.
+- Electron-builder mappings: `packages/desktop/electron-builder.config.js:800-823` (app/window/tray icons), `:981` (DMG), `:993-995` (NSIS installer icons).
+- Runtime consumers: `packages/desktop/src/main/index.ts:334-347` (window/application icon), `packages/desktop/src/main/desktopTray.ts:11-27` (tray), `packages/desktop/src/main/about.ts:246-250` (About), `packages/desktop/src/main/desktopCuaPermissionIpc.ts:33-41` (CUA permission), `packages/desktop/src/main/forceUpdatePrompt.ts:41-56` (force update).
+- Cross-repo note: `<workspace>\NIBI-GO\app\assets\icon.png` (SHA-256 `119462bb78eb240a65c869fc067ee599639b3cb5a41953f25c07b17d2a8c7e0f`) and `favicon.png` are still upstream blue-A artwork, and `splash-icon.png` is a blank construction grid. They were neither used as the source nor modified here; NIBI-GO is a separate mobile repository. The desktop source is the official NIBI bird asset listed above.
+
+### 5.2 `TOKEN_CLIENT_TYPE`
+
+**Status: blocked by external contract; client value intentionally stays `"zcode"`.**
+
+- Definition: `kernel/crates/base/src/names.rs:70-76`.
+- Consumer: `kernel/crates/platform/src/token/issue.rs:193-196` sends `"clientType": TOKEN_CLIENT_TYPE` in the project access-token issue request.
+- The endpoint is `…/api_keys/{apiKeyId}/access_tokens` on the z.ai / bigmodel side: `kernel/crates/platform/src/token/location.rs:87-90`; the golden request fixtures are `kernel/crates/platform/tests/fixtures/app-login-golden.json` and `team-plan-golden.json`.
+- Rationale and prerequisite: `NIBI-Client-Private/docs/planning/step9b-brand-inventory-2026-11-05.md` "未改（需要运营者确认）" states the value is the third-party client identity sent to z.ai/bigmodel, not NIBI's own server; changing it requires z.ai to accept `nibi`. `NIBI-Client-Private/docs/planning/真实状态总账-2026-11-07.md` line 129 says the same.
+- Test added: `kernel/crates/platform/src/token/flow_tests.rs` `project_token_client_type_stays_on_the_zai_contract` pins both the constant value (`"zcode"`) and the `issue.rs` request body's use of the shared constant.
+
+### 5.3 Remote CDN component id
+
+**Status: closed (2026-11-21). The legacy R2 component chain and the `glm` id are deleted.**
+
+- Single id: `packages/shared/src/remoteResourcePackages.ts` exports `NIBI_AGENT_REMOTE_COMPONENT_ID = "nibi-agent"`; `glm` is no longer in `REMOTE_RESOURCE_PACKAGE_IDS` and is rejected by the remote-target schema.
+- Current clients use the Source Server descriptor/archive (`source-server-release.json` + `nibi-server-<target>.tar.gz`), which carries no component id.
+- The legacy R2 deploy chain (`connect.ts`, `deploy.ts`, `nibiAgentDeploy.ts`, `remoteAssetCache.ts`, `remoteAssetDeployDecision.ts`, `remoteAssetLiveIdentity.ts`, `runtimeToolDeploy.ts`, `nibiAgentWrapperDeploy.ts`, `nibiAgentOfficialPluginPermissionRepair.ts`, `remoteDeployLock.ts`, `nibiAgentBundleWrapper.ts`, `nibiAgentDevDeploy.ts`) was physically deleted together with its tests, so no client reads a manifest component id and no CDN dual-publish is required.
+- Test: `packages/shared/test/remoteResourcePackages.test.ts` asserts that `glm` is rejected and only `nibi-agent` is selected.
+
+### 5.4 `claim_zcode_plan`
+
+**Status: retained; live schema, fail-closed execution.**
+
+- Schema: `packages/shared/src/marketingTouch.ts:56-63` accepts `claim_zcode_plan` with a `plan_id`. The comment explains that server-delivered marketing content may still carry it, so rejecting it would fail the whole delivery parse.
+- Execution: `packages/ui/src/components/marketing-touch/MarketingTouchProvider.tsx:205-210` returns `{ status: "cancelled" }` and logs a warning; the controller keeps claim errors for the dialog (`packages/ui/src/components/marketing-touch/marketingTouchController.ts:205-214,232-240`) and the dialog maps the action to the same type (`packages/ui/src/components/marketing-touch/MarketingDialogs.tsx:68-74`).
+- Caller evidence: server-driven content path `packages/services/src/marketing-touch/marketingTouchService.ts:47-68` and the delivery schema in `packages/shared/src/marketingTouch.ts`; tests accept the action in `packages/shared/test/marketingTouch.test.ts` and exercise the controller in `packages/ui/test/marketingTouchController.test.ts`.
+- Decision: keep the schema for compatibility; no NIBI account/plan claim path is wired. Removing it would break parsing of a server delivery that still contains the action, which is a live path even though NIBI no longer performs the claim.
+
+## 6. Plan status and 2026-11-20 audit corrections
+
+The 2026-11-19 report treated several plan lines as authoritative when the code was already ahead. The plans now record most of those items, and the 2026-11-20 audit corrected several overstatements that had been repeated in status summaries. This table is the current reading.
+
+| Item | Earlier claim | Current status (2026-11-20) | Evidence |
+| --- | --- | --- | --- |
+| S9 | The 2026-11-19 report still called HostQuitBlocker acceptance-pending | Aligned; 04 §5.2 and the dated 04 §12 status block record completion | `packages/desktop/src/main/appShutdownPolicy.ts:51-78`; `packages/desktop/src/main/desktopHostProcess.ts:588-603`; `packages/desktop/test/desktopHostProcess.test.ts:505-568` |
+| U09 | 05 §8.2 says archive preview is missing | Aligned; preview + incomplete-resume landed in `57cce74e` | `packages/ui/src/project-sidebar/useArchiveManagement.ts:80-130,191-209`; `packages/ui/test/archiveManagement.test.ts` |
+| U37 | 05 §8.2 says mobile history stack is missing | Aligned; `pushState`/`popstate` and refresh restoration | `packages/ui/src/WebRemoteControlMobileShell.tsx:28-57,115-145`; `packages/ui/test/webRemoteControlMobileShell.test.ts:132-150` |
+| U06 | 05 §8.3 describes the full managed-worktree stack as absent | Aligned for the documented local-desktop scope; landed in `11801c77` | `packages/services/src/managed-worktree-tasks/service.ts:85`; `packages/services/src/project-storage/schema.ts:43-44`; `packages/ui/src/managed-worktrees/`; §4.2 |
+| U08 | 05 §8.3 describes design mode as absent | Aligned; full parity landed in `11801c77` | `packages/design-runtime/src/contract.ts:5-178`; `packages/ui/src/browser-use/useBrowserDesignMode.ts:605-614`; §4.3 |
+| Brand | 06 §2 B05 and §13.5 say "产品图标仍 GLM" | Product icons are NIBI; the last actual product-icon misuse was the release-notes dialog | §5.1 of this report; `packages/desktop/build/brand/icon-manifest.json`; `packages/ui/src/root/PostUpdateReleaseNotesDialog.tsx` |
+| R07 | Earlier summaries treated provider rev44 as done | **Closed in the 4.1.4 batch:** the bundled catalog is now revision 37 and includes `gpt-6.1-terra` (the only user-visible model delta from upstream rev44); the z.ai account-plan rules remain deliberately excluded. Revision stays sequential (36→37), not upstream's 44; the server publishes its own higher revision from the same content | `config/provider/nibi-builtin.json:3,690`; `kernel/crates/platform/assets/nibi-builtin.json`; 05 R07 row |
+| R09 | Earlier summaries implied `SessionPrompt` was covered | **Closed in the 2026-11-21 batch:** `kernel-api/src/session_prompt.rs` adds `SessionPrompt { SystemPin, LivePrompt }`; the session actor pins/restores `nibi-kernel/system_pin`, context uses it when present, and the default (no pin) path renders byte-identical prompts. K6's snapshot still covers compact/fork boundaries | `kernel/crates/kernel-api/src/session_prompt.rs`; `kernel/crates/session/src/prompt_pin.rs`; `kernel/crates/context/src/system.rs` |
+| R10 | Earlier summaries implied hooks permission updates/Elicitation were done | **Closed in the 2026-11-21 batch:** hooks now fold `updatedPermissions` (add/replace/remove rules, setMode, add/remove directories) and Elicitation verdicts; `interrupt: true` ends the turn; MCP elicitation runs the pre/post hooks. Updates are applied only after the rewritten input passes schema validation | `kernel/crates/hooks/src/{permission_updates.rs,elicitation.rs}`; `kernel/crates/tools/src/pipeline.rs`; `kernel/crates/ext/src/mcp/elicitation.rs` |
+| B08 | Earlier summaries treated the directory rename as done | **Closed in the 2026-11-21 batch:** `git mv packages/nibi-cua packages/computer-use` (package name stays `@nibi/cua`); lint/format, lockfile, release manifest, third-party inventory and docs paths updated | `packages/computer-use/package.json`; `.oxlintrc.json`; `.oxfmtrc.json` |
+| U02 | "Runtime flag `ENABLE_UNIFIED_SUMMARY_GROUPING`" | Compile-time constant; rebuild required to roll back, no runtime flag or gradual rollout | `packages/ui/src/v4/conversationSummaryGroups.ts:21`; `packages/ui/src/v4/ConversationTurnGroup.tsx:456` |
+| U03 | "Runtime flag `ENABLE_COMPOSER_EDIT_MODE`" | Compile-time constant `true`; rebuild required to roll back | `packages/ui/src/v4/SessionPane.tsx:543`; `packages/ui/src/v4/ConversationRowView.tsx:315` |
+| U13 | Shared `AppSettings` field | Renderer `localStorage` key `nibi-macos-font-smoothing`; store field syncs across windows but it is not exported/imported with settings | `packages/ui/src/settings/macosFontSmoothing.ts:12-45`; `packages/ui/src/store/index.ts:324,502`; 05 U13 correction |
+| N11 | "wire-assembler raw counter" | No raw counter exists; the implementation is the tolerant `unreadable` row schema plus the placeholder renderer | `packages/shared/src/nibi-protocol-v4/rows.ts:466-511`; 05 N11 correction |
+| U08 screenshot cap | "Pixel-area cap" | 20 MiB byte cap on the captured PNG in the main process; no pixel-area limit | `packages/desktop/src/main/browserView/browserGuestManager.ts:57-59,1029-1033` |
+
+Still open at the plan level after the 2026-11-21 batch: voice input and share TTL (both deferred by the operator). U33/U07 were decided on 2026-11-25 (see the status doc). R09, R10, B08, B01, B07 and B03 are closed in the 2026-11-21 batch; the legacy R2 deploy chain and the `glm` component id were deleted, so no CDN dual-publish is required. Voice and share TTL are deferred, not missing code.
+
+## 7. Verification commands and gates
+
+### 7.1 Release gate set (from the repository, not invented)
+
+- `pnpm verify:pre-push` — runs lint, a11y, DB schema, architecture, release tooling, release notes, visual brand, identity residue, storage keys, session-agent identity, kernel licenses, brand/model names, instance-root paths, kernel upstream gates, kernel capabilities, dual-kernel parity, i18n keys, and affected unit tests. Source: `package.json` `scripts["verify:pre-push"]`.
+- `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:e2e` — source: `package.json`.
+- Brand/source gates in CI: `node scripts/check-storage-keys.mjs`, `node scripts/check-session-agent-identity.mjs`, `node scripts/check-visual-brand.mjs`, `node scripts/check-instance-root-paths.mjs`, `node scripts/check-brand-model-names.mjs`, `node scripts/check-kernel-upstream-gates.mjs`, `node scripts/check-kernel-capabilities.mjs`, `node scripts/check-dual-kernel-parity.mjs`. Source: `.github/workflows/client-gates.yml` "Brand and kernel source gates".
+- Artifact gate after a build: `node scripts/check-identity-residue.mjs`. Source: `.github/workflows/client-gates.yml` "Brand artifact gate"; the script itself documents that it must run on fresh artifacts.
+- Rust: `cargo test --locked --workspace --no-fail-fast`, plus `cargo audit` / `cargo deny` per the release plan. Source: `.github/workflows/rust-gates.yml`; 05 §13.6.
+- i18n and a11y: `pnpm check:i18n-keys`, `pnpm check:a11y`. Source: `package.json`; 05 §13.6.
+- Installer/update: `pnpm test:e2e` and the release bundle commands in `.github/workflows/client-gates.yml`; the plan's release acceptance is 05 §13.6.
+
+### 7.2 Commands executed in the 2026-11-19 pass
+
+| Command | Result |
+| --- | --- |
+| `python packages/desktop/scripts/generate-brand-icons.py --check` | Passed: 18 files, source `92db501cbd112dda` |
+| `pnpm exec vitest run packages/desktop/test/brandIconManifest.test.ts --project unit` | 3/3 passed |
+| `pnpm exec vitest run packages/ui/test/postUpdateReleaseNotesDialog.test.ts --project unit` | 2/2 passed |
+| `pnpm exec vitest run packages/shared/test/remoteResourcePackages.test.ts --project unit` | 5/5 passed |
+| `pnpm exec vitest run packages/server/test/remoteAssetCacheWindowsRename.test.ts --project unit` | 1/1 passed (test removed 2026-11-21 with the R2 chain) |
+| `pnpm exec vitest run packages/server/test/remoteAssetInstaller.test.ts --project unit` | 33/33 passed |
+| `cargo test -p nibi-kernel-platform project_token_client_type_stays_on_the_zai_contract --locked` | 1/1 passed |
+| `node scripts/check-visual-brand.mjs` | Passed (9,867 files) on the final tree |
+| `node scripts/check-brand-model-names.mjs` | Passed (7,168 files, 0 non-model `glm`) on the final tree |
+| `node scripts/check-identity-residue.mjs` | Passed on fresh artifacts: 6,446 files / 213.2 MB, no instance-identity residue |
+| `node scripts/check-storage-keys.mjs` | Passed: 9,852 source files, 0 upstream-prefix key references |
+| `node scripts/check-public-repo.mjs` | Passed: 17,023 text files, no policy violations |
+
+### 7.3 Not run in this pass
+
+The 2026-11-19 pass did not run:
+
+- Full `pnpm test:unit` / `pnpm test:e2e`; the release plan records the last full root suite at 19,052 tests green at `57cce74e` (04 §7 note), but that pass only ran the targeted tests above.
+- `cargo test --locked --workspace`; only the token contract test was run.
+- macOS `.icns`/DMG and Windows NSIS installer builds; the icon manifest was checked but no installer was produced in that pass.
+- Rebuild status from that pass: the CLI packages, desktop `out`, and `bundled-agents` were rebuilt after the last source edit, and `check-identity-residue` was rerun on those fresh artifacts (see §7.2).
+
+The 2026-11-20 refresh is documentation-only. It re-read the cited files at `84b3febd` and ran only `git diff --stat`; it did not run the commands above, `node scripts/typecheck.mjs`, or any build/test gate.
+
+## 8. Residual risks and honest limits
+
+- **Real-device acceptance** for U06/U08/U22/U27/U28/U30 is recorded as pending manual-review evidence (`packages/desktop/test/e2e/bots/manual-review/pending/tier2-sixth-batch-evidence.test.ts` plus `packages/desktop/.e2e-artifacts/tier2-sixth-batch/`), not as a reviewed pass. S9 is recorded complete at the plan level with unit evidence; no separate device artifact for the quit path was found.
+- **Upstream comparison** in this report relies on the plan's version coordinates and the read-only `<workspace>\.ref-zcode` clone. This refresh did not re-run the full 3.18.2 diff.
+- **Icon verification** covers the shipped asset and the exact light/dark CSS filters in the component harness; the onboarding “代理设置” step that renders the provider icon is currently hidden, so there is no full-window surface to capture.
+- **Open gaps are recorded, not implied fixed:** voice input (local STT selection) and share list/revoke/TTL (deferred). U33/U07 were decided on 2026-11-25 (extension host implemented; upstream 5 slots not adopted; resident UI deferred) — see `docs/plugin-platform-status-2026-11-25.md`.
+- **U08 screenshot bound** is a 20 MiB byte cap on the PNG payload (`packages/desktop/src/main/browserView/browserGuestManager.ts:57-59,1029-1033`), not a pixel-area cap.
+- **CDN component id** no longer exists: the legacy R2 deploy chain was deleted on 2026-11-21 and the current Source Server path uses descriptor/archive.
+- **`TOKEN_CLIENT_TYPE`** is intentionally unchanged. A client-only change would break project-token issuance against z.ai/bigmodel.
+- **`claim_zcode_plan`** is intentionally retained. Removing it would make a server delivery containing the action fail schema parsing; the execution path is fail-closed and makes no claim request.
+
+## 9. File index for this report
+
+- Plan docs: `<workspace>\ZCODE3.17.2到3.18.2\README.md`, `04-NIBI-ABSORPTION-PLAN.md`, `05-NIBI-UPSTREAM-FOLLOWUP-PLAN.md`, `06-POST-BRANDING-REAUDIT-CHECKLIST.md`.
+- Upstream reference: `<workspace>\.ref-zcode` (3.18.2 `fec97590`).
+- Icon source/manifest/generator: `packages/ui/src/assets/nibi/nibi-app-icon.png`; `packages/desktop/build/brand/icon-manifest.json`; `packages/desktop/scripts/generate-brand-icons.py`; `packages/desktop/test/brandIconManifest.test.ts`.
+- Token contract: `kernel/crates/base/src/names.rs`; `kernel/crates/platform/src/token/issue.rs`; `kernel/crates/platform/src/token/flow_tests.rs`.
+- Remote component: `packages/shared/src/remoteResourcePackages.ts`; `packages/desktop/src/host/sourceServerReleaseResolver.ts`; `packages/server/src/remote/remoteAssetInstaller.ts`; `packages/shared/test/remoteResourcePackages.test.ts`.
+- Marketing action: `packages/shared/src/marketingTouch.ts`; `packages/ui/src/components/marketing-touch/MarketingTouchProvider.tsx`; `packages/ui/src/components/marketing-touch/MarketingDialogs.tsx`.
+- Managed worktrees: `packages/shared/src/managed-worktree/`; `packages/services/src/managed-worktree-tasks/`; `packages/services/src/git/managed-worktree/`; `packages/ui/src/managed-worktrees/`; `packages/ui/test/managedWorktrees.test.ts`.
+- Design mode: `packages/design-runtime/src/`; `packages/ui/src/browser-use/useBrowserDesignMode.ts`; `packages/ui/src/browser-use/useBrowserDesignSourceWriter.ts`; `packages/ui/test/browserDesign.test.ts`.
+- Runtime exit / cross-session source: `packages/ui/src/v4/AgentRuntimeExitBanner.tsx`; `packages/ui/src/v4/agentRuntimeExitNotice.ts`; `packages/ui/src/v4/ConversationSessionSourceHint.tsx`; `packages/ui/src/lib/conversationSessionSource.ts`.
+- Settings parity: `packages/ui/src/settings/settingsPageConfig.ts`; `packages/ui/src/settings-search/settingsSearchIndex.ts`; `packages/ui/src/settings/SubagentsSection.tsx`; `packages/ui/src/lib/subagentColors.ts`.
+- 2026-11-20 evidence: `packages/desktop/test/e2e/bots/manual-review/pending/settings-parity-20261120-evidence.test.ts`; `packages/desktop/test/e2e/fixtures/upstream/settings-parity-20261120.json`; `packages/desktop/test/e2e/bots/manual-review/pending/tier2-sixth-batch-evidence.test.ts`; `packages/desktop/test/e2e/fixtures/upstream/tier2-sixth-batch.json`.
+
+## 10. 2026-11-19 UI/platform batch (post-brand-pass)
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| U02 统一摘要分组 | Implemented with the compile-time constant `ENABLE_UNIFIED_SUMMARY_GROUPING = true` (not a runtime flag); old model/CUA path kept for rollback | `packages/ui/src/v4/conversationSummaryGroups.ts:21`; `packages/ui/src/v4/useContinuousGroupKeys.ts`; `packages/ui/src/ToolCallBlocks/ToolSummaryRow.tsx`; `packages/ui/src/v4/ConversationTurnGroup.tsx:456`; `packages/ui/src/v4/ConversationShareReadonlyTimeline.tsx`; tests `v4AssistantWorkRenderItems.test.ts`, `v4ConversationTurnGroup.test.ts`, `conversationShareReadonlyTimeline.test.ts` |
+| U36 队列编辑锁 | Implemented both kernels + protocol + UI; text-only v1 for queued attachments | shared `nibi-protocol-v4/snapshot.ts`/`command.ts`; Rust `session/src/queue.rs`, `protocol-nibi/src/commands.rs`; Node `nibi-protocol-v4/commands/handlers/queue.ts`; UI `ConversationQueuePanel.tsx`; `v4ConversationQueuePanel*.test.ts` |
+| U03 Composer 编辑态 | Implemented with the compile-time constant `ENABLE_COMPOSER_EDIT_MODE = true` (not a runtime flag); inline editor kept behind the constant | `packages/ui/src/composer-edit-mode/**`; `packages/ui/src/v4/SessionPane.tsx:543`; `ConversationComposer.tsx`; tests `composerEditMode*.test.ts` |
+| U04 文本批注 | Implemented with capability `conversationQuoteComment` end-to-end | `packages/ui/src/selection-comment/**`; `packages/ui/src/lib/conversationSelectionReference.ts`; shared `conversationSelection.ts`; Rust/Node capability responses; tests `conversationAnnotation*.test.ts`, `selectionCommentUI.test.ts` |
+| S3 updater netSession | Implemented; explicit proxy/PAC/no-proxy/CA, `allowInsecure:false`, no default-session fallback | `packages/desktop/src/main/desktopNetworkPolicy.ts`; `autoUpdater.ts`; `desktopNetworkPolicy.test.ts`, `autoUpdaterReadyState.test.ts` |
+| S4 custom CA chain | Implemented with Node X509; only explicit CA, full chain/usage/EKU/signature checks | same files; tests above |
+| S7 installer process identity | Implemented native exact-path + creation-time helper, NSIS `customInit`, updater fail-closed | `packages/desktop/scripts/windows-runtime-host/installer-process-helper.cpp`; `installer.nsh`; `windowsInstallResourceLocks.ts`; `windowsInstallerProcessHelper.test.ts`; NSIS compile/smoke |
+| S10 crash diagnostics | Implemented shared classify/fingerprint/sanitize/stderr parser; Desktop ARMS fields unchanged | `packages/shared/src/process-diagnostic.ts`; `@nibi/shared/crash-diagnostics`; `crashDiagnostics.test.ts`; `desktopStabilityTelemetry.test.ts` |
+
+Real-device evidence: `packages/desktop/.e2e-artifacts/r05-archive-permanent-deletion-final/` (archive preview, deletion result, `session_purge` receipt); memory diagnostics real CLI run wrote `<storage>/cli/memory-diagnostics/*.jsonl` with no home-path leak. Windows installer helper was compiled and exercised by the NSIS smoke; a full signed installer was not produced in this pass.
+
+## 11. 2026-11-20 batch (post-4.1.3 dev)
+
+These changes landed after the 4.1.3 tag `305b1119` and shipped in 4.1.4. All are implementation-complete; the device evidence is the named spec/fixture plus the artifact directory, and it remains in manual-review `pending/`.
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Plugin catalog: seeded `__nibi-plugin-host` MCP servers are admitted | Aligned | `kernel/crates/ext/src/plugins/select.rs:125-132,245-257` (the `PluginHost` node-dependency classification is gone; the argv is treated as a normal stdio server); `kernel/crates/ext/src/plugins/select_tests.rs:58-63,202-234`; commit `6faa44b9` |
+| U23 behavior/tools settings section | Aligned | `packages/ui/src/settings/settingsPageConfig.ts:367-421` (`agentBehavior` section with eight `targetId` rows); `packages/ui/src/SettingsPage.tsx:1722`; `packages/ui/src/lib/settingsNavigation.ts:6,88`; tests `packages/ui/test/agentBehaviorSettingsSection.test.ts`, `packages/ui/test/settingsSearchIndex.test.ts`; commit `f18275ea`; plan 05 §8.2 U23 |
+| U38 subagent workflow faces | Aligned | `packages/ui/src/lib/subagentColors.ts:4-24`; `packages/ui/src/settings/SubagentsSection.tsx:520-548`; `packages/ui/src/components/workflow-timeline/WorkflowAgentFace.tsx:18,92`; tests `packages/ui/test/subagentAvatar.test.ts`, `packages/ui/test/subagentsSection.test.ts`, `packages/ui/test/workflowAgentFace.test.ts`; commit `f18275ea`; plan 05 §8.2 U38 |
+| Settings parity device evidence (U23/U38/plugin send) | Aligned (evidence capture) | `packages/desktop/test/e2e/bots/manual-review/pending/settings-parity-20261120-evidence.test.ts`; `packages/desktop/test/e2e/fixtures/upstream/settings-parity-20261120.json`; artifacts `packages/desktop/.e2e-artifacts/settings-parity-20261120/`; commit `c5d032b9` |
+| Settings search: 60 rows, four target fixes, platform visibility, searchable Dynamic workflows | Aligned | `packages/ui/src/settings/settingsPageConfig.ts:99-676` (60 `targetId` rows in eight `searchItems` blocks); `packages/ui/src/settings-search/settingsSearchIndex.ts:39,41-72`; test `packages/ui/test/settingsSearchIndex.test.ts:77-150,228-231`; commit `84b3febd` |
+| Plugins "Update all" | Aligned | `packages/ui/src/settings/PluginsSection.tsx:426-492,938`; `packages/ui/src/settings/PluginStoreCard.tsx:363`; test `packages/ui/test/pluginUpdateAll.test.ts:87`; commit `84b3febd` |
+| Marketplace risk acknowledgement | Aligned | `packages/ui/src/settings/AddMarketplaceSourceDialog.tsx:36-54,118-196`; test `packages/ui/test/pluginStoreSourcesDialog.test.ts:105-169`; commit `84b3febd` |
+| Settings nav icons match upstream (`personalization` → `User`, `projects` → `Folders`) | Aligned | `packages/ui/src/settings/settingsPageConfig.ts:358,627`; commit `84b3febd` |
+| Subagent faces across workspace (Agent tool card, status panel, side-pane tabs, background trigger) | Aligned | `packages/ui/src/ToolCallBlocks/renderers/agent.tsx:217,242`; `packages/ui/src/v4/ConversationStatusPanel.tsx:1550,1784`; `packages/ui/src/app-shell/SidePaneTabTrigger.tsx:596`; `packages/ui/src/v4/composer/ConversationBackgroundWorkTrigger.tsx:133`; commit `84b3febd` |
+| File preview: Open split button, save-as, reveal in file manager | Aligned | `packages/ui/src/OpenSplitButton.tsx:128-133,468,505-565`; `packages/ui/src/file-menu/FileSaveAsMenuItem.tsx:28`; `packages/ui/src/file-menu/fileCopy.ts`; tests `packages/ui/test/fileActionAvailability.test.ts`, `packages/ui/test/previewCardActions.test.ts`; commit `84b3febd` |
+| Task Restart/restarting and `/reload` | Aligned | `packages/ui/src/TaskActionMenuContent.tsx:128-134`; `packages/ui/src/app-shell/useWorkspaceSessionReload.ts:22-183`; `packages/ui/src/v4/SessionPane.tsx:2467-2479` (`/reload` app command); tests `packages/ui/test/sessionRuntimeRestart.test.ts`, `packages/ui/test/taskActionMenuContent.test.ts`; commit `84b3febd` |
+| Editing-below and rewind-locked hints | Aligned | `packages/ui/src/v4/ConversationRowView.tsx:1599,1609`; `packages/ui/src/v4/ConversationFileRewindDialog.tsx:201,237-239`; `packages/ui/src/v4/SessionPane.tsx:2535-2541`; i18n `chat.composerEdit.editingBelow` (`packages/ui/src/i18n/locales/en-US.ts:5678`), `chat.changeSummary.rewindLocked` (`packages/ui/src/i18n/locales/en-US.ts:3407`); tests `packages/ui/test/v4ComposerEditInComposerHint.test.ts`, `packages/ui/test/v4ConversationFileRewindLocked.test.ts`; commit `84b3febd` |
+| Project menu "Manage projects…" | Aligned | `packages/ui/src/project-sidebar/ProjectNodeContent.tsx:145-190` (`manage-projects` action); i18n `projectManagement.manage` (`packages/ui/src/i18n/locales/en-US.ts:139`); test `packages/ui/test/projectNodeActions.test.ts`; commit `84b3febd` |
+| Image mentions in sent messages open the shared preview dialog | Aligned | `packages/ui/src/v4/ConversationImageFileMention.tsx:34,54`; `packages/ui/src/v4/ConversationUserInputContent.tsx:102-109`; tests `packages/ui/test/v4ConversationImageFileMention.test.ts`, `packages/ui/test/v4ConversationImageFileMentionDialog.test.ts`; commit `84b3febd` |
+| Desktop installer-helper test cleanup | No behavior change | `packages/desktop/test/windowsInstallerProcessHelper.test.ts`; commit `5a03addf` |
+
+The 2026-11-20 device artifacts are also present under `packages/desktop/.e2e-artifacts/settings-parity-20261120/` and `packages/desktop/.e2e-artifacts/tier2-sixth-batch/` (U06/U08/U22/U27/U28/U30 screenshots and `wdio-facts.json`). They were not re-run in this documentation refresh.
+

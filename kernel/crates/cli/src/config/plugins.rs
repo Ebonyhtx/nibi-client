@@ -11,7 +11,7 @@ use nibi_kernel_ext::plugins::{PluginCandidate, PluginOrigin, PluginSources};
 use nibi_kernel_api::env::EnvPath;
 use nibi_kernel_paths::StoragePath;
 use nibi_kernel_platform::plugin_inventory::{
-    installed_plugins, installed_root, official_plugin_roots,
+    installed_plugins, plugin_read_root, official_plugin_roots,
 };
 use serde_json::Value;
 
@@ -195,7 +195,8 @@ pub(crate) async fn sources(
             .map(|plugin| plugin.id.clone())
             .collect();
         for plugin in installed {
-            let dir = installed_root(storage, &plugin)
+            // 优先 Node 物化的 view root，两端读同一个根（见 plugin_read_root）。
+            let dir = plugin_read_root(storage, &plugin)
                 .to_string_lossy()
                 .into_owned();
             candidates.push(candidate(

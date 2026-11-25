@@ -41,7 +41,7 @@ const INITIAL_STATE: TaskNativeSessionLogFileState = {
 export function supportsTaskNativeSessionLogFile(
   _provider: NibiProvider | null | undefined,
 ): boolean {
-  // 仅剩 glm provider，始终支持读取原生会话日志。
+  // 仅剩 NIBI Agent，始终支持读取原生会话日志。
   return true;
 }
 

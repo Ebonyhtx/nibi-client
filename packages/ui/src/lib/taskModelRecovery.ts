@@ -27,7 +27,7 @@ function isSyntheticModelPlaceholder(model: string): boolean {
   return model.trim().toLocaleLowerCase() === "<synthetic>";
 }
 
-export function resolveGlmRecoveredTaskModelValue(
+export function resolveNibiAgentRecoveredTaskModelValue(
   taskModel: string | undefined,
 ): string | null {
   const normalizedTaskModel = taskModel?.trim();
@@ -60,7 +60,7 @@ export function resolveRecoveredTaskModelValue(
   }
 
   if (isNibiAgentProvider(taskMeta.provider)) {
-    return resolveGlmRecoveredTaskModelValue(normalizedTaskModel);
+    return resolveNibiAgentRecoveredTaskModelValue(normalizedTaskModel);
   }
 
   return normalizedTaskModel;
@@ -261,7 +261,7 @@ export function resolveTaskRestorePreloadConfigOptions({
   return cachedOptions;
 }
 
-export function mergeGlmRecoveredTaskModelConfigOptions({
+export function mergeNibiAgentRecoveredTaskModelConfigOptions({
   taskMeta,
   configOptions,
 }: {

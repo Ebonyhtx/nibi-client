@@ -545,7 +545,10 @@
         "conflict",
         "cancelled"
       ],
-      "cliOnly": ["self_wait", "observation_invalid"],
+      "cliOnly": [
+        "self_wait",
+        "observation_invalid"
+      ],
       "appOnly": []
     },
     "sourcePolicy": {

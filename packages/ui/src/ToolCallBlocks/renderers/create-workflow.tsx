@@ -402,7 +402,7 @@ export function CreateWorkflowToolCallBlock(context: ToolCallBlockRenderContext)
             ) : null}
 
             {!display && fallbackOutputText ? (
-              <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-border bg-panel px-3 py-2 font-mono text-ui-base text-foreground-subtle">
+              <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-card-border bg-card px-3 py-2 font-mono text-ui-base text-foreground-subtle shadow-[var(--nibi-shadow-card)]">
                 {fallbackOutputText}
               </pre>
             ) : null}

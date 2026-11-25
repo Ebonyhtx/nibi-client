@@ -1941,7 +1941,7 @@ export function AutomationEditView({
                     type="submit"
                     form="automation-edit-form"
                     data-testid={TID_AUTOMATION_FORM_SUBMIT}
-                    className="inline-flex h-8 items-center rounded-lg border-0 bg-white px-3 text-ui-base font-medium text-black shadow-none outline-none transition-colors hover:bg-white/90 focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-40"
+                    className="inline-flex h-8 items-center rounded-lg border border-transparent bg-primary px-3 text-ui-base font-medium text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] transition-[color,background-color,box-shadow,transform] duration-150 ease-out hover:bg-primary/92 hover:brightness-[1.03] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-40"
                     disabled={!submissionContextReady || saving}
                   >
                     {intl.formatMessage({
@@ -1953,7 +1953,7 @@ export function AutomationEditView({
                   <button
                     type="button"
                     data-testid={TID_AUTOMATION_RUN_NOW}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border-0 bg-white/[0.06] px-3 text-ui-base font-medium text-foreground shadow-none outline-none transition-colors hover:bg-white/10 focus-visible:ring-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-foreground-subtlest disabled:opacity-40"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/80 bg-card/85 px-3 text-ui-base font-medium text-foreground shadow-2xs transition-[color,background-color,border-color,transform] duration-150 ease-out hover:border-border-hover hover:bg-card active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-foreground-subtlest disabled:opacity-40"
                     disabled={!submissionContextReady || saving || saveAndRunPending}
                     onClick={() => void handleSaveAndRun()}
                   >
@@ -1968,7 +1968,7 @@ export function AutomationEditView({
                       aria-label={intl.formatMessage({
                         id: "automations.moreActions",
                       })}
-                      className="flex size-8 items-center justify-center rounded-lg border-0 bg-white/[0.06] text-foreground-subtle shadow-none outline-none transition-colors hover:bg-white/10 hover:text-foreground data-[state=open]:bg-white/10 data-[state=open]:text-foreground focus-visible:ring-0"
+                      className="flex size-8 items-center justify-center rounded-lg border border-border/80 bg-card/85 text-foreground-subtle shadow-2xs transition-[color,background-color,border-color] duration-150 ease-out hover:border-border-hover hover:bg-card hover:text-foreground data-[state=open]:bg-selected data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
                     >
                       <AutomationMoreHorizontalIcon className="size-4" aria-hidden="true" />
                     </button>
@@ -2794,7 +2794,7 @@ export function AutomationEditView({
                                       aria-label={intl.formatMessage({
                                         id: "automations.moreActions",
                                       })}
-                                      className="flex size-6 items-center justify-center rounded-[6px] text-foreground-subtle transition-colors hover:bg-white/10 hover:text-foreground data-[state=open]:bg-white/10 data-[state=open]:text-foreground"
+                                      className="flex size-6 items-center justify-center rounded-[6px] text-foreground-subtle transition-colors hover:bg-hover hover:text-foreground data-[state=open]:bg-selected data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
                                     >
                                       <AutomationMoreHorizontalIcon
                                         className="size-4"

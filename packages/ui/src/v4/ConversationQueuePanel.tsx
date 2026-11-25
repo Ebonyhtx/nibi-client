@@ -448,7 +448,7 @@ function ConversationQueuePanelImpl({
       {!queue.autoDrain ? (
         <div
           data-testid={TID_V4_QUEUE_PAUSED_BANNER}
-          className="mb-1 flex min-h-10 items-center gap-3 rounded-xl border border-border/70 bg-surface-raised px-3 py-2 text-ui-base text-foreground"
+          className="mb-1 flex min-h-10 items-center gap-3 rounded-xl border border-border/70 bg-card px-3 py-2 text-ui-base text-foreground shadow-[var(--nibi-shadow-card)]"
         >
           <span className="min-w-0 flex-1">
             {intl.formatMessage({

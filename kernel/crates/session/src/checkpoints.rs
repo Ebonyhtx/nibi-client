@@ -51,13 +51,34 @@ impl Actor {
         let Message::User(user) = message else {
             return Vec::new();
         };
-        user.content
+        let facts: Vec<Fact> = user
+            .content
             .iter()
             .filter_map(|block| match block {
                 ContentBlock::ToolResult { tool_use_id, .. } => self.links.remove(tool_use_id),
                 _ => None,
             })
-            .collect()
+            .collect();
+        // 同一份关联留给冷投影查询（`SessionHandle::subagent_links`）：会话在本进程里重开时
+        // 不用等存储回读，也能恢复 subagent 行。
+        for fact in &facts {
+            if let Fact::SubagentLinked {
+                tool_use,
+                agent,
+                child,
+                agent_type,
+            } = fact
+            {
+                self.subagent_links
+                    .push(nibi_kernel_api::agents::SubagentLink {
+                        tool_use: tool_use.clone(),
+                        agent: agent.clone(),
+                        child: child.clone(),
+                        agent_type: agent_type.clone(),
+                    });
+            }
+        }
+        facts
     }
 
     /// 提交成功后：进入清单，发 `FileChanges`。

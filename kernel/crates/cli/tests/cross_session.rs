@@ -251,7 +251,7 @@ fn two_sessions_discover_each_other_and_deliver_at_the_next_tool_boundary() {
         "{text}"
     );
     assert!(
-        text.contains("(reply via SendMessage to the `from=` address)."),
+        text.contains("(reply via SendMessage with `to` set to the `agent-id` above)."),
         "{text}"
     );
     // 两个进程退出后登记都已删除。

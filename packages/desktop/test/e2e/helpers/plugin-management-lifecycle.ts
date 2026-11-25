@@ -124,10 +124,11 @@ export async function updatePluginLifecycleFixture(
 
 export async function removeLifecyclePluginSource(fixture: PluginLifecycleFixture): Promise<void> {
   const { homeDir } = getE2EAppDataPaths();
+  const managedRoot = lifecycleManagedPluginRoot(homeDir);
   await rm(fixture.marketplaceRoot, { force: true, recursive: true });
   // directory marketplace 在添加时会复制到 managed storage；仅删除原目录不会触发
   // describe/install/update 失败，因此故障注入必须同时移除权威 managed plugin 副本。
-  await rm(lifecycleManagedPluginRoot(homeDir), {
+  await rm(managedRoot, {
     force: true,
     recursive: true,
   });
@@ -141,6 +142,74 @@ export async function removeLifecyclePluginPayload(fixture: PluginLifecycleFixtu
   await rm(lifecycleManagedPluginRoot(homeDir), {
     force: true,
     recursive: true,
+  });
+}
+
+/**
+ * 已安装插件的 describe 会优先读安装缓存；只删 marketplace 源不会让 describe 失败。
+ * 测试“组件清单可恢复失败”时必须移除安装缓存，让 describe 走源解析并因源缺失报错。
+ */
+export async function removeLifecyclePluginInstalledCache(version = "1.0.0"): Promise<void> {
+  const { homeDir } = getE2EAppDataPaths();
+  await rm(
+    join(
+      homeDir,
+      ".nibi",
+      "cli",
+      "plugins",
+      "cache",
+      PLUGIN_LIFECYCLE_MARKETPLACE_ID,
+      PLUGIN_LIFECYCLE_NAME,
+      version,
+    ),
+    { force: true, recursive: true },
+  );
+}
+
+/** describe/update 恢复步骤：重新落回与 installed_plugins.json 对应的 1.0.0 安装缓存。 */
+export async function restoreLifecyclePluginInstalledCache(
+  fixture: PluginLifecycleFixture,
+  version = "1.0.0",
+): Promise<void> {
+  const { homeDir } = getE2EAppDataPaths();
+  const cacheRoot = join(
+    homeDir,
+    ".nibi",
+    "cli",
+    "plugins",
+    "cache",
+    PLUGIN_LIFECYCLE_MARKETPLACE_ID,
+    PLUGIN_LIFECYCLE_NAME,
+    version,
+  );
+  await rm(cacheRoot, { force: true, recursive: true });
+  await mkdir(dirname(cacheRoot), { recursive: true });
+  await cp(fixture.pluginRoot, cacheRoot, { force: true, recursive: true });
+}
+
+/**
+ * 已安装记录 + 配置里显式登记的 id 会让发现层在缓存缺失时合成 `packageStatus: "missing"`，
+ * UI 据此把条目当作未安装，不再渲染已安装插件的组件错误态。移除配置登记后，发现层没有
+ * info、overview 仍保留 installed_plugins 记录，才是真实的“已安装但运行时清单不可读”态。
+ */
+export async function detachLifecyclePluginConfig(): Promise<void> {
+  const { homeDir } = getE2EAppDataPaths();
+  const configPath = join(homeDir, ".nibi", "cli", "config.json");
+  const config = await readJsonRecord(configPath);
+  const plugins = isRecord(config.plugins) ? config.plugins : {};
+  const enabledPlugins = isRecord(plugins.enabledPlugins)
+    ? { ...plugins.enabledPlugins }
+    : {};
+  const options = isRecord(plugins.options) ? { ...plugins.options } : {};
+  delete enabledPlugins[PLUGIN_LIFECYCLE_ID];
+  delete options[PLUGIN_LIFECYCLE_ID];
+  await writeJson(configPath, {
+    ...config,
+    plugins: {
+      ...plugins,
+      enabledPlugins,
+      options,
+    },
   });
 }
 
@@ -179,7 +248,7 @@ export async function createInvalidOfficialCollisionFixture(): Promise<string> {
 export async function seedInlineLifecyclePlugin(): Promise<string> {
   const { homeDir } = getE2EAppDataPaths();
   const root = join(homeDir, "fixtures", PLUGIN_INLINE_NAME);
-  await writeJson(join(root, ".nibi-plugin", "plugin.json"), {
+  await writeJson(join(root, "plugin.json"), {
     name: PLUGIN_INLINE_NAME,
     version: "1.0.0",
     description: "E2E inline plugin lifecycle smoke fixture",
@@ -297,41 +366,135 @@ export async function selectPluginSettingsScope(scope: "user" | "workspace"): Pr
   if (scope === "user") {
     await clickTestIdByDom("plugin-settings-scope-user-option");
   } else {
+    // 记忆页/表单用平铺 variant（workspaceOptions），workspace 选项直接挂在根菜单；
+    // 插件设置页传 groups，workspace 目标收在每台设备的 Projects 子菜单里。
+    // 平铺分支保持原行为，分组分支必须先展开子菜单再按真实路径选项点击。
+    await waitForPluginScopeMenu();
+    // Projects 列表是异步加载的：菜单刚打开时可能既没有平铺选项也没有 Projects 子菜单。
+    // 直接同步判断会把「还没加载」误报成「没有 Workspace 目标」。
+    let flatOptionRendered = false;
     await browser.waitUntil(
-      async () =>
-        browser.execute(() =>
-          Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
-        ),
-      {
-        timeout: 15000,
-        timeoutMsg: `Workspace Plugin scope option did not render: ${JSON.stringify(
-          await browser.execute(() => {
-            const tabStore = (
-              window as typeof window & {
-                __nibiTabStoreE2E?: {
-                  getState?: () => {
-                    activeWorkspacePath?: string | null;
-                    activeWorkspaceIdentity?: string | null;
-                    tabs?: Array<Record<string, unknown>>;
-                  };
-                };
-              }
-            ).__nibiTabStoreE2E;
-            const state = tabStore?.getState?.();
-            return {
-              activeWorkspacePath: state?.activeWorkspacePath ?? null,
-              activeWorkspaceIdentity: state?.activeWorkspaceIdentity ?? null,
-              tabs: state?.tabs ?? [],
-            };
-          }),
-        )}`,
+      async () => {
+        const state = await browser.execute(() => ({
+          flat: Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
+          grouped: Boolean(document.querySelector('[data-scope-projects-trigger="true"]')),
+        }));
+        flatOptionRendered = state.flat;
+        return state.flat || state.grouped;
       },
+      { timeout: 15000, timeoutMsg: "Plugin scope menu did not expose workspace options" },
     );
-    await browser.execute(() => {
-      document.querySelector<HTMLElement>('[data-testid^="plugin-settings-scope-option"]')?.click();
-    });
+    if (flatOptionRendered) {
+      // 平铺 variant 的选项没有 title，语义仍是“选第一个 workspace”，保持历史行为。
+      await browser.execute(() => {
+        document.querySelector<HTMLElement>('[data-testid^="plugin-settings-scope-option"]')?.click();
+      });
+    } else {
+      await openPluginScopeProjectsSubmenu();
+      await waitForPluginWorkspaceScopeOption();
+      await clickPluginWorkspaceScopeOption(DEFAULT_WORKSPACE);
+    }
   }
   await waitForPluginScopeSelection("plugin-settings-scope-trigger", scope);
+}
+
+async function waitForPluginScopeMenu(): Promise<void> {
+  await browser.waitUntil(
+    () => browser.execute(() => Boolean(document.querySelector('[role="menu"]'))),
+    { timeout: 10000, timeoutMsg: "Plugin scope menu did not open" },
+  );
+}
+
+function openPluginScopeProjectsSubmenu(): Promise<void> {
+  return browser.execute(() => {
+    // Radix SubTrigger 的 onClick 会同步 open；比 pointermove 的 100ms 延迟稳定。
+    // 多设备分组时优先本机分组，避免点到远端设备的 Projects。
+    const triggers = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-scope-projects-trigger="true"]'),
+    );
+    const trigger =
+      triggers.find((candidate) => candidate.dataset.scopeDevice === "local") ?? triggers[0];
+    trigger?.click();
+    if (!trigger) {
+      throw new Error("Plugin scope menu did not expose a Projects submenu for workspace targets");
+    }
+  });
+}
+
+async function waitForPluginWorkspaceScopeOption(): Promise<void> {
+  await browser.waitUntil(
+    async () =>
+      browser.execute(() =>
+        Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
+      ),
+    {
+      timeout: 15000,
+      timeoutMsg: `Workspace Plugin scope option did not render: ${JSON.stringify(
+        await browser.execute(() => {
+          const tabStore = (
+            window as typeof window & {
+              __nibiTabStoreE2E?: {
+                getState?: () => {
+                  activeWorkspacePath?: string | null;
+                  activeWorkspaceIdentity?: string | null;
+                  tabs?: Array<Record<string, unknown>>;
+                };
+              };
+            }
+          ).__nibiTabStoreE2E;
+          const state = tabStore?.getState?.();
+          return {
+            activeWorkspacePath: state?.activeWorkspacePath ?? null,
+            activeWorkspaceIdentity: state?.activeWorkspaceIdentity ?? null,
+            projectTriggers: document.querySelectorAll('[data-scope-projects-trigger="true"]').length,
+            tabs: state?.tabs ?? [],
+          };
+        }),
+      )}`,
+    },
+  );
+}
+
+async function clickPluginWorkspaceScopeOption(workspacePath: string): Promise<void> {
+  const result = await browser.execute((path) => {
+    const normalize = (value: string) => value.replaceAll("\\", "/").replace(/\/+$/u, "");
+    const leafOf = (value: string) => {
+      const segments = normalize(value).split("/").filter(Boolean);
+      return segments[segments.length - 1] ?? value;
+    };
+    const options = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid^="plugin-settings-scope-option"]'),
+    );
+    const target = normalize(path);
+    const targetLeaf = leafOf(path);
+    // title 是完整的 workspacePath；同名项目只能靠它区分，标签文本作为本地路径的兜底。
+    const option =
+      options.find((candidate) => normalize(candidate.getAttribute("title") ?? "") === target) ??
+      options.find((candidate) => {
+        const title = candidate.getAttribute("title") ?? "";
+        const label = candidate.textContent?.trim() ?? "";
+        return label === targetLeaf && (!title || leafOf(title) === targetLeaf);
+      });
+    if (!option) {
+      return {
+        clicked: false,
+        options: options.map((candidate) => ({
+          key: candidate.dataset.pluginScopeKey ?? null,
+          label: candidate.textContent?.trim() ?? "",
+          title: candidate.getAttribute("title"),
+        })),
+      };
+    }
+    option.click();
+    return { clicked: true, key: option.dataset.pluginScopeKey ?? null, options: [] };
+  }, workspacePath);
+  if (!result.clicked) {
+    throw new Error(
+      `Could not find the Plugin scope option for ${workspacePath}: ${JSON.stringify(
+        result.options,
+      )}`,
+    );
+  }
 }
 
 export async function waitForPluginSettingsScope(scope: "user" | "workspace"): Promise<void> {
@@ -425,6 +588,8 @@ export async function addMarketplaceSourceThroughUi(source: string): Promise<voi
   await setInputValueByTestIdDom("plugin-store-add-source-input", source, {
     timeout: 15000,
   });
+  // 非官方来源风险确认是提交前置条件；未勾选时 submit 一直 disabled。
+  await clickPluginControl("plugin-store-add-source-risk-acknowledgement");
   await clickPluginControl("plugin-store-add-source-submit");
 }
 
@@ -476,8 +641,24 @@ export async function waitForPluginCard(pluginId: string, timeout = 30000): Prom
 
 export async function openPluginCard(pluginId: string): Promise<void> {
   await waitForPluginCard(pluginId);
-  await clickPluginControl("plugin-store-card", { pluginId });
-  await waitForPluginControl("plugin-store-detail", { pluginId }, 30000);
+  // 新增市场来源后，详情页首次打开会触发一次 bootstrap；旧快照短暂移除候选会把
+  // view 重置回列表。等条目恢复后重新点击即可，最终仍要求 detail 真实渲染。
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await clickPluginControl("plugin-store-card", { pluginId });
+    try {
+      await waitForPluginControl(
+        "plugin-store-detail",
+        { pluginId },
+        attempt === 1 ? 8000 : 30000,
+      );
+      return;
+    } catch (error) {
+      if (attempt === 3) throw error;
+      // 若详情实际已在最后一次轮询后出现，不要重复点击。
+      if (await hasPluginControl("plugin-store-detail", { pluginId })) return;
+      await waitForPluginCard(pluginId);
+    }
+  }
 }
 
 export async function installPluginThroughUi(pluginId: string): Promise<void> {
@@ -486,6 +667,31 @@ export async function installPluginThroughUi(pluginId: string): Promise<void> {
     (overview) => overview.installedPlugins.some((plugin) => plugin.id === pluginId),
     `Plugin did not install through UI: ${pluginId}`,
     120000,
+  );
+}
+
+/**
+ * 社区/本地插件带 hooks/MCP 时，安装后仍被发现层停用，UI 会异步弹出权限同意框。
+ * 只等 Host install 完成不足以看到提权后的启用态，必须先走真实弹窗同意，再等
+ * list/overview 的 enabled 投影，否则管理页行开关会读到旧的停用快照。
+ */
+export async function confirmPluginConsentAndWaitEnabled(pluginId: string): Promise<void> {
+  await waitForDisplayedPluginControl("plugin-consent-dialog", {}, 30000);
+  await clickPluginControl("plugin-consent-confirm");
+  await browser.waitUntil(async () => !(await hasPluginControl("plugin-consent-dialog")), {
+    timeout: 30000,
+    timeoutMsg: `Plugin consent dialog did not close: ${pluginId}`,
+  });
+  await waitUntilPluginList(
+    (list) => list.plugins.some((plugin) => plugin.id === pluginId && plugin.enabled),
+    `Plugin was not enabled after consent: ${pluginId}`,
+    60000,
+  );
+  await waitUntilPluginOverview(
+    (overview) =>
+      overview.installedPlugins.some((plugin) => plugin.id === pluginId && plugin.enabled),
+    `Plugin discovery did not report enabled after consent: ${pluginId}`,
+    60000,
   );
 }
 
@@ -897,26 +1103,33 @@ export async function waitUntilPluginList(
   });
 }
 
+export async function readPluginDraftRuntimeInvalidationVersion(): Promise<number> {
+  // 本地草稿、默认 workspace 与 identity 桶都可能承载同一工作区的运行时失效版本；
+  // 只读固定 path 会漏掉 identity/草稿桶，因此取所有桶的最大值观察「是否发生失效」。
+  return browser.execute(() => {
+    const store = (
+      window as typeof window & {
+        __nibiSessionStoreE2E?: {
+          getState: () => {
+            workspaces?: Record<string, { draftRuntimeInvalidationVersion?: number }>;
+          };
+        };
+      }
+    ).__nibiSessionStoreE2E;
+    const workspaces = store?.getState().workspaces ?? {};
+    return Object.values(workspaces).reduce(
+      (max, workspace) => Math.max(max, workspace.draftRuntimeInvalidationVersion ?? 0),
+      0,
+    );
+  });
+}
+
 export async function waitForPluginDraftRuntimeInvalidation(
-  workspacePath = DEFAULT_WORKSPACE,
+  baselineVersion: number,
   timeout = 30000,
 ): Promise<void> {
   await browser.waitUntil(
-    () =>
-      browser.execute((path) => {
-        const store = (
-          window as typeof window & {
-            __nibiSessionStoreE2E?: {
-              getState: () => {
-                getWorkspaceState: (workspacePath: string) => {
-                  draftSessionId: string | null;
-                };
-              };
-            };
-          }
-        ).__nibiSessionStoreE2E;
-        return store?.getState().getWorkspaceState(path).draftSessionId === null;
-      }, workspacePath),
+    async () => (await readPluginDraftRuntimeInvalidationVersion()) > baselineVersion,
     {
       timeout,
       timeoutMsg: "Plugin runtime refresh did not invalidate the deferred draft session",
@@ -1048,7 +1261,7 @@ async function writeLifecyclePlugin(
   version: string,
   withUi = false,
 ): Promise<void> {
-  await writeJson(join(pluginRoot, ".nibi-plugin", "plugin.json"), {
+  await writeJson(join(pluginRoot, "plugin.json"), {
     name: PLUGIN_LIFECYCLE_NAME,
     version,
     description: `E2E plugin management lifecycle fixture ${version}`,
@@ -1130,7 +1343,7 @@ async function writeLifecyclePlugin(
 }
 
 async function writeSimplePlugin(pluginRoot: string, index: number): Promise<void> {
-  await writeJson(join(pluginRoot, ".nibi-plugin", "plugin.json"), {
+  await writeJson(join(pluginRoot, "plugin.json"), {
     name: `e2e-lifecycle-extra-${index}`,
     version: "1.0.0",
     description: `E2E lifecycle category expansion plugin ${index}`,

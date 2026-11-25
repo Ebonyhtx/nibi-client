@@ -89,15 +89,19 @@ impl<S: SessionSink> SessionBridge<S> {
         cell.get().and_then(|opened| opened.as_ref().ok().cloned())
     }
 
-    /// 打开会话（已经打开时直接给出）。`make` 用打开时的视图造接收方；之后的事件都交给它。同一个会话的并发打开
-    /// 只开一次（后到的等先到的结果）；打开失败时不留记录，下次再试。
+    /// 打开会话（已经打开时直接给出）。`make` 用打开时的视图与已持久化的子代理调用关联造接收方；
+    /// 之后的事件都交给它。同一个会话的并发打开只开一次（后到的等先到的结果）；打开失败时不留记录，下次再试。
     pub async fn open<F>(
         &self,
         session: &SessionId,
         make: F,
     ) -> Result<Arc<Bridged<S>>, KernelError>
     where
-        F: FnOnce(&Arc<dyn SessionHandle>, &SessionView) -> S,
+        F: FnOnce(
+            &Arc<dyn SessionHandle>,
+            &SessionView,
+            &[nibi_kernel_api::agents::SubagentLink],
+        ) -> S,
     {
         // 常驻池回收会话（或 `session/lifecycle/stop`）只关内核里的 actor，不会通知协议层；
         // 缓存的条目可能是已经关闭的旧句柄。发现它已关闭时丢掉条目、重新打开（只重试一次，
@@ -124,7 +128,9 @@ impl<S: SessionSink> SessionBridge<S> {
                 .get_or_init(|| async move {
                     let handle = self.kernel.open_session(session).await?;
                     let view = handle.view().await?;
-                    let sink = Arc::new(make(&handle, &view));
+                    // 冷投影恢复 subagent 行要用的持久化关联；查询失败按空处理（行缺失比打不开会话轻）。
+                    let links = handle.subagent_links().await.unwrap_or_default();
+                    let sink = Arc::new(make(&handle, &view, &links));
                     let (jobs, queue) = mpsc::unbounded_channel();
                     let pump = self.spawner.spawn(
                         "session-pump",

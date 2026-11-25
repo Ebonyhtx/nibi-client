@@ -1,5 +1,5 @@
 import type { IPluginManagementService } from "@nibi/services";
-import type { NibiPluginScope } from "@nibi/shared";
+import type { NibiPluginInfo, NibiPluginScope } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import {
   buildWorkspaceKey,
@@ -8,8 +8,34 @@ import {
 } from "@/store/pluginManagementStoreLoading.js";
 import type { PluginManagementState } from "@/store/pluginManagementStore.js";
 
+/** 只有需要用户确认的能力进入弹窗；UI/设置/通知属于低风险。 */
+export function buildPluginConsentPrompt(plugin: NibiPluginInfo): {
+  capabilities: Array<{ id: string; scope: string }>;
+  permissions: string[];
+  pluginId: string;
+} | null {
+  const permissions = plugin.permissions?.required ?? [];
+  const capabilities = (plugin.capabilities?.requested ?? []).filter(
+    (grant) =>
+      grant.id === "nibi.sessions.read" || grant.id === "nibi.workspace.files.read",
+  );
+  if (permissions.length === 0 && capabilities.length === 0) return null;
+  return { capabilities, permissions, pluginId: plugin.id };
+}
+
 function toMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** 协议层把业务码放在 data.code；本地直调时也可能挂在 error.code。 */
+function readErrorCode(error: unknown): string | undefined {
+  if (!(error instanceof Error)) return undefined;
+  const data =
+    "data" in error && error.data && typeof error.data === "object"
+      ? (error.data as { code?: unknown })
+      : undefined;
+  if (typeof data?.code === "string") return data.code;
+  return "code" in error && typeof error.code === "string" ? error.code : undefined;
 }
 
 let nextToggleRequestId = 0;
@@ -125,10 +151,23 @@ export async function setPluginEnabledOptimistically(
   } catch (error) {
     // 启停失败时必须返回 false 并恢复 optimistic projection，避免
     // 调用方继续刷新其它能力，或让界面把失败的切换误报成成功。
-    logger.error("[plugins] setEnabled failed", { pluginId, enabled, error: toMessage(error) });
+    const consentRequired =
+      enabled && readErrorCode(error) === "plugin_consent_required";
+    if (consentRequired) {
+      logger.info("[plugins] consent required before enabling", { pluginId });
+    } else {
+      logger.error("[plugins] setEnabled failed", { pluginId, enabled, error: toMessage(error) });
+    }
     if (isCurrentRequest()) {
       set({
-        error: toMessage(error),
+        ...(consentRequired
+          ? {
+              consentPrompt: previousPlugin
+                ? buildPluginConsentPrompt(previousPlugin)
+                : { capabilities: [], permissions: [], pluginId },
+              error: null,
+            }
+          : { error: toMessage(error) }),
         lastFailedPluginId: pluginId,
         ...(previousPlugin
           ? {

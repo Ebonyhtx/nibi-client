@@ -1,3 +1,4 @@
+import { RefreshCwIcon } from "lucide-react";
 import { createRoot } from "react-dom/client";
 import { Button } from "@nibi/ui/button";
 import { resolveWebRemoteControlScreenLocale } from "#src/web-remote-control/ui/webRemoteControlFailureScreen.js";
@@ -9,7 +10,7 @@ export function showWebRemoteControlVersionNotice(
 ): () => void {
   const dialog = document.createElement("dialog");
   dialog.className =
-    "m-auto max-w-md rounded-2xl border border-popover-border bg-popover p-6 text-foreground shadow-lg";
+    "m-auto max-w-md rounded-2xl border border-popover-border bg-popover p-6 text-foreground shadow-lg backdrop:bg-black/45";
   // Web 文件不在共享 UI 的 Tailwind 扫描目录内；流式宽度避免依赖未生成的响应式 utility。
   dialog.style.width = "calc(100% - 2rem)";
   // 已打开的 Radix 弹窗会给 body 设置 pointer-events:none；顶层原生 modal 必须显式恢复指针事件。
@@ -22,18 +23,33 @@ export function showWebRemoteControlVersionNotice(
   const noticeRoot = createRoot(dialog);
   noticeRoot.render(
     <div className="flex min-w-0 flex-col gap-4">
-      <h2 id="remote-version-title" className="text-ui-lg font-medium">
-        {zh ? "桌面版本已更新" : "Desktop version changed"}
-      </h2>
-      <p
-        id="remote-version-description"
-        className="text-ui-base text-foreground-subtle break-words"
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-primary"
+        >
+          <RefreshCwIcon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 id="remote-version-title" className="text-ui-lg font-semibold text-balance">
+            {zh ? "桌面版本已更新" : "Desktop version changed"}
+          </h2>
+          <p
+            id="remote-version-description"
+            className="mt-1.5 text-ui-sm leading-relaxed break-words text-pretty text-foreground-subtle"
+          >
+            {zh
+              ? `桌面当前版本为 ${version}。任务操作已暂停，请重新加载以继续。未发送的附件不会保留。`
+              : `The desktop is now running ${version}. Task controls are paused. Reload to continue. Unsent attachments will not be retained.`}
+          </p>
+        </div>
+      </div>
+      <Button
+        autoFocus
+        size="lg"
+        className="h-11 w-full rounded-xl sm:w-auto sm:self-end sm:px-5"
+        onClick={onReload}
       >
-        {zh
-          ? `桌面当前版本为 ${version}。任务操作已暂停，请重新加载以继续。未发送的附件不会保留。`
-          : `The desktop is now running ${version}. Task controls are paused. Reload to continue. Unsent attachments will not be retained.`}
-      </p>
-      <Button autoFocus size="lg" className="h-11 self-end px-4" onClick={onReload}>
         {zh ? "重新加载" : "Reload"}
       </Button>
     </div>,

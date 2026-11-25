@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "caseName": "plugin-store-auto-refresh-throttled",
+  "spec": "./test/e2e/plugins/plugin-store-auto-refresh-throttled.test.ts",
+  "providerFixtures": [],
+  "providerRequestPolicy": "none",
+  "fileFixtures": [
+    "known_marketplaces.json seeded with nibi-official lastUpdated one minute before start",
+    "claude-plugins-official offline marker"
+  ],
+  "requests": []
+}

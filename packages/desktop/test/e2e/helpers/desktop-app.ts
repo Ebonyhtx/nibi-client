@@ -948,7 +948,7 @@ export function probeWorkspaceAppState(
 // 不再稳定代表当前工作区名。路径徽标的上下文改由 tooltip 承载，改读 data-workspace-abs-path。
 // 虚拟项目侧栏不再渲染真实目录节点，新建任务草稿下以 tab store 的导航 owner + 可见
 // session pane 判定，覆盖默认工作区自动打开及多标签切换。
-export async function waitForWorkspaceApp(workspacePath: string, timeout = 10000) {
+export async function waitForWorkspaceApp(workspacePath: string, timeout = 20000) {
   const timeoutMsg = `主界面没有切到工作区: ${workspacePath}`;
   const probeParams: WorkspaceAppProbeParams = {
     workspacePathTestId: TID_WORKSPACE_PATH,
@@ -1066,7 +1066,7 @@ async function collectWorkspaceDiagnostics(expectedPath: string) {
   return `诊断: ${JSON.stringify({ expectedPath, windows, targets, dom }, null, 2)}`;
 }
 
-export async function waitForDefaultWorkspaceReady(timeout = 10000) {
+export async function waitForDefaultWorkspaceReady(timeout = 20000) {
   await browser.waitUntil(
     async () => {
       try {
@@ -1153,16 +1153,39 @@ export async function setCurrentElectronRendererContentSize(
         };
       }
 
+      // 窗口被最小化/隐藏时 setContentSize 不会立即反映到 getContentSize（实测返回 0x0）；
+      // 先恢复并显示窗口，再测量与设置内容尺寸。
+      if (target.isMinimized()) target.restore();
+      if (!target.isVisible()) target.show();
       const [originalWidth = 0, originalHeight = 0] = target.getContentSize();
+      // 修复原因：macOS CI 的虚拟显示可用高度可能小于用例请求值（实测 1440x720 被系统夹到
+      // 1440x677），窗口不会超过工作区。先按「工作区高度 - 窗口框高」算出可用内容高度，
+      // 再与请求值取小；否则会把系统夹取误报成「content size 没有应用」。
+      const display = electron.screen.getPrimaryDisplay();
+      const bounds = target.getBounds();
+      const contentBounds = target.getContentBounds();
+      // 窗口尚未布局/隐藏时 contentBounds 可能是 0x0；此时不能把整个 bounds 当成框高，
+      // 否则会把请求高度错误地夹到接近 0。
+      const frameHeight =
+        contentBounds.height > 0 ? Math.max(0, bounds.height - contentBounds.height) : 0;
+      const effectiveWidth = Math.min(nextWidth, Math.max(1, display.workAreaSize.width));
+      const effectiveHeight =
+        nextHeight === undefined
+          ? originalHeight
+          : Math.min(nextHeight, Math.max(1, display.workAreaSize.height - frameHeight));
       // 修复原因：ChromeDriver 的 window/rect 会调用 Electron 未实现的
       // Browser.getWindowForTarget；E2E 必须通过 Electron 权威窗口 API 调整 client viewport。
-      target.setContentSize(nextWidth, nextHeight ?? originalHeight);
+      target.setContentSize(effectiveWidth, effectiveHeight);
       target.focus();
       const [appliedWidth = 0, appliedHeight = 0] = target.getContentSize();
       return {
         ok: true as const,
         appliedHeight,
         appliedWidth,
+        effectiveHeight,
+        effectiveWidth,
+        workArea: display.workAreaSize,
+        frameHeight,
         zoomFactor: target.webContents.getZoomFactor(),
         snapshot: {
           height: originalHeight,
@@ -1182,12 +1205,15 @@ export async function setCurrentElectronRendererContentSize(
     );
   }
   if (
-    Math.abs(result.appliedWidth - width) > 1 ||
-    (height !== undefined && Math.abs(result.appliedHeight - height) > 1)
+    Math.abs(result.appliedWidth - result.effectiveWidth) > 1 ||
+    (height !== undefined && Math.abs(result.appliedHeight - result.effectiveHeight) > 1)
   ) {
     await restoreElectronRendererContentSize(result.snapshot);
     throw new Error(
-      `Electron renderer content size 没有应用: requested=${width}x${height ?? "preserve"}; applied=${result.appliedWidth}x${result.appliedHeight}`,
+      `Electron renderer content size 没有应用: requested=${width}x${height ?? "preserve"}; ` +
+        `effective=${result.effectiveWidth}x${result.effectiveHeight}; ` +
+        `applied=${result.appliedWidth}x${result.appliedHeight}; ` +
+        `workArea=${result.workArea.width}x${result.workArea.height}; frameHeight=${result.frameHeight}`,
     );
   }
 

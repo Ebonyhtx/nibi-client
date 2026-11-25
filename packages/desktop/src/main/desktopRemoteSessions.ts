@@ -10,7 +10,6 @@ import {
   buildServerRemoteWorkspaceIdentity,
   HostMessageTypes,
   HostResponseTypes,
-  hostResponseMessageSchema,
   InternalChannels,
   PlatformChannels,
   REMOTE_BIND_CANCELED_ERROR_CODE,
@@ -25,6 +24,7 @@ import {
   type HostPreparedProjectWorkspace,
   type HostProjectWorkspaceNavigationInput,
 } from "@nibi/shared";
+import { parseHostResponseMessageCached } from "./logger.js";
 import type {
   RemoteConnectionStats,
   RemoteDisconnectReason,
@@ -963,7 +963,7 @@ export function createRemoteWorkspaceSessionManager(options: {
     if (listenedHosts.has(child)) return;
     listenedHosts.add(child);
     child.on("message", (message: unknown) => {
-      const parsed = hostResponseMessageSchema.safeParse(message);
+      const parsed = parseHostResponseMessageCached(message);
       if (!parsed.success) return;
       if (parsed.data.type === HostResponseTypes.ProjectWorkspacePrepared) {
         acceptPreparedProjectWorkspace(

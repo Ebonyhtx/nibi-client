@@ -53,7 +53,8 @@ export function PluginUiCard(props: PluginUiCardProps) {
       data-plugin-ui-phase={props.phase}
       className={cn(
         "relative w-full overflow-hidden",
-        props.prefersBorder && "rounded-lg border border-border bg-surface",
+        props.prefersBorder &&
+          "rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]",
         props.fill ? "h-full min-h-0" : "",
       )}
       style={props.fill ? undefined : { height: `${props.height}px` }}
@@ -64,7 +65,7 @@ export function PluginUiCard(props: PluginUiCardProps) {
           {props.onRetry && props.retryLabel ? (
             <button
               type="button"
-              className="rounded-md border border-border px-2 py-0.5 text-ui-sm text-foreground hover:bg-menu-hover"
+              className="rounded-md border border-border bg-card px-2 py-0.5 text-ui-sm text-foreground shadow-2xs transition-colors hover:bg-menu-hover focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
               data-testid="plugin-ui-retry"
               onClick={props.onRetry}
             >

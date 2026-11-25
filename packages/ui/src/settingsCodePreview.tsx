@@ -72,7 +72,7 @@ function FontSizeInput({
         }}
         className="pr-8 text-right tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
-      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-ui-lg text-foreground-subtle">
+      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-ui-sm text-foreground-subtle">
         px
       </span>
     </div>
@@ -188,9 +188,7 @@ export function AppearanceSectionContent({
               description={intl.formatMessage({
                 id: "settings.motionEnabledDescription",
               })}
-              control={
-                <Switch checked={motionEnabled} onCheckedChange={setMotionEnabled} />
-              }
+              control={<Switch checked={motionEnabled} onCheckedChange={setMotionEnabled} />}
             />
           </CardContent>
         </Card>

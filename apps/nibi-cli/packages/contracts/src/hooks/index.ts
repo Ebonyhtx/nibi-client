@@ -16,6 +16,89 @@ export const HookEventName = {
 
 export type HookEventName = (typeof HookEventName)[keyof typeof HookEventName];
 
+/**
+ * 插件清单可声明的事件全集：与 Rust `kernel-api` 的 `HookEventName` 同序同名（33 个）。
+ *
+ * Workspace hook 配置（项目/用户 hooks）仍只认上面的 7 个 — 它们的 digest、trust 与
+ * review 记录按 `WORKSPACE_HOOK_EVENT_NAMES` 字节级对齐，不能扩容。插件事件走独立命名空间，
+ * 由适配器解析后合并进 runtime 的 `hooks.events`，由内核按自己的 33 个事件派发。
+ */
+export const PLUGIN_HOOK_EVENT_NAMES = [
+  "PreToolUse",
+  "PostToolUse",
+  "PostToolUseFailure",
+  "PostToolBatch",
+  "Notification",
+  "UserPromptSubmit",
+  "UserPromptExpansion",
+  "SessionStart",
+  "SessionEnd",
+  "Stop",
+  "StopFailure",
+  "SubagentStart",
+  "SubagentStop",
+  "PreCompact",
+  "PostCompact",
+  "PreModelSwitch",
+  "PostModelSwitch",
+  "PermissionRequest",
+  "PermissionDenied",
+  "Setup",
+  "TeammateIdle",
+  "TaskCreated",
+  "TaskCompleted",
+  "Elicitation",
+  "ElicitationResult",
+  "ConfigChange",
+  "WorktreeCreate",
+  "WorktreeRemove",
+  "InstructionsLoaded",
+  "CwdChanged",
+  "FileChanged",
+  "DirectoryAdded",
+  "MessageDisplay",
+] as const;
+
+export type PluginHookEventName = (typeof PLUGIN_HOOK_EVENT_NAMES)[number];
+
+const PLUGIN_HOOK_EVENT_SET = new Set<string>(PLUGIN_HOOK_EVENT_NAMES);
+
+export function isPluginHookEventName(name: string): name is PluginHookEventName {
+  return PLUGIN_HOOK_EVENT_SET.has(name);
+}
+
+/**
+ * 内核真正会构造并派发的事件（14 个）。其余 19 个只有枚举与 matcher 语义，
+ * 没有 producer：插件可以为它们写声明，但永远等不到触发。适配器必须在详情里
+ * 标「不会触发」，不能当成已支持。
+ */
+export const PLUGIN_HOOK_RUNNABLE_EVENT_NAMES = [
+  "PreToolUse",
+  "PostToolUse",
+  "PostToolUseFailure",
+  "Notification",
+  "UserPromptSubmit",
+  "SessionStart",
+  "SessionEnd",
+  "Stop",
+  "SubagentStop",
+  "PreCompact",
+  "PostCompact",
+  "PermissionRequest",
+  "Elicitation",
+  "ElicitationResult",
+] as const;
+
+export type RunnablePluginHookEventName = (typeof PLUGIN_HOOK_RUNNABLE_EVENT_NAMES)[number];
+
+const RUNNABLE_PLUGIN_HOOK_EVENT_SET = new Set<string>(PLUGIN_HOOK_RUNNABLE_EVENT_NAMES);
+
+export function isRunnablePluginHookEvent(
+  name: string,
+): name is RunnablePluginHookEventName {
+  return RUNNABLE_PLUGIN_HOOK_EVENT_SET.has(name);
+}
+
 export const HookOutcome = {
   Success: "success",
   Blocked: "blocked",
@@ -333,16 +416,19 @@ export interface HookMatcherConfig {
   matcher?: string;
 }
 
+/** Runtime 配置能承载的事件：Workspace 7 个 + 插件 33 个（并集仍是 33）。 */
+export type RuntimeHookEventName = HookEventName | PluginHookEventName;
+
 export interface HooksRuntimeConfig {
   enabled: boolean;
-  events: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  events: Partial<Record<RuntimeHookEventName, HookMatcherConfig[]>>;
   maxOutputBytes: number;
   timeoutMs: number;
 }
 
 export interface HooksRuntimeConfigPatch {
   enabled?: boolean;
-  events?: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  events?: Partial<Record<RuntimeHookEventName, HookMatcherConfig[]>>;
   maxOutputBytes?: number;
   timeoutMs?: number;
 }
@@ -431,3 +517,149 @@ export const DefaultHooksRuntimeConfig: HooksRuntimeConfig = {
 
 export * from "./workspace-hook-trust.js";
 export * from "./workspace-hook-trust-store.js";
+
+/**
+ * 插件 hook 事件的**派发支持度登记表**（计划 §9.5）。
+ *
+ * 为什么要有这张表：插件清单可以声明 33 个事件（`PLUGIN_HOOK_EVENT_NAMES`），但内核当前
+ * 只派发其中 14 个（`PLUGIN_HOOK_RUNNABLE_EVENT_NAMES`）。剩下的 19 个如果只是「不在
+ * runnable 列表里」，新增/删除事件时没人会注意到用户声明了一个永远不触发的事件——
+ * 诊断、文档和 CI 都缺少一个必须解释的落点。
+ *
+ * 约定：
+ * - 每个 `PLUGIN_HOOK_EVENT_NAMES` 成员必须在这里恰好出现一次（CI 断言，漏一个就红）；
+ * - `runnable: true` 的集合必须与 `PLUGIN_HOOK_RUNNABLE_EVENT_NAMES` 完全一致；
+ * - `runnable: false` 必须给出 `reason`（为什么暂不派发），供诊断与文档直接引用。
+ *
+ * 这张表只描述「内核会不会派发」，不改变清单可声明的事件全集；新增派发点时先改
+ * `PLUGIN_HOOK_RUNNABLE_EVENT_NAMES`，再同步这里的 `runnable` 与 `reason`。
+ */
+export interface PluginHookEventSupport {
+  event: PluginHookEventName;
+  /** 内核当前是否有派发点。 */
+  runnable: boolean;
+  /** `runnable: false` 时必填：为什么暂不派发（英文，直接进诊断消息）。 */
+  reason?: string;
+}
+
+export const PLUGIN_HOOK_EVENT_SUPPORT: readonly PluginHookEventSupport[] = [
+  { event: "PreToolUse", runnable: true },
+  { event: "PostToolUse", runnable: true },
+  { event: "PostToolUseFailure", runnable: true },
+  {
+    event: "PostToolBatch",
+    runnable: false,
+    reason: "tools are dispatched one call at a time; there is no batch boundary",
+  },
+  { event: "Notification", runnable: true },
+  { event: "UserPromptSubmit", runnable: true },
+  {
+    event: "UserPromptExpansion",
+    runnable: false,
+    reason: "prompt expansion happens before submission; UserPromptSubmit covers the submitted text",
+  },
+  { event: "SessionStart", runnable: true },
+  { event: "SessionEnd", runnable: true },
+  { event: "Stop", runnable: true },
+  {
+    event: "StopFailure",
+    runnable: false,
+    reason: "Stop already reports the turn outcome",
+  },
+  {
+    event: "SubagentStart",
+    runnable: false,
+    reason: "subagent startup lives in the agents crate and is not wired to HookRunner yet",
+  },
+  { event: "SubagentStop", runnable: true },
+  { event: "PreCompact", runnable: true },
+  { event: "PostCompact", runnable: true },
+  {
+    event: "PreModelSwitch",
+    runnable: false,
+    reason: "model switches are a Host config action with no kernel hook point",
+  },
+  {
+    event: "PostModelSwitch",
+    runnable: false,
+    reason: "model switches are a Host config action with no kernel hook point",
+  },
+  { event: "PermissionRequest", runnable: true },
+  {
+    event: "PermissionDenied",
+    runnable: false,
+    reason: "denials are folded into the PermissionRequest result",
+  },
+  {
+    event: "Setup",
+    runnable: false,
+    reason: "plugin setup is handled by the Host installer",
+  },
+  {
+    event: "TeammateIdle",
+    runnable: false,
+    reason: "this product has no teammate runtime",
+  },
+  {
+    event: "TaskCreated",
+    runnable: false,
+    reason: "task indexing lives in the Host",
+  },
+  {
+    event: "TaskCompleted",
+    runnable: false,
+    reason: "task indexing lives in the Host",
+  },
+  { event: "Elicitation", runnable: true },
+  { event: "ElicitationResult", runnable: true },
+  {
+    event: "ConfigChange",
+    runnable: false,
+    reason: "config changes are handled by the Host",
+  },
+  {
+    event: "WorktreeCreate",
+    runnable: false,
+    reason: "worktrees are managed by the Host",
+  },
+  {
+    event: "WorktreeRemove",
+    runnable: false,
+    reason: "worktrees are managed by the Host",
+  },
+  {
+    event: "InstructionsLoaded",
+    runnable: false,
+    reason: "instruction loading is part of the context builder",
+  },
+  {
+    event: "CwdChanged",
+    runnable: false,
+    reason: "the kernel does not track cwd changes",
+  },
+  {
+    event: "FileChanged",
+    runnable: false,
+    reason: "the kernel does not watch files",
+  },
+  {
+    event: "DirectoryAdded",
+    runnable: false,
+    reason: "the kernel does not watch directories",
+  },
+  {
+    event: "MessageDisplay",
+    runnable: false,
+    reason: "display events live in the renderer",
+  },
+];
+
+const SUPPORT_BY_EVENT = new Map<string, PluginHookEventSupport>(
+  PLUGIN_HOOK_EVENT_SUPPORT.map((entry) => [entry.event, entry]),
+);
+
+export function resolvePluginHookEventSupport(
+  event: string,
+): PluginHookEventSupport | undefined {
+  return SUPPORT_BY_EVENT.get(event);
+}

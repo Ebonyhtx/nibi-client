@@ -6,10 +6,12 @@
 mod actions;
 mod auto_resolution;
 mod cold;
+mod display;
 mod files;
 mod rows;
 pub mod state;
 mod subagents;
+mod subagent_rows;
 mod workflow_runs;
 
 pub use auto_resolution::Step;
@@ -547,6 +549,23 @@ impl Projection {
         }
     }
 
+    /// 冷投影：把行插到父行之后。协议行全序就是界面顺序；子代理行必须紧跟触发它的 Agent
+    /// 工具行，否则会被后续正文切到另一个 work segment，配对表按段看不到它。
+    fn insert_after(&mut self, parent: &str, key: String, row: Map<String, Value>) {
+        let Some(&at) = self.index.get(parent) else {
+            return;
+        };
+        self.next_row += 1;
+        let position = at + 1;
+        self.rows.insert(position, row);
+        for index in self.index.values_mut() {
+            if *index >= position {
+                *index += 1;
+            }
+        }
+        self.index.insert(key, position);
+    }
+
     fn upsert(
         &mut self,
         key: &str,
@@ -847,6 +866,12 @@ impl Projection {
                     patch.insert("workflowRuns".into(), json!(self.workflow_runs));
                 }
             }
+            event @ KernelEvent::Subagent { .. } => {
+                self.subagent_event(event, now, seq, &mut out);
+                // 后台工作面（`backgroundWorks`）：Node 在子代理生命周期变化时发整个键
+                // （`product-projection` 的 backgroundWorks 归约），运行卡靠它出现与消失。
+                patch.insert("backgroundWorks".into(), json!(self.background_works()));
+            }
             _ => {}
         }
         if event.revision != self.revision {
@@ -926,6 +951,8 @@ impl Projection {
         let origin = match (launch.is_some(), input_source) {
             (true, _) => "workflowLaunch",
             (false, Some(TurnInputSource::BackgroundTask)) => "backgroundResult",
+            // 子代理的 coordinator 回复在 Node 的 turnHeaderOrigin 表里落缺省 userInput。
+            (false, Some(TurnInputSource::SubagentMessage)) => "userInput",
             (false, None) => "userInput",
         };
         row.insert("origin".into(), json!(origin));
@@ -975,6 +1002,31 @@ impl Projection {
             }),
         );
         self.append(format!("model-change:{turn}"), row, out);
+    }
+
+    /// source-less 的「正在使用」标记（Node `lastTurnModel.kind === "sourceLess"`）：fresh 子会话
+    /// 没有上一轮可比，首轮照样要显示它实际使用的 provider/model。主会话首轮保持静默。
+    fn append_model_initial(
+        &mut self,
+        turn: &str,
+        to: &ModelSelection,
+        now: u64,
+        seq: u64,
+        out: &mut Vec<Value>,
+    ) {
+        let entity = format!("model-initial:{turn}:{}/{}", to.provider, to.model);
+        let mut row = self.base(turn, &entity, "timelineMarker", now, seq);
+        row.insert("lane".into(), json!("lightBoundary"));
+        row.insert(
+            "marker".into(),
+            json!({
+                "type": "modelChange",
+                "toProvider": to.provider,
+                "toModel": to.model,
+                "toThought": to.reasoning.clone().unwrap_or_default(),
+            }),
+        );
+        self.append(format!("model-initial:{turn}"), row, out);
     }
 
     /// `worktreeCreated` 标记（Node 的 lightBoundary 行）：受管 worktree 的创建结果。
@@ -1241,7 +1293,7 @@ impl Projection {
             "queue": self.queue_state(),
             "pendingInteractions": self.pending,
             "pendingCommands": [],
-            "backgroundWorks": [],
+            "backgroundWorks": self.background_works(),
             "subagents": self.subagents.value,
             "goal": null,
             "plan": null,
@@ -1262,6 +1314,42 @@ impl Projection {
             snapshot["workflowRuns"] = json!(self.workflow_runs);
         }
         snapshot
+    }
+
+    /// 运行中的后台工作（V4 `backgroundWorks`）：后台子代理行里还在跑的那些（`-p` 的运行卡、
+    /// 面板的“运行中子代理”靠它）。后台命令与工作流 run 的投影行 Rust 侧还没有，先只给 subagent；
+    /// 行进入终态后自动从列表消失（Node 的注册表在结果投递后删条目）。
+    fn background_works(&self) -> Vec<Value> {
+        self.rows
+            .iter()
+            .filter(|row| {
+                row["kind"] == "subagent"
+                    && row["status"] == "running"
+                    && row["backgrounded"] == true
+            })
+            .filter_map(|row| {
+                // 子代理行的必填字段（schema 是 strict：缺一个键会让客户端拒掉整帧 patch）。
+                let work = row["workId"].as_str().filter(|value| !value.is_empty())?;
+                let child = row["childSessionId"]
+                    .as_str()
+                    .filter(|value| !value.is_empty())?;
+                Some(json!({
+                    "workId": work,
+                    "kind": "subagent",
+                    "title": row["summaryText"].as_str().unwrap_or_default(),
+                    "status": "running",
+                    "startedAt": row["startedAt"],
+                    "anchorRowId": row["rowId"],
+                    "childSessionId": child,
+                }))
+            })
+            .collect()
+    }
+
+    /// 某个工具调用在投影里的工具名（冷恢复重建卡片载荷时用）；没有这一行时为 None。
+    fn tool_name(&self, tool_use: &str) -> Option<String> {
+        let at = *self.index.get(&tool_key(tool_use))?;
+        self.rows[at]["toolName"].as_str().map(str::to_owned)
     }
 }
 

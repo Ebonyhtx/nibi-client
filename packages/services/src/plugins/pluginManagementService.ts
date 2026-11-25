@@ -9,6 +9,7 @@ import {
 // INibiAgentService，词表消费面从 UI 散点收拢到本文件一处。
 import type { INibiAgentService } from "../nibi-agent/nibiAgent.js";
 import type { IPluginManagementService } from "./pluginManagement.js";
+import { Event as RpcEvent } from "@nibi/rpc";
 
 export interface PluginManagementServiceDependencies {
   reportTelemetryEvent?: (event: RendererTelemetryEventPayload) => void | Promise<void>;
@@ -25,6 +26,7 @@ export interface PluginManagementServiceDependencies {
     | "resolveSuggestedPluginReference"
     | "onDynamicPluginOperationProgress"
     | "getPluginsOverview"
+    | "getPluginsAudit"
     | "addPluginMarketplace"
     | "removePluginMarketplace"
     | "updatePluginMarketplace"
@@ -38,6 +40,7 @@ export interface PluginManagementServiceDependencies {
     | "validatePlugin"
     | "describePlugin"
     | "setPluginEnabled"
+    | "setPluginConsent"
   >;
 }
 
@@ -189,6 +192,7 @@ export function createPluginManagementService(
     onDynamicPluginOperationProgress: (operationId) =>
       agent.onDynamicPluginOperationProgress(operationId),
     getPluginsOverview: (params) => agent.getPluginsOverview(params),
+    getPluginsAudit: (params) => agent.getPluginsAudit(params),
     // agent 路由（NIBI_PLUGIN_ROUTING=agent）下没有单一的 bootstrap 协议词；
     // 组合两个既有调用保持返回值形状。Host-local 路由直接复用一次 discovery 的新实现。
     getPluginsBootstrap: async (params) => {
@@ -241,5 +245,19 @@ export function createPluginManagementService(
       observe(params.enabled ? "enable" : "disable", params, (clean) =>
         agent.setPluginEnabled(clean as typeof params),
       ),
+    setPluginConsent: (params) =>
+      observe(params.granted ? "consent_grant" : "consent_revoke", params, (clean) =>
+        agent.setPluginConsent(clean as typeof params),
+      ),
+    // Host-local backend 提供扩展宿主事件；旧 agent 路由没有这两条事件源，返回 None。
+    // 必须用 `onDynamic*` 命名：RPC proxy 只把它当作“返回 Event 的方法”来订阅。
+    onDynamicPluginUiOpenView: () => {
+      const impl = (agent as Partial<IPluginManagementService>).onDynamicPluginUiOpenView;
+      return typeof impl === "function" ? impl.call(agent) : RpcEvent.None;
+    },
+    onDynamicPluginNotification: () => {
+      const impl = (agent as Partial<IPluginManagementService>).onDynamicPluginNotification;
+      return typeof impl === "function" ? impl.call(agent) : RpcEvent.None;
+    },
   };
 }

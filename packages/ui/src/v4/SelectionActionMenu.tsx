@@ -87,7 +87,7 @@ export function SelectionActionMenu({
         left: 12,
         top: 12,
       }}
-      className="fixed z-50 flex overflow-hidden rounded-lg border border-popover-border bg-menu text-ui-sm text-foreground shadow-md"
+      className="fixed z-50 flex overflow-hidden rounded-xl border border-popover-border bg-popover/96 text-ui-sm text-foreground shadow-[var(--nibi-shadow-popover)] backdrop-blur-md"
       onPointerDown={(event) => event.preventDefault()}
       onMouseDown={(event) => event.preventDefault()}
     >
@@ -102,7 +102,7 @@ export function SelectionActionMenu({
               <button
                 type="button"
                 data-conversation-selection-action="comment"
-                className="flex min-w-0 items-center gap-1 px-2.5 py-1.5 hover:bg-menu-hover"
+                className="flex min-w-0 items-center gap-1 px-2.5 py-1.5 transition-colors duration-150 hover:bg-menu-hover"
                 onClick={onComment}
               >
                 <MessageSquareTextIcon className="size-3.5 shrink-0 text-foreground-subtle" />
@@ -115,7 +115,7 @@ export function SelectionActionMenu({
               <button
                 type="button"
                 data-conversation-selection-action="add-to-task"
-                className="min-w-0 px-2.5 py-1.5 hover:bg-menu-hover"
+                className="min-w-0 px-2.5 py-1.5 transition-colors duration-150 hover:bg-menu-hover"
                 onClick={onAddToCurrentTask}
               >
                 {intl.formatMessage({ id: "chat.selections.addToTask" })}
@@ -129,7 +129,7 @@ export function SelectionActionMenu({
             disabled={sideActionDisabled}
             title={sideActionDisabled ? sideDisabledTitle : undefined}
             className={cn(
-              "min-w-0 px-2.5 py-1.5 hover:bg-menu-hover",
+              "min-w-0 px-2.5 py-1.5 transition-colors duration-150 hover:bg-menu-hover",
               sideActionDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
             )}
             onClick={() => {

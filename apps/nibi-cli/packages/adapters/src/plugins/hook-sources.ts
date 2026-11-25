@@ -1,13 +1,15 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import type { HookEventName, PluginDiagnostic } from "@nibi/contracts";
-import { HookEventName as HookEventNameValue } from "@nibi/contracts";
+import type { PluginDiagnostic, PluginHookEventName } from "@nibi/contracts";
+import {
+  isPluginHookEventName,
+  isRunnablePluginHookEvent,
+  resolvePluginHookEventSupport,
+} from "@nibi/contracts";
 import { fileExists, isRecord, resolveInside } from "./helpers.js";
-import type { LoadedPlugin } from "./types.js";
+import type { PluginManifestSource } from "./types.js";
 
 export const STANDARD_HOOKS_PATH = join("hooks", "hooks.json");
-
-const SUPPORTED_HOOK_EVENTS = new Set<string>(Object.values(HookEventNameValue));
 
 export interface PluginHookSource {
   rawHooks: unknown;
@@ -21,7 +23,7 @@ export interface PluginHookSource {
  */
 export function listPluginHookSources(input: {
   diagnostics: PluginDiagnostic[];
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
 }): PluginHookSource[] {
   const sources: PluginHookSource[] = [];
   const loadedHookPaths = new Set<string>();
@@ -104,9 +106,9 @@ export function listPluginHookSources(input: {
 /** 只抽取 hook 事件名，供 `plugins/describe` 展示；不会构造可执行 hook。 */
 export function listPluginHookEventNames(input: {
   diagnostics: PluginDiagnostic[];
-  loaded: LoadedPlugin;
-}): HookEventName[] {
-  const eventNames: HookEventName[] = [];
+  loaded: PluginManifestSource;
+}): PluginHookEventName[] {
+  const eventNames: PluginHookEventName[] = [];
   const seen = new Set<string>();
   for (const source of listPluginHookSources(input)) {
     const hooksRoot = source.wrapper
@@ -127,7 +129,7 @@ export function listPluginHookEventNames(input: {
       continue;
     }
     for (const eventName of Object.keys(hooksRoot)) {
-      if (!SUPPORTED_HOOK_EVENTS.has(eventName)) {
+      if (!isPluginHookEventName(eventName)) {
         input.diagnostics.push({
           code: "plugin_hook_unsupported_event",
           message: `Plugin hook event is not supported by this Nibi runtime: ${eventName}`,
@@ -137,9 +139,21 @@ export function listPluginHookEventNames(input: {
         });
         continue;
       }
+      if (!isRunnablePluginHookEvent(eventName)) {
+        // 原因来自契约里的支持度登记表（计划 §9.5）：同一句话既给诊断也给文档，
+        // 不在适配器里另写一份逐事件理由。
+        const reason = resolvePluginHookEventSupport(eventName)?.reason;
+        input.diagnostics.push({
+          code: "plugin_hook_unsupported_event",
+          message: `Plugin hook event is declared but will never trigger in this Nibi runtime: ${eventName}${reason ? ` (${reason})` : ""}`,
+          path: source.sourcePath,
+          pluginId: input.loaded.id,
+          severity: "warning",
+        });
+      }
       if (seen.has(eventName)) continue;
       seen.add(eventName);
-      eventNames.push(eventName as HookEventName);
+      eventNames.push(eventName);
     }
   }
   return eventNames;
@@ -147,7 +161,7 @@ export function listPluginHookEventNames(input: {
 
 function loadPluginHookSource(input: {
   diagnostics: PluginDiagnostic[];
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
   path: string;
 }): PluginHookSource | null {
   try {

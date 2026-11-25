@@ -26,6 +26,9 @@ enum Resume {
     Notices(Vec<String>),
     /// SendMessage 排进来、上次运行没取走的消息（stranded）：人类来源的 user 消息。
     Message(String),
+    /// 子代理的 coordinator 回复把停放的父代理唤醒：`<subagent-message>` carrier，
+    /// meta user 消息（来源 `subagent_message`，model-only）。
+    SubagentMessage(String),
 }
 
 /// 要续跑的子代理与它的第一条消息。
@@ -49,8 +52,17 @@ fn has_live_children(agents: &Agents, owner: &AgentId) -> bool {
 }
 
 fn to_root(hub: &Hub, root: &SessionId, notice: Notice) {
-    let text = texts::notification_wrap(&notice.envelope);
-    hub.notify(root, notice.from, notice.status, text, None);
+    match notice.kind {
+        nibi_kernel_api::agents::AgentNoticeKind::TaskNotification => {
+            let text = texts::notification_wrap(&notice.envelope);
+            hub.notify(root, notice.from, notice.status, text, None);
+        }
+        nibi_kernel_api::agents::AgentNoticeKind::SubagentMessage => {
+            // coordinator 回复不包 task-notification 的 system-reminder：carrier 原文就是
+            // `<subagent-message>`，由会话按 `subagent_message` 来源落 model-only。
+            hub.subagent_message(root, notice.from, notice.envelope);
+        }
+    }
 }
 
 /// 把通知送给 owner（§5.1 第 2 条）：在跑进邮箱；停放就续跑；已结束、不存在或没有 owner 时送顶层会话。
@@ -75,9 +87,17 @@ pub(crate) fn deliver(
                 abort: Abort::new(),
                 mailbox: Vec::new(),
             };
+            let resume = match notice.kind {
+                nibi_kernel_api::agents::AgentNoticeKind::TaskNotification => {
+                    Resume::Notices(vec![notice.envelope])
+                }
+                nibi_kernel_api::agents::AgentNoticeKind::SubagentMessage => {
+                    Resume::SubagentMessage(notice.envelope)
+                }
+            };
             Some(Wake {
                 agent: entry.clone(),
-                resume: Resume::Notices(vec![notice.envelope]),
+                resume,
             })
         }
         AgentState::Finished(_) => {
@@ -99,6 +119,7 @@ fn notice_of(agent: &LiveAgent, ending: Ending, report: &Report, error: Option<&
             report,
             error,
         ),
+        kind: nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
         stall: None,
     }
 }
@@ -124,6 +145,7 @@ pub(crate) fn deliver_stall(core: &Core, reminder: &StallReminder) -> Option<Wak
             // 非终态：主代理看到的是状态报告，不是子代理结束（`BackgroundWork` 也不改完成状态）。
             status: "running",
             envelope: crate::stall::format(reminder),
+            kind: nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
             stall: Some(reminder.stamp()),
         };
         deliver(agents, &core.hub, owner.as_ref(), &root, notice)
@@ -132,7 +154,8 @@ pub(crate) fn deliver_stall(core: &Core, reminder: &StallReminder) -> Option<Wak
 
 /// 一次运行结束（§5.1 第 3、4 条）：停放、带着遗留通知续跑，或结束并送出自己的通知。
 pub(crate) fn settle(core: &Core, id: &AgentId, finished: &Finished) -> Settle {
-    let error = finished.error.as_ref().map(ToString::to_string);
+    // 失败通知与 Done 事件都用 provider 原文，不带内核分类前缀（BG26）。
+    let error = finished.error.as_ref().map(QueryError::failure_message);
     core.live.with(|agents| {
         let Some(entry) = agents.get(id).cloned() else {
             return Settle {
@@ -305,6 +328,15 @@ pub(crate) async fn wake(core: &Arc<Core>, wakes: Vec<Wake>) {
             Resume::Message(text) => (
                 nibi_kernel_prompts::texts::render(texts::stranded_message(), &[("message", &text)]),
                 UserOrigin::Human,
+            ),
+            Resume::SubagentMessage(text) => (
+                // 停放的子代理被它自己的子代理回复唤醒：与顶层会话的空闲写法相同
+                // （`subagent_reply`），来源 `subagent_message`、model-only。
+                nibi_kernel_prompts::peers::wrap(&text, false),
+                UserOrigin::Meta {
+                    source: nibi_kernel_api::message::SUBAGENT_MESSAGE_SOURCE.to_owned(),
+                    origin_meta: None,
+                },
             ),
         };
         match spawn::resume(core, &agent, &prompt, origin).await {

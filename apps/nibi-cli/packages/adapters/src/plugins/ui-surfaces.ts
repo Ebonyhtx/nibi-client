@@ -1,10 +1,14 @@
-import type { PluginDiagnostic, PluginUiSurfaceDefinition } from "@nibi/contracts";
+import type {
+  PluginDiagnostic,
+  PluginUiSlot,
+  PluginUiSurfaceDefinition,
+} from "@nibi/contracts";
 import {
   MCP_APPS_RESOURCE_URI_MAX_CHARS,
   MCP_APPS_UI_RESOURCE_SCHEME,
   readSurfaceId,
 } from "@nibi/shared/mcp-apps";
-import type { LoadedPlugin } from "./types.js";
+import type { PluginManifestSource } from "./types.js";
 
 /**
  * 清单 `ui.surfaces[]` 解析。
@@ -16,7 +20,7 @@ const SURFACE_ICON_MAX_CHARS = 2048;
 const SUPPORTED_AVAILABILITY = "session";
 
 export function parsePluginUiSurfaces(input: {
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
   declaredMcpServerNames: readonly string[];
   diagnostics: PluginDiagnostic[];
 }): PluginUiSurfaceDefinition[] {
@@ -100,6 +104,12 @@ function parseSurface(
     typeof raw.icon === "string" && raw.icon.trim().length > 0
       ? raw.icon.trim().slice(0, SURFACE_ICON_MAX_CHARS)
       : undefined;
+  const slot: PluginUiSlot | undefined =
+    raw.slot === "composer.status" || raw.slot === "nav.primary" ? raw.slot : undefined;
+  if (raw.slot !== undefined && slot === undefined) {
+    invalid(`"${id}": \`slot\` must be "composer.status" or "nav.primary"`);
+    return null;
+  }
   // 清单里的 widgetStateVisibility 已废弃，出现时按未知字段静默忽略。
   return {
     id,
@@ -109,6 +119,7 @@ function parseSurface(
     declaredServer,
     resourceUri,
     availability: SUPPORTED_AVAILABILITY,
+    ...(slot ? { slot } : {}),
   };
 }
 

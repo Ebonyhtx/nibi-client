@@ -33,6 +33,13 @@
       "syntheticReason": "E2E_V4_PERMISSION_WRITE 首发会触发默认 title sidecar；固定 case-local 标题响应，避免 default replay 回退 legacy provider-basic，并用该首发 marker 隔离跨 case 匹配。"
     },
     {
+      "id": "v4-permission-title-rust",
+      "kind": "common",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
+    },
+    {
       "id": "v4-permission-write-call",
       "description": "M4 resolveInteraction 门禁：Write tool_use，默认模式下触发权限弹窗。",
       "kind": "main",
@@ -55,6 +62,13 @@
       "source": "synthetic",
       "timingPolicy": "fast-text",
       "syntheticReason": "独立 prompt marker 隔离允许路径。"
+    },
+    {
+      "id": "v4-permission-allow-feedback-title-rust",
+      "kind": "common",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
     },
     {
       "id": "v4-permission-allow-feedback-call",
@@ -81,6 +95,13 @@
       "syntheticReason": "Deny with feedback 使用独立 prompt marker，避免与批准路径复用 provider fixture。"
     },
     {
+      "id": "v4-permission-deny-title-rust",
+      "kind": "common",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
+    },
+    {
       "id": "v4-permission-deny-call",
       "description": "Deny with feedback case 首发的 Write tool_use。",
       "kind": "main",
@@ -103,6 +124,13 @@
       "source": "synthetic",
       "timingPolicy": "fast-text",
       "syntheticReason": "独立 prompt marker 隔离空白反馈路径。"
+    },
+    {
+      "id": "v4-permission-deny-blank-title-rust",
+      "kind": "common",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
     },
     {
       "id": "v4-permission-deny-blank-call",

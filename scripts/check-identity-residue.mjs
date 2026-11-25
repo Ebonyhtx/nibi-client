@@ -5,8 +5,8 @@
  *   L1（本判据守的）：**实例身份** —— 数据根 `~/.nibi`、环境变量 `NIBI_*`、CLI 名 `nibi`。
  *   L2（2026-10-22 已改完，本判据只留必须保留的别名）：IPC 通道 `nibi:*`、
  *       线协议字段 `nibi_type`、主 renderer 的 `window.nibi` 桥、`nibiBuiltin*` 属性、
- *       `config/provider/nibi-builtin.json`。插件 ABI 已统一为 `.nibi-plugin/`、
- *       `NIBI_*`、`window.nibi` 与 `com.nibistudio.nibi/`，旧名不再放行。
+ *       `config/provider/nibi-builtin.json`。插件 ABI 已统一为根 `plugin.json` +
+ *       `extensions["com.nibistudio.nibi"]`、`NIBI_*`、`window.nibi`，旧名不再放行。
  *
  * 为什么必须扫**产物**而不是源码：源码干净不代表产物干净。esbuild/vite 会把
  * define 注入值、依赖包里的字面量、内联的第三方代码一起打进来；`skill` 文档、
@@ -93,9 +93,14 @@ const FORBIDDEN_THIRD_PARTY_HOSTS = [
  * - 日志正文里的 "ZCode agent …" 措辞：只影响日志文本，且 e2e 覆盖率工具按其中一条
  *   （`ZCode agent process exited`）切片，改名要同批改那处解析。
  */
+const ALLOWED_FOREIGN_PLUGIN_VARIABLES = new Set([
+  "ZCODE_PLUGIN_ROOT",
+  "ZCODE_PLUGIN_DATA",
+  "ZCODE_PROJECT_DIR",
+]);
+
 const FORBIDDEN_IDENTITY_TOKENS = [
-  { token: "X-ZCode-", reason: "请求头前缀（原来发往模型服务端与自家服务端做观测）" },
-  { token: "x-zcode-", reason: "请求头前缀的小写形态" },
+  { token: "X-ZCode-", reason: "请求头前缀（原来发往模型服务端与自家服务端做观测）" },  { token: "x-zcode-", reason: "请求头前缀的小写形态" },
   { token: "zcode-data-size", reason: "遥测日志标签，运营看日志时可见" },
   { token: "zcode-window-bounds", reason: "进程名，任务管理器里可见" },
   { token: "zcode-error-", reason: "用户可见的导出文件名前缀" },
@@ -207,6 +212,9 @@ function findOffenders(line) {
   const found = [];
 
   for (const match of line.matchAll(/ZCODE_[A-Z0-9_]+/g)) {
+    // 外来插件清单的模板变量名：适配器只读展开，不进入 NIBI 自己的环境或配置。
+    // 它们必须保留在产物里，否则 ZCode 插件无法运行；不属于实例身份残留。
+    if (ALLOWED_FOREIGN_PLUGIN_VARIABLES.has(match[0])) continue;
     found.push({ token: match[0], kind: "env" });
   }
 

@@ -231,7 +231,9 @@ function getProviderOptionNameMessageIds(
     return global;
   }
   const providerLabel = provider
-    ? PROVIDER_PERMISSION_OPTION_NAME_LABELS[normalizeAgentProviderToNibiAgent(provider)]?.[normalizedName]
+    ? PROVIDER_PERMISSION_OPTION_NAME_LABELS[normalizeAgentProviderToNibiAgent(provider)]?.[
+        normalizedName
+      ]
     : undefined;
   return providerLabel ? { label: providerLabel } : null;
 }
@@ -608,9 +610,7 @@ export function PermissionDialog({
   const [pickedMode, setPickedMode] = useState<"guarded" | "yolo">("guarded");
   // 当前模式已是 guarded/yolo 时没有“切换到哪”的选择：与上游 fullAccessOnly 的单按钮语义一致。
   const canPickMode =
-    modeSwitch === "choose" &&
-    permissionMode !== "guarded" &&
-    permissionMode !== "yolo";
+    modeSwitch === "choose" && permissionMode !== "guarded" && permissionMode !== "yolo";
   const targetMode: "guarded" | "yolo" = canPickMode ? pickedMode : "yolo";
   const modeLabel = (mode: "guarded" | "yolo") =>
     intl.formatMessage({
@@ -648,10 +648,7 @@ export function PermissionDialog({
     },
     [submitOption],
   );
-  const {
-    requestModeSwitch,
-    confirmDialog: modeConfirmDialog,
-  } = useFullAccessModeConfirmation({
+  const { requestModeSwitch, confirmDialog: modeConfirmDialog } = useFullAccessModeConfirmation({
     // fullAccessOnly 本身就是“只能切到完全访问”：即使快照模式看起来相同也要确认一次。
     currentMode: modeSwitch === "fullAccessOnly" ? "guarded" : permissionMode,
     onApplyModeSwitch: applyModeSwitch,
@@ -854,10 +851,7 @@ export function PermissionDialog({
             return;
           }
           // 模式切换行：提交按钮与目标选择器是两个控件，正向 Tab 先到选择器，再回选项循环。
-          if (
-            !event.shiftKey &&
-            event.currentTarget.dataset.testid === "permission-allow-switch"
-          ) {
+          if (!event.shiftKey && event.currentTarget.dataset.testid === "permission-allow-switch") {
             const picker = event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(
               '[data-testid="permission-target-picker"]',
             );
@@ -924,7 +918,7 @@ export function PermissionDialog({
     <div ref={rootRef} className="w-full shrink-0 relative z-1">
       <div
         className={cn(
-          "w-full rounded-2xl border border-border bg-popover shadow-xs",
+          "w-full rounded-2xl border border-popover-border bg-popover/96 shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-md",
           bounded
             ? "max-h-[min(72dvh,42rem)] overflow-y-auto overscroll-contain [@media(min-height:36rem)]:flex [@media(min-height:36rem)]:flex-col [@media(min-height:36rem)]:overflow-hidden"
             : "overflow-hidden",
@@ -1046,8 +1040,7 @@ export function PermissionDialog({
                     ? readPermissionRuleScopes(option)
                     : [];
                 const switchRow =
-                  modeSwitch !== undefined &&
-                  option.optionId === PERMISSION_FULL_ACCESS_OPTION_ID;
+                  modeSwitch !== undefined && option.optionId === PERMISSION_FULL_ACCESS_OPTION_ID;
                 if (switchRow) {
                   const TargetIcon = resolveModeOptionIcon(targetMode);
                   return (
@@ -1055,14 +1048,16 @@ export function PermissionDialog({
                       key={option.optionId}
                       className={cn(
                         "relative flex w-full items-center gap-3 rounded-xl px-3 py-2 transition-colors",
-                        isSelected ? "bg-selected" : "hover:bg-hover",
+                        isSelected
+                          ? "bg-selected shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/35"
+                          : "hover:bg-hover/80",
                         blocked && "opacity-50",
                       )}
                     >
                       <span
                         className={cn(
                           "w-5 shrink-0 self-center text-ui-base font-medium",
-                          isSelected ? "text-foreground" : "text-foreground-subtlest",
+                          isSelected ? "font-semibold text-primary" : "text-foreground-subtlest",
                         )}
                       >
                         {index + 1}.
@@ -1114,9 +1109,7 @@ export function PermissionDialog({
                                 onKeyDown={(event) => {
                                   if (event.key === "Tab") {
                                     event.preventDefault();
-                                    optionRefs.current[
-                                      event.shiftKey ? index : index + 1
-                                    ]?.focus();
+                                    optionRefs.current[event.shiftKey ? index : index + 1]?.focus();
                                   }
                                 }}
                                 className="relative z-1 h-7 gap-1 rounded-lg px-2 text-ui-base text-foreground-subtle"
@@ -1187,14 +1180,16 @@ export function PermissionDialog({
                     onKeyDown={handleOptionKeyDown}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left outline-none transition-colors focus-visible:bg-selected",
-                      isSelected ? "bg-selected" : "hover:bg-hover",
+                      isSelected
+                        ? "bg-selected shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/35"
+                        : "hover:bg-hover/80",
                       blocked && "cursor-not-allowed opacity-50",
                     )}
                   >
                     <span
                       className={cn(
                         "w-5 shrink-0 text-ui-base font-medium self-center",
-                        isSelected ? "text-foreground" : "text-foreground-subtlest",
+                        isSelected ? "font-semibold text-primary" : "text-foreground-subtlest",
                       )}
                     >
                       {index + 1}.
@@ -1225,7 +1220,9 @@ export function PermissionDialog({
                 }}
                 className={cn(
                   "flex w-full cursor-text items-center gap-3 rounded-xl px-3 py-2 transition-colors",
-                  isFeedbackSelected ? "bg-selected" : "hover:bg-hover",
+                  isFeedbackSelected
+                    ? "bg-selected shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/35"
+                    : "hover:bg-hover/80",
                 )}
               >
                 <span
@@ -1233,7 +1230,7 @@ export function PermissionDialog({
                     // 匹配 textarea 的首行行高和 1px 边框；手机输入行高不同，但序号字号不变。
                     "mt-px w-5 shrink-0 self-start text-ui-base font-medium md:leading-relaxed",
                     avoidIosInputFocusZoom ? "leading-6" : "leading-5",
-                    isFeedbackSelected ? "text-foreground" : "text-foreground-subtlest",
+                    isFeedbackSelected ? "font-semibold text-primary" : "text-foreground-subtlest",
                   )}
                 >
                   {feedbackIndex + 1}.
@@ -1275,7 +1272,7 @@ export function PermissionDialog({
                   onKeyDown={handleFeedbackKeyDown}
                   className={cn(
                     // Bugfix: 拒绝反馈自动换行，但限制为 5 行并在输入框内滚动，避免窄屏遮住权限选项和确认按钮。
-                    "h-auto !min-h-5 max-h-[5lh] min-w-0 max-w-full overflow-y-auto rounded-none border-transparent bg-transparent !px-0 !py-0 font-medium shadow-none hover:border-transparent focus-visible:border-transparent focus-visible:bg-transparent focus-visible:ring-0",
+                    "h-auto !min-h-5 max-h-[5lh] min-w-0 max-w-full overflow-y-auto rounded-none border-transparent bg-transparent !px-0 !py-0 font-medium shadow-none focus-visible:shadow-none hover:border-transparent focus-visible:border-transparent focus-visible:bg-transparent focus-visible:ring-0",
                     resolveMobileInputTextSizeClassName({ avoidIosInputFocusZoom }),
                   )}
                 />
@@ -1305,7 +1302,7 @@ export function PermissionDialog({
                   : orderedOptions[selectedIndex] === undefined ||
                     isOptionBlocked(orderedOptions[selectedIndex]))
               }
-              className="bg-brand text-foreground-inverse hover:bg-brand/80"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {intl.formatMessage({ id: "common.confirm" })}
             </Button>

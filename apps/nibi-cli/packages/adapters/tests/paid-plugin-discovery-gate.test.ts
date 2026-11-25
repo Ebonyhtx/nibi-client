@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createBuiltinPaidPluginGate } from "../src/plugins/paid-plugin-discovery-gate.js";
-import { discoverNodePluginsSync } from "../src/plugins/index.js";
+import { discoverNodePluginsSync, writePluginConsent } from "../src/plugins/index.js";
 import { createSharedNibiCredentialStore } from "../src/auth/shared-credentials.js";
 import { NIBI_LICENSE_ISSUER } from "@nibi/shared";
 import type {
@@ -85,9 +85,9 @@ async function writePaidPluginFixture(input: {
 }): Promise<{ storageRoot: string; pluginRoot: string }> {
   const storageRoot = await makeTempDir("storage");
   const pluginRoot = join(await makeTempDir("plugin"), input.pluginName);
-  await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+  await mkdir(join(pluginRoot), { recursive: true });
   await writeFile(
-    join(pluginRoot, ".nibi-plugin", "plugin.json"),
+    join(pluginRoot, "plugin.json"),
     JSON.stringify({
       name: input.pluginName,
       version: "1.0.0",
@@ -97,7 +97,7 @@ async function writePaidPluginFixture(input: {
     }),
   );
   await writeFile(
-    join(pluginRoot, ".mcp.json"),
+    join(pluginRoot, "mcp.json"),
     JSON.stringify({
       mcpServers: { main: { command: "node", args: ["server.js"], type: "stdio" } },
     }),
@@ -160,6 +160,13 @@ function discover(input: {
   env?: Record<string, string | undefined>;
   gate?: (plugin: PaidPluginGateInput) => PaidPluginGateResult;
 }) {
+  // 社区来源的 hooks/MCP 需要逐版本同意；本用例验证付费门禁，先把同意补齐。
+  writePluginConsent({
+    permissions: ["network", "process"],
+    pluginId: `${input.pluginName}@${input.marketplace}`,
+    storageRoot: input.storageRoot,
+    version: "1.0.0",
+  });
   return discoverNodePluginsSync({
     config: {
       dirs: [],

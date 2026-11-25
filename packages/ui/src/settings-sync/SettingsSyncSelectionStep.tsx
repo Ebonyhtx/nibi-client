@@ -179,7 +179,12 @@ export function SettingsSyncSelectionStep(props: {
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-1 items-center gap-2">
-                      {renderProviderCliIcon(NIBI_AGENT_PROVIDER, "size-4 shrink-0 text-foreground")}
+                      {agent.agent === "nibi"
+                        ? renderProviderCliIcon(
+                            NIBI_AGENT_PROVIDER,
+                            "size-4 shrink-0 text-foreground",
+                          )
+                        : null}
                       <div className="min-w-0 flex-1">
                         <div className="text-ui-base font-medium leading-none text-foreground">
                           {formatAgentName(agent.agent, intl)}

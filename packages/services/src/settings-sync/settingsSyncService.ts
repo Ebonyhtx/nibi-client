@@ -21,6 +21,7 @@ import type {
   SettingsSyncSourceRootSummary,
   SettingsSyncTaskImportResult,
 } from "@nibi/shared";
+import { PLUGIN_MANIFEST_RELATIVE_PATHS } from "@nibi/shared";
 import { copyFile, cp, link, lstat, mkdir, readFile, readdir, rm, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -408,8 +409,6 @@ const SUPPORTED_MCP_AGENT_SOURCES: ExternalAgentMcpPathSource[] = [
   },
 ];
 
-// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 不再参与导入候选。
-const NIBI_PLUGIN_MANIFEST_PATH = [".nibi-plugin", "plugin.json"] as const;
 const INLINE_PLUGIN_MARKETPLACE = "inline";
 
 function resolveUserHomeDir(): string {
@@ -769,8 +768,11 @@ async function collectCommandMarkdownPaths(rootPath: string): Promise<string[]> 
 }
 
 async function findPluginManifestPath(pluginPath: string): Promise<string | null> {
-  const manifestPath = join(pluginPath, ...NIBI_PLUGIN_MANIFEST_PATH);
-  return (await pathExists(manifestPath)) ? manifestPath : null;
+  for (const relativePath of PLUGIN_MANIFEST_RELATIVE_PATHS) {
+    const manifestPath = join(pluginPath, ...relativePath.split("/"));
+    if (await pathExists(manifestPath)) return manifestPath;
+  }
+  return null;
 }
 
 async function collectPluginPaths(rootPath: string): Promise<string[]> {

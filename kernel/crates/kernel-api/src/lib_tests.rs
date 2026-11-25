@@ -116,6 +116,7 @@ fn loaded_sessions_round_trip_with_open_work() {
         model_turns: Vec::new(),
         worktree_creations: Vec::new(),
         input_intents: Vec::new(),
+        subagent_links: Vec::new(),
         model: None,
         mode: None,
         plan: false,

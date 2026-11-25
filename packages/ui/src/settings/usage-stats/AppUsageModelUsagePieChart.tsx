@@ -64,7 +64,7 @@ export function AppUsageModelUsagePieChart({ snapshot }: { snapshot: AppUsageSna
   );
 
   return (
-    <section className="space-y-3 rounded-xl bg-surface p-4">
+    <section className="space-y-3 rounded-xl border border-card-border bg-card p-4 shadow-[var(--nibi-shadow-card)]">
       <h3 className="text-ui-base font-medium text-foreground">
         {intl.formatMessage({ id: "settings.usage.modelChartTitle" })}
       </h3>
@@ -88,7 +88,7 @@ export function AppUsageModelUsagePieChart({ snapshot }: { snapshot: AppUsageSna
                   innerRadius="56%"
                   outerRadius="86%"
                   paddingAngle={chartData.length > 1 ? 2 : 0}
-                  stroke="var(--color-surface)"
+                  stroke="var(--color-card)"
                   strokeWidth={2}
                 >
                   {chartData.map((slice) => (

@@ -28,6 +28,40 @@ export {
 } from "@nibi/shared";
 
 export { isPublicStoreMarketplaceId };
+
+/**
+ * 详情页「来源」行的文案 key。`external:<adapter>` 统一显示「外部来源」：
+ * 运营者口径是市场 UI 不显示生态名/格式名/兼容级别，只在功能不可用时说后果。
+ * 未知值返回 undefined，由调用方整行不渲染。
+ */
+export type PluginOriginLabelId =
+  | "settings.plugins.detail.origin.builtin"
+  | "settings.plugins.detail.origin.official"
+  | "settings.plugins.detail.origin.community"
+  | "settings.plugins.detail.origin.local"
+  | "settings.plugins.detail.origin.external";
+
+export function resolvePluginOriginLabelId(
+  origin: string | undefined,
+): PluginOriginLabelId | undefined {
+  switch (origin) {
+    case "builtin":
+      return "settings.plugins.detail.origin.builtin";
+    case "official":
+      return "settings.plugins.detail.origin.official";
+    case "community":
+      return "settings.plugins.detail.origin.community";
+    case "local":
+      return "settings.plugins.detail.origin.local";
+    case "external:claude":
+    case "external:codex":
+    case "external:zcode":
+    case "external:dsh":
+      return "settings.plugins.detail.origin.external";
+    default:
+      return undefined;
+  }
+}
 export { isTrustedImageUrl } from "@/lib/trustedImageUrl.js";
 
 /**
@@ -499,4 +533,61 @@ export function sortInstalledStripItems(
     if (leftAt !== rightAt) return rightAt.localeCompare(leftAt);
     return compareByName();
   });
+}
+
+/**
+ * 完整性门禁的展示口径。
+ *
+ * `blockedReason` = 整个插件被安全拦下（撤销/会员）；`codeBlockedReason` = 只有扩展代码
+ * 不能跑（原生模块 ABI/声明缺失），声明式组件仍然可用。两者都显示成「已停用（安全原因）」，
+ * 但只有后者允许说「声明式功能仍可用」——否则用户会以为插件整体坏了。
+ */
+export function resolvePluginBlockedLabelId(plugin: {
+  blockedReason?: { code: string; message: string };
+  codeBlockedReason?: { code: string; message: string };
+}): string | undefined {
+  if (plugin.blockedReason || plugin.codeBlockedReason) {
+    return "settings.plugins.detail.blocked";
+  }
+  return undefined;
+}
+
+export function hasBlockedPluginCode(plugin: {
+  blockedReason?: { code: string; message: string };
+  codeBlockedReason?: { code: string; message: string };
+}): boolean {
+  return Boolean(plugin.blockedReason || plugin.codeBlockedReason);
+}
+
+/**
+ * 审计事件类型 → 文案 key。
+ *
+ * 只映射协议里已知的六类；未知类型返回 undefined，由调用方原样显示 type，
+ * 这样 Host 新增事件时不会在旧 UI 上显示成空白或「未知」。
+ */
+const PLUGIN_AUDIT_TYPE_LABEL_IDS: Record<string, string> = {
+  capability_invoked: "settings.plugins.audit.type.capabilityInvoked",
+  capability_denied: "settings.plugins.audit.type.capabilityDenied",
+  consent_granted: "settings.plugins.audit.type.consentGranted",
+  consent_revoked: "settings.plugins.audit.type.consentRevoked",
+  consent_required: "settings.plugins.audit.type.consentRequired",
+  grants_updated: "settings.plugins.audit.type.grantsUpdated",
+  grants_revoked: "settings.plugins.audit.type.grantsRevoked",
+};
+
+export function resolvePluginAuditTypeLabelId(type: string): string | undefined {
+  return PLUGIN_AUDIT_TYPE_LABEL_IDS[type];
+}
+
+/** 审计里的能力 id → 用户可读文案 key；未知能力返回 undefined（显示原始 id）。 */
+const PLUGIN_AUDIT_CAPABILITY_LABEL_IDS: Record<string, string> = {
+  "nibi.sessions.read": "settings.plugins.audit.capability.sessionsRead",
+  "nibi.workspace.files.read": "settings.plugins.audit.capability.filesRead",
+  "nibi.ui.view": "settings.plugins.audit.capability.uiView",
+  "nibi.settings.own": "settings.plugins.audit.capability.settingsOwn",
+  "nibi.notifications.show": "settings.plugins.audit.capability.notificationsShow",
+};
+
+export function resolvePluginAuditCapabilityLabelId(capability: string): string | undefined {
+  return PLUGIN_AUDIT_CAPABILITY_LABEL_IDS[capability];
 }

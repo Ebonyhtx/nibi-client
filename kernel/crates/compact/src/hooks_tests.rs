@@ -9,8 +9,64 @@ use nibi_kernel_api::orchestration::{HookEvent, HookEventName, HookOutcome, Hook
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
-use crate::engine::Engine;
+use crate::engine::{Engine, Failure};
 use crate::test_support::{Reply, ScriptedRunner, human, no_tools, ports, reply, request};
+
+/// 所有 PreCompact hook 的合并结果；用于验证 block 策略。
+struct BlockingPreCompact(HookOutcome);
+
+#[async_trait]
+impl HookRunner for BlockingPreCompact {
+    async fn run(&self, event: HookEvent, _cancel: CancellationToken) -> HookOutcome {
+        assert_eq!(event.name, HookEventName::PreCompact);
+        self.0.clone()
+    }
+}
+
+#[tokio::test]
+async fn manual_pre_compact_block_aborts_compaction() {
+    let hooks = BlockingPreCompact(HookOutcome {
+        blocking_error: Some("no secrets".to_owned()),
+        custom_instructions: Some("hook".to_owned()),
+        ..HookOutcome::default()
+    });
+    let request = request(vec![human("u1", "hi")], CompactTrigger::Manual);
+    let error = super::pre_compact(&hooks, &request, &CancellationToken::new())
+        .await
+        .expect_err("manual compaction must honor a blocking PreCompact hook");
+    assert_eq!(error, Failure::Blocked("no secrets".to_owned()));
+}
+
+#[tokio::test]
+async fn auto_and_reactive_ignore_pre_compact_block_and_keep_successful_instructions() {
+    for trigger in [CompactTrigger::Auto, CompactTrigger::Reactive] {
+        let hooks = BlockingPreCompact(HookOutcome {
+            blocking_error: Some("no secrets".to_owned()),
+            // 一个 hook 拦截、另一个成功 hook 给出的指令仍要采用。
+            custom_instructions: Some("hook".to_owned()),
+            ..HookOutcome::default()
+        });
+        let request = request(vec![human("u1", "hi")], trigger);
+        let instructions = super::pre_compact(&hooks, &request, &CancellationToken::new())
+            .await
+            .expect("automatic compaction must continue past a blocking PreCompact hook");
+        assert_eq!(instructions.as_deref(), Some("hook"));
+    }
+}
+
+#[tokio::test]
+async fn auto_pre_compact_block_is_ignored_when_user_instructions_exist() {
+    let hooks = BlockingPreCompact(HookOutcome {
+        blocking_error: Some("no secrets".to_owned()),
+        ..HookOutcome::default()
+    });
+    let mut request = request(vec![human("u1", "hi")], CompactTrigger::Auto);
+    request.instructions = Some("keep decisions".to_owned());
+    let instructions = super::pre_compact(&hooks, &request, &CancellationToken::new())
+        .await
+        .expect("automatic compaction must continue past a blocking PreCompact hook");
+    assert_eq!(instructions.as_deref(), Some("keep decisions"));
+}
 
 #[derive(Default)]
 struct Recorded(Mutex<Vec<HookEvent>>);

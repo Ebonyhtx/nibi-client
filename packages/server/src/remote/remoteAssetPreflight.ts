@@ -1,5 +1,33 @@
 import type { IRemoteBackend, StdioStream } from "@nibi/server/remote/backend.js";
-import { waitForClose } from "@nibi/server/remote/deployShared.js";
+
+function waitForClose(stream: StdioStream): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let stderrText = "";
+    stream.stderr.on("data", (chunk: Buffer | string) => {
+      if (stderrText.length >= 2048) {
+        return;
+      }
+      stderrText += chunk.toString();
+    });
+
+    stream.onClose((code) => {
+      // 之前只等待 close 不校验退出码，远端命令失败会被当成成功继续执行。
+      // 这里把非零退出码转成错误，避免 preflight 假成功。
+      if (code !== 0) {
+        const stderrSummary = stderrText.trim();
+        reject(
+          new Error(
+            stderrSummary.length > 0
+              ? `[remote-assets] remote command failed with exit code ${code}: ${stderrSummary}`
+              : `[remote-assets] remote command failed with exit code ${code}`,
+          ),
+        );
+        return;
+      }
+      resolve();
+    });
+  });
+}
 
 export type RemoteDownloadTool = "curl" | "wget";
 export type RemoteSha256Tool = "sha256sum" | "shasum" | "openssl";

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const handlers = vi.hoisted(() => ({
+  activatePluginExtensions: vi.fn(),
   addPluginMarketplace: vi.fn(),
   configurePlugin: vi.fn(),
   describePlugin: vi.fn(),
@@ -11,6 +12,8 @@ const handlers = vi.hoisted(() => ({
   listPlugins: vi.fn(),
   removePluginMarketplace: vi.fn(),
   resetPluginConfig: vi.fn(),
+  resolveNibiPlugins: vi.fn(),
+  resolvePluginStorageRoot: vi.fn(),
   restoreBuiltinPlugin: vi.fn(),
   setPluginEnabled: vi.fn(),
   toPluginInfo: vi.fn(),
@@ -38,6 +41,14 @@ import {
 function fallback() {
   return {
     getPluginReferenceCatalog: vi.fn(),
+    listSessions: vi.fn(async () => [
+      {
+        sessionId: "session-1",
+        title: "Session",
+        createdAt: 10,
+        updatedAt: 20,
+      },
+    ]),
     onDynamicPluginOperationProgress: vi.fn(),
     resolveSuggestedPluginReference: vi.fn(),
   };
@@ -230,5 +241,72 @@ describe("local plugin management service", () => {
         workspacePath: "D:/work/project",
       },
     });
+  });
+
+  it("activates extension hosting once and forwards ui/notification events", async () => {
+    handlers.listPluginUiSurfaces.mockResolvedValue({ surfaces: [] });
+    handlers.listPlugins.mockResolvedValue({ diagnostics: [], plugins: [] });
+    handlers.resolveNibiPlugins.mockReturnValue({ diagnostics: [], plugins: [] });
+    handlers.resolvePluginStorageRoot.mockReturnValue("D:/storage/cli/plugins");
+    const disposeHost = vi.fn(async () => {});
+    handlers.activatePluginExtensions.mockResolvedValue({ dispose: disposeHost });
+    const withFallback = fallback();
+    const backend = createLocalPluginManagementBackend({
+      env: {},
+      fallback: withFallback as never,
+    });
+    const opened: unknown[] = [];
+    const notified: unknown[] = [];
+    backend.service.onDynamicPluginUiOpenView?.()((event) => opened.push(event));
+    backend.service.onDynamicPluginNotification?.()((event) => notified.push(event));
+
+    const workspace = { workspaceIdentity: "workspace-id", workspacePath: "D:/work/project" };
+    await backend.listPluginUiSurfaces(workspace);
+    await backend.service.listPlugins(workspace);
+    await vi.waitFor(() => expect(handlers.activatePluginExtensions).toHaveBeenCalledTimes(1));
+
+    const activation = handlers.activatePluginExtensions.mock.calls[0]![0] as {
+      handlers: {
+        openView(input: { pluginId: string; surfaceId: string }): void;
+        readSessions(input: { limit?: number }): Promise<unknown>;
+        showNotification(input: { body?: string; pluginId: string; title: string }): void;
+      };
+    };
+    activation.handlers.openView({ pluginId: "demo@inline", surfaceId: "panel" });
+    activation.handlers.showNotification({
+      body: "index rebuilt",
+      pluginId: "demo@inline",
+      title: "Ready",
+    });
+    await expect(activation.handlers.readSessions({ limit: 5 })).resolves.toEqual([
+      { id: "session-1", parentId: null, title: "Session", createdAt: 10, updatedAt: 20 },
+    ]);
+    expect(withFallback.listSessions).toHaveBeenCalledWith({
+      workspaceIdentity: "workspace-id",
+      workspacePath: "D:/work/project",
+      limit: 5,
+    });
+    expect(opened).toEqual([
+      {
+        pluginId: "demo@inline",
+        surfaceId: "panel",
+        workspaceIdentity: "workspace-id",
+        workspaceKey: "workspace-id",
+        workspacePath: "D:/work/project",
+      },
+    ]);
+    expect(notified).toEqual([
+      {
+        body: "index rebuilt",
+        pluginId: "demo@inline",
+        title: "Ready",
+        workspaceIdentity: "workspace-id",
+        workspaceKey: "workspace-id",
+        workspacePath: "D:/work/project",
+      },
+    ]);
+
+    await backend.dispose();
+    expect(disposeHost).toHaveBeenCalledTimes(1);
   });
 });

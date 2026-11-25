@@ -241,7 +241,7 @@ export function FeedbackTicketList({
   if (items.length === 0) return null;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
       <div className="hidden grid-cols-[7.5rem_minmax(0,1fr)_13rem] gap-3 border-b border-border px-3 py-2 text-ui-xs font-medium text-foreground-subtle md:grid">
         <span>{formatMessage({ id: "feedback.tickets.column.status" })}</span>
         <span>{formatMessage({ id: "feedback.tickets.column.description" })}</span>
@@ -258,8 +258,8 @@ export function FeedbackTicketList({
             <li
               key={item.id}
               className={cn(
-                "grid gap-2 px-3 py-2.5 md:grid-cols-[7.5rem_minmax(0,1fr)_13rem] md:items-center md:gap-3",
-                selected ? "bg-card-selected" : "bg-card",
+                "grid gap-2 px-3 py-2.5 transition-colors md:grid-cols-[7.5rem_minmax(0,1fr)_13rem] md:items-center md:gap-3",
+                selected ? "bg-card-selected" : "bg-card hover:bg-hover/60",
               )}
             >
               <div className="flex min-w-0 items-center justify-between gap-2 md:block">

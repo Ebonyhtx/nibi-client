@@ -10,7 +10,13 @@ const PROMPT_CUSTOM_COMMAND_PATTERN = /^\/([^\s]+)(?:\s+([\s\S]*))?$/;
 
 export async function resolveNibiCustomCommandPrompt(
   input: string,
-  options: ListNibiCustomCommandsOptions = {},
+  options: ListNibiCustomCommandsOptions & {
+    /**
+     * 付费插件执行期复核：命令根携带 `plugin.id`，展开前按它复核授权。
+     * 与 Rust `ext/commands/user.rs` 的门禁语义一致（会员到期后命令立即不可用）。
+     */
+    assertPluginExecutionAllowed?: (pluginId: string) => void;
+  } = {},
 ): Promise<string | undefined> {
   const invocation = parsePromptCustomCommandInvocation(input);
   // 保留名（含内置 `workflow`）在这里直接返回 undefined，与「命令不存在」同形：内置命令由
@@ -24,6 +30,9 @@ export async function resolveNibiCustomCommandPrompt(
       ...options,
       name: invocation.name,
     });
+    // 归属插件存在时先复核再展开：展开后的 prompt 会直接进模型上下文，
+    // 事后再拦等于内容已经放出去了。
+    options.assertPluginExecutionAllowed?.(command.metadata.plugin?.id ?? "");
     // 解析只改写文本：`!` 块交给模型经 Bash 工具执行，见 contracts 的 handOffCustomCommandShellBlocks。
     return expandCustomCommandPrompt({
       args: invocation.args,

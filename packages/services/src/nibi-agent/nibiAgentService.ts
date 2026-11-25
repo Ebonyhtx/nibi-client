@@ -67,6 +67,7 @@ import {
   nibiPluginsInstallResultSchema,
   nibiPluginsListResultSchema,
   nibiPluginsMarketplaceMutationResultSchema,
+  nibiPluginsAuditResultSchema,
   nibiPluginsOverviewResultSchema,
   nibiProcessChildProcessesResultSchema,
   type NibiProcessChildProcess,
@@ -94,6 +95,7 @@ import {
   nibiPluginOperationProgressNotificationSchema,
   nibiPluginsRestoreBuiltinResultSchema,
   nibiPluginsSetEnabledResultSchema,
+  nibiPluginsConsentResultSchema,
   nibiPluginsCancelOperationResultSchema,
   nibiPluginsUninstallResultSchema,
   nibiPluginsValidateResultSchema,
@@ -216,6 +218,7 @@ import type {
   NibiAgentSetModeParams,
   NibiAgentSetModelParams,
   NibiAgentSetPluginEnabledParams,
+  NibiAgentPluginConsentParams,
   NibiAgentSetThoughtLevelParams,
   NibiAgentPluginReferenceCatalogParams,
   NibiAgentSkillReferenceCatalogParams,
@@ -240,6 +243,7 @@ import type {
   NibiAgentUpdateSavedWorkflowMetaParams,
   NibiAgentResolveSuggestedPluginReferenceParams,
   NibiAgentPluginViewParams,
+  NibiAgentPluginsAuditParams,
   NibiAgentUninstallPluginParams,
   NibiAgentUpdatePluginParams,
   NibiAgentRestoreBuiltinPluginParams,
@@ -4667,6 +4671,20 @@ export function createNibiAgentService(
       );
     },
 
+    async getPluginsAudit(params: NibiAgentPluginsAuditParams) {
+      const client = await getPluginManagementClient();
+      // 审计查询是纯本地读：走默认协议超时即可，不需要市场 I/O 的 5 分钟预算。
+      return client.request(
+        nibiProtocolMethods.pluginsAudit,
+        {
+          workspace: buildWorkspaceRef(params),
+          ...(params.pluginId ? { pluginId: params.pluginId } : {}),
+          ...(params.limit ? { limit: params.limit } : {}),
+        },
+        nibiPluginsAuditResultSchema,
+      );
+    },
+
     async addPluginMarketplace(params: NibiAgentAddPluginMarketplaceParams) {
       const client = await getPluginManagementClient();
       return client.request(
@@ -4851,6 +4869,20 @@ export function createNibiAgentService(
           ...(params.scope ? { scope: params.scope } : {}),
         },
         nibiPluginsSetEnabledResultSchema,
+        { timeoutMs: PLUGIN_MANAGEMENT_REQUEST_TIMEOUT_MS },
+      );
+    },
+
+    async setPluginConsent(params: NibiAgentPluginConsentParams) {
+      const client = await getPluginManagementClient();
+      return client.request(
+        nibiProtocolMethods.pluginsConsent,
+        {
+          workspace: buildWorkspaceRef(params),
+          pluginId: params.pluginId,
+          granted: params.granted,
+        },
+        nibiPluginsConsentResultSchema,
         { timeoutMs: PLUGIN_MANAGEMENT_REQUEST_TIMEOUT_MS },
       );
     },

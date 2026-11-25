@@ -1,5 +1,8 @@
 import type { CustomCommandRoot } from "../commands/index.js";
-import type { HookEventName, HookMatcherConfig } from "../hooks/index.js";
+import type {
+  HookMatcherConfig,
+  PluginHookEventName,
+} from "../hooks/index.js";
 import type { McpServerConfig } from "../interfaces/mcp.port.js";
 import type { SkillRoot } from "../skills/index.js";
 import type { ExecutionContext, TraceContext } from "../tracing/tracer.js";
@@ -77,8 +80,32 @@ export type PluginDiagnosticCode =
   | "plugin_ambiguous_name"
   | "plugin_membership_required"
   | "plugin_capability_leak_pruned"
+  | "plugin_capability_unsupported"
+  | "plugin_capability_consent_required"
+  | "plugin_runtime_invalid"
+  | "plugin_consent_required"
   | "plugin_acceptance_invalid"
-  | "plugin_acceptance_weak";
+  | "plugin_acceptance_weak"
+  /** 命中了签名撤销列表的 block 条目：文件保留，但不再加载/执行。 */
+  | "plugin_revoked"
+  /** 命中撤销列表的 warn 条目：加载但提示（与 block 分开，UI 不能显示成「已停用」）。 */
+  | "plugin_revocation_warning"
+  /** 撤销列表刷新失败（网络/验签/回退）；沿用上一份成功快照。 */
+  | "plugin_revocation_refresh_failed"
+  /** 磁盘内容与同意时绑定的包 hash 不一致：声明式组件仍可用，代码不激活。 */
+  | "plugin_package_hash_mismatch"
+  /** 包内存在原生模块但清单未声明 `runtime.native`。 */
+  | "plugin_native_module_blocked"
+  /** 原生模块声明的平台/ABI 与当前宿主运行时不一致。 */
+  | "plugin_runtime_abi_mismatch"
+  /** 官方/内置插件包内自带 Node 运行时（只允许 local 插件自带，见计划 §8.5）。 */
+  | "plugin_bundled_runtime_forbidden"
+  /** 本地/第三方代码插件缺少绑定包 hash 的信任记录。 */
+  | "plugin_trust_required"
+  /** 安装记录已进入 removed 墓碑期（保留数据，不再加载）。 */
+  | "plugin_removed"
+  /** view root 无法建立等价视图：已回退读插件源目录（功能不受影响，但未隔离）。 */
+  | "plugin_view_root_unavailable";
 
 export interface PluginUserConfigOption {
   default?: string | number | boolean;
@@ -108,7 +135,7 @@ export interface PluginHookDetail {
   args?: string[];
   async?: boolean;
   command: string;
-  event: HookEventName;
+  event: PluginHookEventName;
   matcher?: string;
   runnable: boolean;
   shell?: true | string;
@@ -183,7 +210,13 @@ export interface PluginManifest {
   mcpServers?: unknown;
   name: string;
   outputStyles?: unknown;
+  /** 插件申请的 NIBI Extension 能力（`nibi.*`）；由适配器归一化为 capability profile。 */
+  capabilities?: unknown;
+  /** 插件申请的能力；由适配器归一化为 `PluginPermissionProfile`。 */
+  permissions?: unknown;
   repository?: string;
+  /** 扩展代码入口；由适配器归一化为 `PluginRuntimeDeclaration`。 */
+  runtime?: unknown;
   settings?: unknown;
   skills?: unknown;
   /** 插件 UI：`ui.surfaces[]` 面板入口声明，adapters 解析。 */
@@ -192,8 +225,155 @@ export interface PluginManifest {
   version?: string;
 }
 
+/**
+ * 插件包清单的生态归属。内部 id，只允许出现在适配器层与诊断数据里。
+ * 顺序即发现特异性：native > agent-plugins > claude > codex > zcode > dsh。
+ */
+export type PluginAdapterId =
+  | "native"
+  | "agent-plugins"
+  | "claude"
+  | "codex"
+  | "zcode"
+  | "dsh";
+
+/**
+ * 兼容级别，只进数据层与诊断，UI 不展示级别本身：
+ * - `full`：清单声明的组件当前全部可运行；
+ * - `partial`：至少一个声明组件只识别、不运行（原因见 `skipped`）；
+ * - `detected`：只能识别包，不能运行任何组件（L0）。
+ */
+export type PluginCompatibilityLevel = "full" | "partial" | "detected";
+
+/**
+ * 信任来源。P0/P1 只随元数据下发；真正的授权与撤销在能力网关（P2）落地。
+ * - builtin：随客户端分发的内置插件；
+ * - official：NIBI 官方市场（签名清单 + 单调 revision）；
+ * - community：第三方市场安装；
+ * - local：用户本地目录（`plugins.dirs`、导入、开发中的插件）。
+ */
+export type PluginTrustLevel = "builtin" | "official" | "community" | "local";
+
+/** 来自其他 agent 工具生态的适配器；包清单可读，但身份仍归一到 `<name>@<marketplace>`。 */
+export type PluginExternalAdapterId = "claude" | "codex" | "zcode" | "dsh";
+
+/**
+ * 派生的插件来源，仅供展示与诊断。canonical id 仍是唯一身份，
+ * 本字段不参与鉴权、能力同意、付费门禁或持久化键。
+ */
+export type PluginOrigin =
+  | "builtin"
+  | "official"
+  | "community"
+  | "local"
+  | `external:${PluginExternalAdapterId}`;
+
+const EXTERNAL_PLUGIN_ADAPTER_IDS: ReadonlySet<PluginAdapterId> = new Set([
+  "claude",
+  "codex",
+  "zcode",
+  "dsh",
+]);
+
+function isPluginExternalAdapterId(
+  adapterId: PluginAdapterId,
+): adapterId is PluginExternalAdapterId {
+  return EXTERNAL_PLUGIN_ADAPTER_IDS.has(adapterId);
+}
+
+/**
+ * 计算派生的插件来源：内置优先；外来生态适配器标记为 `external:<adapterId>`；
+ * 其余按发现信任等级原样返回。纯函数，不读取路径或持久化状态。
+ */
+export function resolvePluginOrigin(
+  trust: PluginTrustLevel,
+  adapterId: PluginAdapterId,
+): PluginOrigin {
+  if (trust === "builtin") return "builtin";
+  return isPluginExternalAdapterId(adapterId) ? `external:${adapterId}` : trust;
+}
+
+/**
+ * 插件可申请的 NIBI 能力。闭集；未声明 = 不申请。
+ * `filesystem.*` / `network` / `process` 的授予规则见 P2 能力网关。
+ */
+export type PluginPermission =
+  | "filesystem.read"
+  | "filesystem.write"
+  | "network"
+  | "process"
+  | "code"
+  | "full-access";
+
+export interface PluginPermissionProfile {
+  /** 清单声明的能力（请求值，不等于授权值）。 */
+  requested: PluginPermission[];
+  /** 运行时实际需要的能力（由组件推导 + 清单请求并集）；空数组 = 无需同意。 */
+  required: PluginPermission[];
+}
+
+/** NIBI Extension API v1 能力闭集（与插件架构 B §3.1 一致）。 */
+export const PLUGIN_CAPABILITY_IDS = [
+  "nibi.sessions.read",
+  "nibi.workspace.files.read",
+  "nibi.ui.view",
+  "nibi.settings.own",
+  "nibi.notifications.show",
+] as const;
+
+export type PluginCapabilityId = (typeof PLUGIN_CAPABILITY_IDS)[number];
+
+export type PluginCapabilityScope = "workspace" | "project" | "host";
+
+export interface PluginCapabilityGrant {
+  id: PluginCapabilityId;
+  scope: PluginCapabilityScope;
+}
+
+export interface PluginCapabilityProfile {
+  /** 清单请求的 (能力, 作用域)；host 作用域只对官方/内置生效。 */
+  requested: PluginCapabilityGrant[];
+  /** 已持久化的授权（未同意时为空的敏感能力）。 */
+  granted: PluginCapabilityGrant[];
+}
+
+/** 扩展代码入口；`node`/`native` 只做运行时兼容提示，不代装 Node。 */
+export interface PluginRuntimeDeclaration {
+  apiVersion: "1";
+  entry: string;
+  native?: boolean;
+  napi?: number;
+  node?: string;
+  platforms?: string[];
+}
+
+/** 适配器归一化后写入的元数据；产品面不展示 `adapterId`。 */
+export interface PluginAdapterInfo {
+  adapterId: PluginAdapterId;
+  /** 相对插件根的清单路径，统一用 `/` 分隔。 */
+  manifestPath: string;
+  compatibility: PluginCompatibilityLevel;
+  /** 已识别但当前版本不运行的声明组件，例如 `lspServers`、`apps`、`cordis`。 */
+  skipped: string[];
+}
+
+/**
+ * 内部唯一模型：任何生态的清单先由适配器归一化为 `CanonicalPlugin`，
+ * 核心只消费这一个形状。`manifest` 是归一化后的字段集合（NIBI 扩展已摊平），
+ * `adapter` 记录来源与损失，`permissions` 保留插件请求值。
+ */
+export interface CanonicalPlugin {
+  adapter: PluginAdapterInfo;
+  manifest: PluginManifest;
+  permissions: PluginPermissionProfile;
+  rootPath: string;
+  trust: PluginTrustLevel;
+}
+
 /** 面板生命周期：第一版只接受会话级；`draft` 留待需要时放开。 */
 export type PluginUiSurfaceAvailability = "session";
+/** 声明式插槽锚点：第一版只开放 composer 状态条与主导航。 */
+export type PluginUiSlot = "composer.status" | "nav.primary";
 /** 标题：单一字符串或按 locale 键的映射（`{ "zh-CN": "...", "en-US": "..." }`）。 */
 export type PluginUiSurfaceTitle = string | Record<string, string>;
 export interface PluginUiSurfaceDefinition {
@@ -207,6 +387,8 @@ export interface PluginUiSurfaceDefinition {
   /** 必须以 `ui://` 开头。 */
   resourceUri: string;
   availability: PluginUiSurfaceAvailability;
+  /** 声明式插槽锚点；缺省 = 只在启动器/标签页里出现。 */
+  slot?: PluginUiSlot;
 }
 
 export interface PluginConfig {
@@ -226,6 +408,8 @@ export interface PluginMetadata {
   acceptance?: PluginAcceptanceContract;
   /** acceptance 的解析结果（致命问题与非致命提醒），供插件详情与宿主日志消费。 */
   acceptanceDiagnostics?: PluginAcceptanceParseResult;
+  /** 实际读取该插件的适配器与兼容性（P0 只进数据层，不展示生态名）。 */
+  adapter: PluginAdapterInfo;
   /** manifest（plugin.json）里的作者名，规范化为字符串；商店信息缺失时作为详情页回退。 */
   author?: string;
   authorUrl?: string;
@@ -248,10 +432,33 @@ export interface PluginMetadata {
   mcpServerNames: string[];
   name: string;
   hookDetails: PluginHookDetail[];
+  /** 清单声明的能力请求（不等同于已授权）。 */
+  permissions: PluginPermissionProfile;
+  /** NIBI Extension API 能力请求与已授权集合。 */
+  capabilities: PluginCapabilityProfile;
+  /** 扩展代码声明；未声明时缺省。 */
+  runtime?: PluginRuntimeDeclaration;
   rootPath: string;
   skillCount: number;
   skillRootCount: number;
   source: PluginSource;
+  /** 派生的来源（信任等级 + 适配器生态），仅供展示与诊断；不参与身份判定与门禁。 */
+  origin: PluginOrigin;
+  /**
+   * 完整性门禁拦下的原因。有值时插件不进入运行面（声明式组件与代码都不加载），
+   * UI 用它显示「已停用/已撤销/已停止分发」而不是把插件当成普通未启用。
+   */
+  blockedReason?: { code: PluginDiagnosticCode; message: string };
+  /**
+   * 只管住扩展代码（`runtime.entry`）的原因。声明式组件（skills/commands/agents/
+   * hooks/MCP 声明）仍然可用——原生模块 ABI 不匹配、包 hash 与同意不一致属于
+   * 「代码不能跑」，不是「插件不能用」。
+   */
+  codeBlockedReason?: { code: PluginDiagnosticCode; message: string };
+  /** 发现时计算/记录的包内容 hash（`sha256:<hex>`）；声明式内置插件可能缺省。 */
+  packageHash?: string;
+  /** 发现来源的信任等级；P2 能力网关按它决定可授予上限。 */
+  trust: PluginTrustLevel;
   /** 清单 `ui.surfaces[]` 解析结果（已校验）；未声明或全部非法时缺省。 */
   uiSurfaces?: PluginUiSurfaceDefinition[];
   userConfig?: Record<string, PluginUserConfigOption>;
@@ -308,7 +515,7 @@ export interface PluginReferenceCatalog {
 export interface PluginLoadOutcome {
   commandRoots: CustomCommandRoot[];
   diagnostics: PluginDiagnostic[];
-  hooks: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  hooks: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>;
   mcpServers: Record<string, McpServerConfig>;
   /** 商店 listing 按完整 Plugin ID 关联，供 CLI/TUI 展示；不参与运行时身份判断。 */
   pluginListingsById?: Record<string, PluginStoreListing>;

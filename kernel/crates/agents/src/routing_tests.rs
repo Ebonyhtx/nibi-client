@@ -314,7 +314,8 @@ async fn a_message_left_in_the_mailbox_resumes_the_agent_after_it_ends() {
         )
         .await;
     assert!(
-        text(&sent).starts_with("Message queued for delivery"),
+        text(&sent).starts_with("Message msg_")
+            && text(&sent).contains("was sent to its active turn for local agent"),
         "{}",
         text(&sent)
     );

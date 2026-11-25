@@ -37,17 +37,27 @@ import {
   useDynamicWorkflowAvailabilityLoader,
   useDynamicWorkflowUserModeSync,
 } from "@/hooks/useDynamicWorkflowAvailability.js";
-import { DirectoryBrowser } from "@/DirectoryBrowser.js";
+const DirectoryBrowser = lazy(() =>
+  import("@/DirectoryBrowser.js").then((module) => ({ default: module.DirectoryBrowser })),
+);
 import { attachRemoteProjectWorkspace, resolveEntryProject } from "@/project-sidebar/index.js";
 import { useTabPersistence, type WorkspacePersistenceGate } from "@/hooks/useTabPersistence.js";
 import { useOAuth } from "@/hooks/useOAuth.js";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh.js";
 import { useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
-import { SSHDialog } from "@/SSHDialog.js";
-import { SettingsPage } from "@/SettingsPage.js";
+const SSHDialog = lazy(() =>
+  import("@/SSHDialog.js").then((module) => ({ default: module.SSHDialog })),
+);
+const SettingsPage = lazy(() =>
+  import("@/SettingsPage.js").then((module) => ({ default: module.SettingsPage })),
+);
 import { setPendingSettingsSectionIntent } from "@/lib/settingsNavigation.js";
-import { WelcomeScreen, type LoginCompleteReason } from "@/WelcomeScreen.js";
+import { type LoginCompleteReason } from "@/WelcomeScreen.js";
+
+const WelcomeScreen = lazy(() =>
+  import("@/WelcomeScreen.js").then((module) => ({ default: module.WelcomeScreen })),
+);
 import { setDefaultFileDisplayBasePath } from "@/lib/fileDisplay.js";
 import { readRendererLaunchTimings, shouldReportLaunchToInput } from "@/lib/launchToInputReport.js";
 import { reportUiLaunchToInput } from "@/lib/uiPerfArmsTelemetry.js";
@@ -70,7 +80,11 @@ import { RootWorkspaceContent } from "@/root/RootWorkspaceContent.js";
 import { resolveConversationWorkspaceTarget } from "@/conversation-workspace-target/index.js";
 import { resolveRootWorkspaceShellTarget } from "@/root/rootWorkspaceShellTarget.js";
 import { OccupationOnboarding } from "@/onboarding/OccupationOnboarding.js";
-import { OnboardingDialog } from "@/onboarding/OnboardingDialog.js";
+const OnboardingDialog = lazy(() =>
+  import("@/onboarding/OnboardingDialog.js").then((module) => ({
+    default: module.OnboardingDialog,
+  })),
+);
 import { useRemoteWorkspaceHistory } from "@/root/useRemoteWorkspaceHistory.js";
 import { useRemoteWorkspaceTabLifecycle } from "@/root/useRemoteWorkspaceTabLifecycle.js";
 import { RemoteWorkspaceControllerProvider } from "@/remote/useRemoteWorkspaceController.js";
@@ -309,7 +323,7 @@ function RootInner({
     rootModelSelectionRead.state.status === "ready" ? rootModelSelectionRead.state.view : null;
   const rootModelSelectionErrorNode =
     rootModelSelectionRead.state.status === "error" ? (
-      <div className="fixed right-4 bottom-4 z-50 flex max-w-sm items-center gap-3 rounded-lg border border-destructive/30 bg-surface-raised px-3 py-2 text-ui-base text-foreground shadow-lg">
+      <div className="fixed right-4 bottom-4 z-50 flex max-w-sm items-center gap-3 rounded-xl border border-destructive/35 bg-popover/96 px-3.5 py-2.5 text-ui-base text-foreground shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-md">
         <span className="min-w-0 flex-1">
           {intl.formatMessage({ id: "root.modelSelection.loadFailed" })}
         </span>
@@ -1427,43 +1441,49 @@ function RootInner({
           onSaved={async () => {}}
         />
       ) : null}
-      <SSHDialog
-        completion={remoteConnectionOpenPreference?.completion}
-        onCancelled={(background) => {
-          void finishDeviceAddition(
-            { kind: "cancelled", ...(background ? { background: true } : {}) },
-            background,
-          ).catch((error) => logger.warn("[Root] device addition cancellation failed", error));
-        }}
-        onDeviceConnected={async (sourceServerId, canDeliver) => {
-          if (await finishDeviceAddition({ kind: "connected", sourceServerId }, false, canDeliver))
-            return;
-          if (canDeliver?.() === false) return;
-          setPendingSettingsSectionIntent("remoteDevices", { sourceServerId });
-          tabStoreApi.getState().openSettingsTab();
-        }}
-        onConnect={handleConnectRemote}
-        onSelectProject={selectDirectoryForRemoteProject}
-        onCancelSession={handleCancelRemoteProject}
-        localWorkspacePath={localWorkspacePathForRemoteConnection}
-        isWindowsDesktop={isWindowsDesktop}
-        remoteWorkspaceSessions={remoteWorkspaceSessions}
-        open={remoteConnectionDialogOpen && !remoteProjectSelection}
-        onOpenChange={handleRemoteConnectionDialogOpenChange}
-        onProjectIntentCleared={handleRemoteProjectIntentCleared}
-        onFlowActiveChange={setRemoteConnectionInProgress}
-        onFlowRequestIdChange={setRemoteConnectionRequestId}
-        onFlowTargetChange={handleRemoteConnectionTargetChange}
-        openIntentId={remoteConnectionOpenIntentId}
-        initialFailure={remoteConnectionOpenPreference?.initialFailure}
-        preferredKind={remoteConnectionOpenPreference?.preferredKind}
-        preferredWslDistro={remoteConnectionOpenPreference?.preferredWslDistro}
-        preferredSourceServerId={remoteConnectionOpenPreference?.preferredSourceServerId}
-        preferredProfileId={remoteConnectionOpenPreference?.preferredProfileId}
-        preferredDirectoryPath={remoteConnectionOpenPreference?.preferredDirectoryPath}
-        preferredTarget={remoteConnectionOpenPreference?.preferredTarget}
-        hideTriggerWhenClosed
-      />
+      {remoteConnectionDialogOpen || remoteConnectionInProgress ? (
+        <Suspense fallback={null}>
+          <SSHDialog
+            completion={remoteConnectionOpenPreference?.completion}
+            onCancelled={(background) => {
+              void finishDeviceAddition(
+                { kind: "cancelled", ...(background ? { background: true } : {}) },
+                background,
+              ).catch((error) => logger.warn("[Root] device addition cancellation failed", error));
+            }}
+            onDeviceConnected={async (sourceServerId, canDeliver) => {
+              if (
+                await finishDeviceAddition({ kind: "connected", sourceServerId }, false, canDeliver)
+              )
+                return;
+              if (canDeliver?.() === false) return;
+              setPendingSettingsSectionIntent("remoteDevices", { sourceServerId });
+              tabStoreApi.getState().openSettingsTab();
+            }}
+            onConnect={handleConnectRemote}
+            onSelectProject={selectDirectoryForRemoteProject}
+            onCancelSession={handleCancelRemoteProject}
+            localWorkspacePath={localWorkspacePathForRemoteConnection}
+            isWindowsDesktop={isWindowsDesktop}
+            remoteWorkspaceSessions={remoteWorkspaceSessions}
+            open={remoteConnectionDialogOpen && !remoteProjectSelection}
+            onOpenChange={handleRemoteConnectionDialogOpenChange}
+            onProjectIntentCleared={handleRemoteProjectIntentCleared}
+            onFlowActiveChange={setRemoteConnectionInProgress}
+            onFlowRequestIdChange={setRemoteConnectionRequestId}
+            onFlowTargetChange={handleRemoteConnectionTargetChange}
+            openIntentId={remoteConnectionOpenIntentId}
+            initialFailure={remoteConnectionOpenPreference?.initialFailure}
+            preferredKind={remoteConnectionOpenPreference?.preferredKind}
+            preferredWslDistro={remoteConnectionOpenPreference?.preferredWslDistro}
+            preferredSourceServerId={remoteConnectionOpenPreference?.preferredSourceServerId}
+            preferredProfileId={remoteConnectionOpenPreference?.preferredProfileId}
+            preferredDirectoryPath={remoteConnectionOpenPreference?.preferredDirectoryPath}
+            preferredTarget={remoteConnectionOpenPreference?.preferredTarget}
+            hideTriggerWhenClosed
+          />
+        </Suspense>
+      ) : null}
     </>
   ) : null;
   const directoryBrowserDialog = directoryBrowserOpen ? (
@@ -1472,14 +1492,16 @@ function RootInner({
       resetKeys={["directory-browser"]}
       variant="silent"
     >
-      <DirectoryBrowser
-        services={services}
-        onCancel={() => setDirectoryBrowserOpen(false)}
-        onSelect={(path) => {
-          setDirectoryBrowserOpen(false);
-          void handleSelectProject(path);
-        }}
-      />
+      <Suspense fallback={null}>
+        <DirectoryBrowser
+          services={services}
+          onCancel={() => setDirectoryBrowserOpen(false)}
+          onSelect={(path) => {
+            setDirectoryBrowserOpen(false);
+            void handleSelectProject(path);
+          }}
+        />
+      </Suspense>
     </ScopedErrorBoundary>
   ) : null;
 
@@ -1529,16 +1551,18 @@ function RootInner({
         {requestSecurityBridgeNode}
         {remoteConnectionDialog}
         {directoryBrowserDialog}
-        <WelcomeScreen
-          onComplete={handleWelcomeScreenComplete}
-          onOpenModelSettings={handleOpenApiKeySettings}
-          onDismiss={
-            welcomeScreenOpenReason === "manual-login" ||
-            welcomeScreenOpenReason === "startup-provider-required"
-              ? handleWelcomeScreenDismiss
-              : undefined
-          }
-        />
+        <Suspense fallback={null}>
+          <WelcomeScreen
+            onComplete={handleWelcomeScreenComplete}
+            onOpenModelSettings={handleOpenApiKeySettings}
+            onDismiss={
+              welcomeScreenOpenReason === "manual-login" ||
+              welcomeScreenOpenReason === "startup-provider-required"
+                ? handleWelcomeScreenDismiss
+                : undefined
+            }
+          />
+        </Suspense>
       </RootShell>
     );
   }
@@ -1555,7 +1579,9 @@ function RootInner({
           variant="panel"
           className="h-full"
         >
-          <SettingsPage {...settingsLayerProps} />
+          <Suspense fallback={null}>
+            <SettingsPage {...settingsLayerProps} />
+          </Suspense>
         </ScopedErrorBoundary>
       </RootShell>
     );
@@ -1610,7 +1636,9 @@ function RootInner({
               variant="panel"
               className="h-full"
             >
-              <SettingsPage {...settingsLayerProps} />
+              <Suspense fallback={null}>
+                <SettingsPage {...settingsLayerProps} />
+              </Suspense>
             </ScopedErrorBoundary>
           ) : null
         ) : (
@@ -1675,11 +1703,13 @@ function RootInner({
           resetKeys={[workspaceShellIdentity?.trim() || workspaceShellPath]}
           variant="silent"
         >
-          <OnboardingDialog
-            workspacePath={workspaceShellPath || undefined}
-            workspaceIdentity={workspaceShellIdentity}
-            isDesktop={isDesktop}
-          />
+          <Suspense fallback={null}>
+            <OnboardingDialog
+              workspacePath={workspaceShellPath || undefined}
+              workspaceIdentity={workspaceShellIdentity}
+              isDesktop={isDesktop}
+            />
+          </Suspense>
         </ScopedErrorBoundary>
       </OccupationOnboarding>
     </RootShell>

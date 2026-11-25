@@ -142,12 +142,21 @@ describe("Subagent runtime reasoning catalog E2E", () => {
       parentMarker: EXPLORE_PARENT_MARKER,
       subagentType: "Explore",
     });
+    // Rust 的 Explore 工具面（kernel/crates/agents/src/definitions.rs 的只读禁用集 + 后台白名单）
+    // 按当前桌面内核的真实工具面断言；RespondToCoordinator 是子代理的控制工具（Node
+    // `appendChildControlTool`），定义清单之外也照样给。
     expect(readToolNamesFromCapture(exploreChildRecord.requestJson)).toEqual([
       "Bash",
+      "EnterWorktree",
+      "ExitWorktree",
+      "Monitor",
       "Read",
+      "RespondToCoordinator",
+      "Skill",
+      "TaskStop",
+      "TodoRead",
       "TodoWrite",
       "WebFetch",
-      "RespondToCoordinator",
     ]);
 
     await runSubagentScenario({
@@ -209,17 +218,19 @@ async function configureSubagentReasoningOverrides() {
   );
 
   await selectModelInScope(generalScope, UPSTREAM_MODEL_VALUE);
+  // 主动切换模型时控件会落到目标模型 Registry 的默认档位（最后一档），持久化必须与控件一致；
+  // 这里约束的不变量是“旧 effort 不跟着模型带过去”，目标默认档位的具体值由 SB 覆盖。
   await waitForAgentsState(
     (state) =>
       readBuiltInModelValue(state, "general-purpose") === UPSTREAM_MODEL_VALUE &&
-      readBuiltInReasoningLevel(state, "general-purpose") === null,
-    "general-purpose 切换到 上游 后没有清除旧 effort",
+      readBuiltInReasoningLevel(state, "general-purpose") !== GENERAL_EFFORT,
+    "general-purpose 切换到 上游 后仍保留了旧 effort",
   );
   await selectModelInScope(generalScope, MODEL_VALUE);
   await waitForAgentsState(
     (state) =>
       readBuiltInModelValue(state, "general-purpose") === MODEL_VALUE &&
-      readBuiltInReasoningLevel(state, "general-purpose") === null,
+      readBuiltInReasoningLevel(state, "general-purpose") !== GENERAL_EFFORT,
     "general-purpose 切回 Claude 后不应恢复旧 effort",
   );
   await selectThoughtLevelInScope(generalScope, GENERAL_EFFORT);
@@ -245,10 +256,9 @@ async function configureSubagentReasoningOverrides() {
       },
     },
   });
-  expect(parseCustomAgentFrontmatter(await readFile(CUSTOM_AGENT_PATH, "utf8"))).toMatchObject({
-    model: MODEL_VALUE,
-    thoughtLevel: CUSTOM_EFFORT,
-  });
+  const finalFrontmatter = parseCustomAgentFrontmatter(await readFile(CUSTOM_AGENT_PATH, "utf8"));
+  expect(isPersistedTargetModel(finalFrontmatter.model)).toBe(true);
+  expect(finalFrontmatter.thoughtLevel).toBe(CUSTOM_EFFORT);
 
   await clickTestIdByDom(TID_SETTINGS_BACK_BUTTON, {
     timeout: 15000,
@@ -284,13 +294,18 @@ async function configureCustomSubagentReasoningOverride() {
 
   await openCustomAgentForm();
   await selectModelInScope(SUBAGENT_FORM_SELECTOR, UPSTREAM_MODEL_VALUE);
+  // 主动切换模型时表单落到目标模型 Registry 的默认档位（最后一档）；旧 effort 不能被带回。
   await selectModelInScope(SUBAGENT_FORM_SELECTOR, MODEL_VALUE);
   await saveCustomAgentForm();
+  const targetDefaultEffort = THOUGHT_LEVELS[THOUGHT_LEVELS.length - 1];
   const clearedMarkdown = await waitForCustomMarkdown((content) => {
     const frontmatter = parseCustomAgentFrontmatter(content);
-    return frontmatter.model === MODEL_VALUE && frontmatter.thoughtLevel === undefined;
-  }, "custom 切换模型后没有删除旧 effort");
-  expect(clearedMarkdown).not.toMatch(/^thoughtLevel:/mu);
+    return (
+      isPersistedTargetModel(frontmatter.model) &&
+      frontmatter.thoughtLevel === targetDefaultEffort
+    );
+  }, "custom 切换模型后没有使用目标模型默认档位");
+  expect(clearedMarkdown).toMatch(new RegExp(`^thoughtLevel: ${targetDefaultEffort}$`, "mu"));
 
   await openCustomAgentForm();
   await selectThoughtLevelInScope(SUBAGENT_FORM_SELECTOR, GENERAL_EFFORT);
@@ -298,8 +313,13 @@ async function configureCustomSubagentReasoningOverride() {
   await saveCustomAgentForm();
   await waitForCustomMarkdown((content) => {
     const frontmatter = parseCustomAgentFrontmatter(content);
-    return frontmatter.model === MODEL_VALUE && frontmatter.thoughtLevel === CUSTOM_EFFORT;
+    return isPersistedTargetModel(frontmatter.model) && frontmatter.thoughtLevel === CUSTOM_EFFORT;
   }, "custom 最终 Claude model + medium effort 没有写入 Markdown");
+}
+
+/** UI 保存 Markdown 时写 `provider/model`；seeded 夹具用 `custom:` 编码值，两种都算同一模型。 */
+function isPersistedTargetModel(value: unknown): boolean {
+  return value === MODEL_VALUE || value === `${PROVIDER_ID}/${MODEL_ID}`;
 }
 
 async function openCustomAgentForm() {
@@ -670,20 +690,26 @@ async function clearRendererViewport() {
 }
 
 async function sendRendererEmulationCommand(method: string, params: Record<string, unknown> = {}) {
-  const sent = await browser.electron.execute(
-    async (electron, command, commandParams) => {
-      const window = electron.BrowserWindow.getAllWindows().find(
-        (candidate) => !candidate.isDestroyed() && candidate.isVisible(),
-      );
-      if (!window) return false;
-      const devtools = window.webContents.debugger;
-      if (!devtools.isAttached()) devtools.attach("1.3");
-      await devtools.sendCommand(command, commandParams);
-      return true;
-    },
-    method,
-    params,
-  );
+  // 冷启动/重启后主窗口可能还没进入 visible 状态：给 CDP 发送留一个短暂收敛窗口，
+  // 避免把“窗口尚未可见”误报成设置布局回归。
+  let sent = false;
+  for (let attempt = 0; attempt < 20 && !sent; attempt += 1) {
+    sent = await browser.electron.execute(
+      async (electron, command, commandParams) => {
+        const window = electron.BrowserWindow.getAllWindows().find(
+          (candidate) => !candidate.isDestroyed() && candidate.isVisible(),
+        );
+        if (!window) return false;
+        const devtools = window.webContents.debugger;
+        if (!devtools.isAttached()) devtools.attach("1.3");
+        await devtools.sendCommand(command, commandParams);
+        return true;
+      },
+      method,
+      params,
+    );
+    if (!sent) await browser.pause(250);
+  }
   expect(sent).toBe(true);
 }
 
@@ -735,11 +761,22 @@ async function runSubagentScenario(input: {
   assertClaudeReasoningRecord(parentContinuationRecord, PARENT_EFFORT);
 
   await waitForV4AssistantMessageContaining(input.finalToken);
-  await waitForV4ConversationState(
-    (snapshot) => snapshot.state === "idle" && snapshot.queueCount === 0,
-    `${input.subagentType} runtime catalog case 完成后没有回到 idle`,
-    90000,
-  );
+  try {
+    await waitForV4ConversationState(
+      (snapshot) => snapshot.state === "idle" && snapshot.queueCount === 0,
+      `${input.subagentType} runtime catalog case 完成后没有回到 idle`,
+      90000,
+    );
+  } catch (error) {
+    // 失败时把最后一轮 capture / model-io 摘要带出来：区分“多发了请求 500 重试”
+    // 与“响应已到但 turn 没收口”，避免只看到 streaming 状态。
+    throw new Error(
+      `${input.subagentType} runtime catalog case 完成后没有回到 idle; ` +
+        `capture=${JSON.stringify(await summarizeRecentCapture())}; ` +
+        `modelIo=${JSON.stringify(await summarizeRecentModelIo())}`,
+      { cause: error },
+    );
+  }
   const agentBlock = await waitForToolCallBlockByToolName("Agent");
   expect(agentBlock.status).toBe("completed");
   return childRecord;
@@ -789,6 +826,7 @@ async function waitForParentInitialRequestCapture(parentMarker: string) {
           captureContainsText(record.requestJson, parentMarker) &&
           readModelFromCapture(record.requestJson) === MODEL_ID &&
           !captureContainsText(record.requestJson, "Generate a concise title") &&
+          !captureContainsText(record.requestJson, "You are naming a coding session") &&
           !latestUserMessageHasToolResult(record.requestJson),
       ) ?? null,
     `没有捕获到 parent 首轮请求: ${parentMarker}`,
@@ -803,7 +841,16 @@ async function waitForChildSubagentRequestCapture(childMarker: string) {
           isMessageRequest(record) &&
           record.status === "complete" &&
           captureContainsText(record.requestJson, `${childMarker}:`) &&
-          readModelFromCapture(record.requestJson) === MODEL_ID,
+          readModelFromCapture(record.requestJson) === MODEL_ID &&
+          // 标题生成也复用 child 会话/模型；Rust 的标题 system prompt 不是 Node 那句
+          // "Generate a concise title"，必须两个标记都排除，否则会抓到 5K 辅助预算请求。
+          !captureContainsText(record.requestJson, "Generate a concise title") &&
+          !captureContainsText(record.requestJson, "You are naming a coding session") &&
+          !captureContainsText(record.requestJson, "CRITICAL: Respond with TEXT ONLY") &&
+          // 父会话的续发请求历史里也带着 Agent 工具输入（含 child marker），但最后一条
+          // user 是工具结果或任务通知；child 自己的请求最后一条是用户 prompt。
+          !latestUserMessageHasToolResult(record.requestJson) &&
+          !captureContainsText(record.requestJson, "<task-notification>"),
       ) ?? null,
     `没有捕获到 child 请求: ${childMarker}`,
   );
@@ -816,11 +863,42 @@ async function waitForParentContinuationRequestCapture(childReplyToken: string) 
         (record) =>
           isMessageRequest(record) &&
           record.status === "complete" &&
-          latestUserToolResultContainsText(record.requestJson, childReplyToken) &&
+          latestUserResultContainsText(record.requestJson, childReplyToken) &&
           readModelFromCapture(record.requestJson) === MODEL_ID,
       ) ?? null,
     `没有捕获到 parent continuation 请求: ${childReplyToken}`,
   );
+}
+
+/**
+ * 父续发请求：最新一条 user 消息里出现 child 回复。异步后台 Agent 的回复是
+ * `<task-notification>` 文本，不再是 tool_result；两种形态都要认，且不能只搜整段请求
+ * （父输入本身也包含 child marker）。
+ */
+function latestUserResultContainsText(requestJson: unknown, expectedText: string) {
+  const messages = parseJsonObject(requestJson)?.messages;
+  if (!Array.isArray(messages)) return false;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = parseJsonObject(messages[index]);
+    if (message?.role !== "user") continue;
+    return (
+      Array.isArray(message.content) &&
+      message.content.some((part) => {
+        const typed = parseJsonObject(part);
+        if (!typed) return false;
+        if (typed.type === "tool_result") {
+          return captureContainsText(part, expectedText);
+        }
+        return (
+          typed.type === "text" &&
+          typeof typed.text === "string" &&
+          typed.text.includes("<task-notification>") &&
+          typed.text.includes(expectedText)
+        );
+      })
+    );
+  }
+  return false;
 }
 
 async function waitForCaptureRecord(
@@ -945,25 +1023,34 @@ function latestUserMessageHasToolResult(requestJson: unknown) {
   return false;
 }
 
-function latestUserToolResultContainsText(requestJson: unknown, expectedText: string) {
-  const messages = parseJsonObject(requestJson)?.messages;
-  if (!Array.isArray(messages)) return false;
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = parseJsonObject(messages[index]);
-    if (message?.role !== "user") continue;
-    return (
-      Array.isArray(message.content) &&
-      message.content.some(
-        (part) =>
-          parseJsonObject(part)?.type === "tool_result" && captureContainsText(part, expectedText),
-      )
-    );
-  }
-  return false;
+/** idle 等待失败时的 capture 摘要：谁发了请求、命中哪个 fixture、是不是标题/压缩/子结果。 */
+async function summarizeRecentCapture() {
+  const artifact = await readCaptureArtifact();
+  return (artifact?.records ?? []).slice(-14).map((record) => ({
+    // fixtureId 是 replay 代理在运行期补上的诊断字段，类型里没有声明。
+    fixtureId: (record as { fixtureId?: string }).fixtureId ?? null,
+    model: readModelFromCapture(record.requestJson),
+    statusCode: record.statusCode ?? null,
+    title:
+      captureContainsText(record.requestJson, "Generate a concise title") ||
+      captureContainsText(record.requestJson, "You are naming a coding session"),
+    compact: captureContainsText(record.requestJson, "CRITICAL: Respond with TEXT ONLY"),
+    hasChildResult: captureContainsText(record.requestJson, "_CHILD_OK"),
+  }));
 }
 
-function readNestedValue(value: unknown, path: string[]) {
-  let current: unknown = value;
+/** idle 等待失败时的 model-io 摘要：区分请求失败、响应已到但投影未收口。 */
+async function summarizeRecentModelIo() {
+  const records = await readModelIoRecords();
+  return records.slice(-16).map(({ record }) => ({
+    error: record.error ?? null,
+    hasResponse: record.response !== undefined,
+    querySource: record.querySource,
+    sessionId: record.sessionId,
+  }));
+}
+
+function readNestedValue(value: unknown, path: string[]) {  let current: unknown = value;
   for (const key of path) {
     const record = parseJsonObject(current);
     if (!record) return undefined;

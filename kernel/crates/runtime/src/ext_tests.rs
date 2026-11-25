@@ -59,6 +59,7 @@ fn plugin_parts_carry_the_plugin_name_and_root() {
         agents,
         [nibi_kernel_agents::PluginAgentFile {
             plugin: "kit".to_owned(),
+            plugin_id: "kit@inline".to_owned(),
             root: KIT.to_owned(),
             path: format!("{KIT}/agents/team/lead.md"),
             namespace: vec!["team".to_owned()],

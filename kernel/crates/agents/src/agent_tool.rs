@@ -289,8 +289,9 @@ impl Tool for AgentTool {
             } else {
                 spawn::selection(
                     &parent.selection,
-                    definition.model.as_deref(),
-                    input.effort.clone().or_else(|| definition.effort.clone()),
+                    definition.model_selection.as_ref(),
+                    definition.model_override.as_ref(),
+                    input.effort.clone(),
                 )
             },
             // 父会话的执行状态（基础模式 + plan）交给子代理：声明只能收紧，plan 开着时基础模式继承父会话。

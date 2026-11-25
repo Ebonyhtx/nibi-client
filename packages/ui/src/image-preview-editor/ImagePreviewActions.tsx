@@ -88,6 +88,9 @@ function pngAttachmentName(item: ImagePreviewDownloadItem) {
   return imageAttachmentName(item, "image/png");
 }
 
+const FLOATING_PREVIEW_ACTION_BUTTON_CLASS =
+  "rounded-full border border-popover-border bg-popover/92 text-foreground shadow-[var(--nibi-shadow-card)] supports-[backdrop-filter]:backdrop-blur-md transition-[color,background-color,box-shadow,transform] duration-150 ease-out hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100";
+
 export function ImagePreviewActions({
   item,
   imageRef,
@@ -287,7 +290,7 @@ export function ImagePreviewActions({
           title={labels.saveAndOpen}
           data-image-preview-action="saveAndOpen"
           disabled={disabled}
-          className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+          className={FLOATING_PREVIEW_ACTION_BUTTON_CLASS}
           onClick={() => void saveAndOpen()}
         >
           <ExternalLink />
@@ -299,7 +302,7 @@ export function ImagePreviewActions({
           type="button"
           aria-label={labels.saveAs}
           title={labels.saveAs}
-          className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+          className={FLOATING_PREVIEW_ACTION_BUTTON_CLASS}
           data-image-preview-action="saveAs"
           disabled={disabled}
           onClick={() => void saveAs()}
@@ -314,7 +317,7 @@ export function ImagePreviewActions({
           type="button"
           aria-label={labels.copy}
           title={labels.copy}
-          className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+          className={FLOATING_PREVIEW_ACTION_BUTTON_CLASS}
           data-image-preview-action="copy"
           disabled={disabled}
           onClick={() => void copy()}
@@ -329,7 +332,7 @@ export function ImagePreviewActions({
           type="button"
           aria-label={labels.add}
           title={labels.add}
-          className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+          className={FLOATING_PREVIEW_ACTION_BUTTON_CLASS}
           data-image-preview-action="add"
           disabled={disabled}
           onClick={() => void addToConversation()}
@@ -344,7 +347,7 @@ export function ImagePreviewActions({
           type="button"
           aria-label={labels.draw}
           title={labels.draw}
-          className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+          className={FLOATING_PREVIEW_ACTION_BUTTON_CLASS}
           data-image-preview-action="draw"
           disabled={disabled}
           onClick={onDraw}
@@ -360,7 +363,7 @@ export function ImagePreviewActions({
             type="button"
             aria-label={labels.more}
             title={labels.more}
-            className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+            className={FLOATING_PREVIEW_ACTION_BUTTON_CLASS}
             data-image-preview-action="more"
             size="icon-md"
             variant="ghost"

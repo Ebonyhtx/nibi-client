@@ -81,7 +81,7 @@ export function GitBranchCreateDialog({
               placeholder={intl.formatMessage({
                 id: "git.branchSwitcher.createDialog.placeholder",
               })}
-              className="h-10 rounded-lg bg-background/50"
+              className="h-10 rounded-lg bg-input"
               onChange={(event) => {
                 onBranchNameChange(event.target.value);
               }}
@@ -110,7 +110,7 @@ export function GitBranchCreateDialog({
               disabled={mutationPending || branchName.trim().length === 0}
               className="h-10 min-w-0 px-5"
             >
-              {mutationPending ? <LoaderIcon className="size-4 animate-spin" /> : null}
+              {mutationPending ? <LoaderIcon className="size-4 animate-spin motion-reduce:animate-none" /> : null}
               {intl.formatMessage({
                 id: "git.branchSwitcher.createDialog.confirm",
               })}
@@ -384,7 +384,7 @@ export function GitBranchSwitchAssistDialog({
                 disabled={mutationPending || (!hasIdentity && state.identity !== null)}
                 className="h-10 min-w-0 px-5"
               >
-                {mutationPending ? <LoaderIcon className="size-4 animate-spin" /> : null}
+                {mutationPending ? <LoaderIcon className="size-4 animate-spin motion-reduce:animate-none" /> : null}
                 {intl.formatMessage({
                   id: "git.branchSwitcher.commitDialog.confirm",
                 })}

@@ -712,12 +712,8 @@ export const botAllowedCommandsSchema = z
 
 export const botCommandPolicySchema = botAllowedCommandsSchema;
 
-// 修复原因：第三方 CLI provider 已移除，NibiProvider 只剩 glm，但旧 bot 配置与状态文件里可能仍存有
-// 已移除 provider 的历史值。改成严格 literal 会让整份文件 parse 失败、Bot 全部不可用；
-// 因此解析时继续接受这些历史值，并统一归一到当前唯一的 agent provider。
-const legacyBotAgentProviderSchema = z
-  .enum(["codex", "claude", "opencode", "gemini", "glm", "nibi-agent"])
-  .transform((): typeof NIBI_AGENT_PROVIDER => NIBI_AGENT_PROVIDER);
+/** Bot 配置与状态文件里的 agent provider：只接受当前唯一值。 */
+const botAgentProviderSchema = z.literal(NIBI_AGENT_PROVIDER);
 
 export const botCurrentOptionsSchema = z
   .object({
@@ -725,14 +721,12 @@ export const botCurrentOptionsSchema = z
     mode: z.string().min(1).optional(),
     sandboxMode: z.string().min(1).optional(),
     approvalPolicy: z.string().min(1).optional(),
-    // 兼容旧 bot-config.json；CLI provider 现在统一由 NIBI Protocol 侧配置决定。
-    cli: legacyBotAgentProviderSchema.optional(),
   })
   .strict();
 
 export const botDraftOptionsSchema = z
   .object({
-    provider: legacyBotAgentProviderSchema,
+    provider: botAgentProviderSchema,
     modelSelection: modelSelectionSchema.optional(),
     mode: z.string().min(1).optional(),
   })

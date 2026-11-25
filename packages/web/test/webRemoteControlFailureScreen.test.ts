@@ -16,6 +16,9 @@ describe("WebRemoteControlFailureScreen", () => {
       }),
     );
 
+    expect(html).toContain("NIBI");
+    expect(html).toContain("<svg");
+    expect(html).not.toContain(">!<");
     expect(html).toContain("Desktop Offline");
     expect(html).toContain("What happened");
     expect(html).toContain("Desktop device is offline.");

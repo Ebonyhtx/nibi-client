@@ -1,4 +1,4 @@
-import { LoaderCircleIcon } from "lucide-react";
+import { CheckIcon, LoaderCircleIcon, PauseCircleIcon, RefreshCwIcon } from "lucide-react";
 import { DevicePlatformIcon } from "@nibi/ui/device-platform-icon";
 import { WebRemoteControlBrand } from "#src/web-remote-control/ui/webRemoteControlBrand.js";
 import type { WebRemoteControlScreenLocale } from "#src/web-remote-control/domain/webRemoteControlScreenCopy.js";
@@ -92,57 +92,124 @@ export function WebRemoteControlLoadingScreen({
   const stage = resolveStage(state, copy);
   const stepIndex = STEP_INDEX[state];
   const name = device?.name?.trim();
-  return (
-    <div className="flex h-dvh min-h-dvh w-screen flex-col bg-background px-4 pt-[calc(env(safe-area-inset-top)+12px)] text-foreground">
-      <div className="flex h-10 items-center">
-        <WebRemoteControlBrand />
-      </div>
-      <div
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        className="flex flex-1 flex-col items-center justify-center pb-24 text-center"
+  const statusBadge =
+    state === "paired" ? (
+      <span
+        aria-hidden="true"
+        className="absolute -right-1.5 -bottom-1.5 flex size-6 items-center justify-center rounded-full border border-card bg-success text-success-foreground shadow-xs"
       >
-        <span className="flex size-16 items-center justify-center rounded-xl border border-card-border bg-card">
-          <DevicePlatformIcon platform={device?.platform} className="size-7" />
-        </span>
-        <h1 className="mt-5 max-w-full truncate text-ui-lg font-semibold">
-          {name ? copy.connectingTo(name) : copy.connectingFallback}
-        </h1>
-        <p className="mt-2 flex items-center gap-2 text-ui-sm text-foreground-subtle">
-          <LoaderCircleIcon aria-hidden="true" className="size-3.5 shrink-0 animate-spin" />
-          {stage.label}
-        </p>
-        {stage.description ? (
-          <p className="mt-1.5 max-w-xs text-ui-sm text-foreground-subtlest">{stage.description}</p>
-        ) : null}
-        <ol className="mt-5 flex gap-1.5" aria-label={copy.steps.join(" → ")}>
-          {copy.steps.map((step, index) => (
-            <li
-              key={step}
-              aria-current={index === stepIndex ? "step" : undefined}
-              data-step-state={
+        <CheckIcon className="size-3.5" />
+      </span>
+    ) : state === "reconnecting" ? (
+      <span
+        aria-hidden="true"
+        className="absolute -right-1.5 -bottom-1.5 flex size-6 items-center justify-center rounded-full border border-card bg-warning text-warning-foreground shadow-xs"
+      >
+        <RefreshCwIcon className="size-3.5 animate-spin motion-reduce:animate-none" />
+      </span>
+    ) : state === "suspended" ? (
+      <span
+        aria-hidden="true"
+        className="absolute -right-1.5 -bottom-1.5 flex size-6 items-center justify-center rounded-full border border-card bg-surface text-foreground-subtle shadow-xs"
+      >
+        <PauseCircleIcon className="size-3.5" />
+      </span>
+    ) : (
+      <span
+        aria-hidden="true"
+        className="absolute -right-1.5 -bottom-1.5 flex size-6 items-center justify-center rounded-full border border-card bg-primary text-primary-foreground shadow-xs"
+      >
+        <LoaderCircleIcon className="size-3.5 animate-spin motion-reduce:animate-none" />
+      </span>
+    );
+
+  return (
+    <div className="flex min-h-dvh w-full flex-col bg-background pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+24px)] pl-[max(1rem,env(safe-area-inset-left))] text-foreground">
+      <div className="mx-auto flex h-10 w-full max-w-md items-center">
+        <WebRemoteControlBrand subtitle={locale === "zh-CN" ? "Web 远程控制" : "Web Remote"} />
+      </div>
+      <div className="flex flex-1 items-center justify-center py-6">
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-card-border bg-card p-6 text-center shadow-sm"
+        >
+          <span className="relative flex size-16 items-center justify-center rounded-2xl border border-card-border bg-surface shadow-xs">
+            <DevicePlatformIcon platform={device?.platform} className="size-7 text-foreground" />
+            {statusBadge}
+          </span>
+          <h1 className="mt-4 max-w-full text-ui-xl font-semibold break-words text-balance text-foreground">
+            {name ? copy.connectingTo(name) : copy.connectingFallback}
+          </h1>
+          <p className="mt-2.5 inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-ui-sm text-foreground-subtle">
+            <LoaderCircleIcon
+              aria-hidden="true"
+              className="size-3.5 shrink-0 animate-spin text-primary motion-reduce:animate-none"
+            />
+            <span className="text-pretty">{stage.label}</span>
+          </p>
+          {stage.description ? (
+            <p className="mt-2.5 max-w-xs text-ui-sm leading-relaxed text-pretty text-foreground-subtle">
+              {stage.description}
+            </p>
+          ) : null}
+          <ol
+            className="mt-5 w-full space-y-2 rounded-xl border border-border bg-surface/70 p-3.5 text-left"
+            aria-label={copy.steps.join(" → ")}
+          >
+            {copy.steps.map((step, index) => {
+              const stepState =
                 stepIndex === undefined
                   ? "idle"
                   : index < stepIndex
                     ? "done"
                     : index === stepIndex
                       ? "active"
-                      : "pending"
-              }
-              className={[
-                "h-1 w-8 rounded-full",
-                stepIndex === undefined || index > stepIndex
-                  ? "bg-foreground-subtlest/50"
-                  : index === stepIndex
-                    ? "animate-pulse bg-foreground/60"
-                    : "bg-foreground",
-              ].join(" ")}
-            >
-              <span className="sr-only">{step}</span>
-            </li>
-          ))}
-        </ol>
+                      : "pending";
+              return (
+                <li
+                  key={step}
+                  aria-current={index === stepIndex ? "step" : undefined}
+                  data-step-state={stepState}
+                  className="flex items-center gap-2.5 text-ui-sm"
+                >
+                  {stepState === "done" ? (
+                    <span
+                      aria-hidden="true"
+                      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground"
+                    >
+                      <CheckIcon className="size-3" />
+                    </span>
+                  ) : stepState === "active" ? (
+                    <span
+                      aria-hidden="true"
+                      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/35"
+                    >
+                      <LoaderCircleIcon className="size-3 animate-spin motion-reduce:animate-none" />
+                    </span>
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="flex size-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-ui-xs font-medium text-foreground-subtle"
+                    >
+                      {index + 1}
+                    </span>
+                  )}
+                  <span
+                    className={
+                      stepState === "active"
+                        ? "font-medium text-foreground"
+                        : "text-foreground-subtle"
+                    }
+                  >
+                    {step}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </div>
     </div>
   );

@@ -12,14 +12,24 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { PluginDiagnostic, PluginManifest, PluginStoreListing } from "@nibi/contracts";
-import { isOfficialMarketplaceId, NIBI_OFFICIAL_PLUGIN_MARKETPLACE } from "@nibi/contracts";
+import type {
+  PluginAdapterId,
+  PluginCapabilityScope,
+  PluginDiagnostic,
+  PluginManifest,
+  PluginStoreListing,
+  PluginTrustLevel,
+} from "@nibi/contracts";
+import {
+  isOfficialMarketplaceId,
+  isRunnablePluginHookEvent,
+  NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
+} from "@nibi/contracts";
 import {
   DEFAULT_PLUGIN_MARKETPLACES,
   hiddenDefaultPluginMarketplaces,
   isNibiPrimaryContentUrl,
   migrateLegacyNibiUrl,
-  NIBI_PLUGIN_MANIFEST_DIR,
   sanitizeNibiRuntimeEnv,
 } from "@nibi/shared";
 import { isNibiSignedContentUrl, verifyNibiContentSignature } from "@nibi/shared/node";
@@ -27,14 +37,31 @@ import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.j
 import {
   appendPluginSourceCleanupError,
   cleanupPluginSourceBestEffort,
+  createCanonicalPlugin,
   directoryExists,
   fileExists,
+  findPluginManifest,
+  findNativePluginManifest,
   isRecord,
-  migrateLegacyPluginManifest,
+  NIBI_PLUGIN_EXTENSION_KEY,
+  readPluginManifestDocument,
+  readNativePluginManifest,
   resolveInside,
+  resolveMarketplaceTrust,
+  resolvePluginCapabilities,
+  resolvePluginPermissions,
+  resolvePluginRuntime,
+  resolveRequiredPluginPermissions,
   sanitizePluginId,
 } from "./helpers.js";
 import { enumeratePluginComponents, type PluginComponentGroup } from "./plugin-components.js";
+import { computePluginPackageHash } from "./package-hash.js";
+import { assertPluginNativeModulesDeclared, assertPluginRuntimeNotBundled } from "./native-modules.js";
+import { removePluginViewRoot } from "./view-root.js";
+import {
+  checkPluginRevocation,
+  type PluginRevocationMatch,
+} from "./plugin-revocations.js";
 import { applyNetworkEgressEnv } from "../network/subprocess-env.js";
 import { createNodeWebFetchHttpClientAdapter } from "../http/index.js";
 import { writeCdnOfficialMarketplacePartitionSync } from "./official-marketplace.js";
@@ -70,6 +97,16 @@ const execFileAsync = promisify(execFile);
 const KNOWN_MARKETPLACES_FILE = "known_marketplaces.json";
 const INSTALLED_PLUGINS_FILE = "installed_plugins.json";
 const MARKETPLACE_FILE = "marketplace.json";
+/**
+ * 外部市场源的规范清单位置：本地缓存统一写根 `marketplace.json`，
+ * Claude/Codex 生态的仓库则把清单放在各自的隐藏目录。读取顺序固定为
+ * 根 > Claude > ZCode；写入永远只写根，不复制外来的隐藏目录。
+ */
+const MARKETPLACE_SOURCE_FILES = [
+  MARKETPLACE_FILE,
+  join(".claude-plugin", MARKETPLACE_FILE),
+  join(".zcode-plugin", MARKETPLACE_FILE),
+] as const;
 const CLAUDE_OFFICIAL_MARKETPLACE = "claude-plugins-official";
 const PLUGIN_ICON_SOURCES_FILE = "icon-sources.json";
 // 图标与来源表都走自有内容主机（分家标准 §2）。这张表只服务「上游 claude 市场」的图标
@@ -84,10 +121,7 @@ const MARKETPLACE_JSON_MAX_REDIRECTS = 5;
 // 大包，又不再等满三分钟；失败时保留磁盘上的旧 manifest，且自动刷新有 10 分钟节流。
 export const MARKETPLACE_JSON_TIMEOUT_MS = 30_000;
 const claudeIconMigrationAttempts = new Set<string>();
-// 市场描述文件不是插件包清单：NIBI 原生布局是根 `marketplace.json`，旧市场根仍可读，
-// 用于兼容插件创建器生成的本地市场与已存在的 claude-plugins-official 记录。
-const LEGACY_MARKETPLACE_FILE = join(".claude-plugin", "marketplace.json");
-const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
+// 市场描述文件不是插件包清单：NIBI 原生布局是根 `marketplace.json`。
 const DEFAULT_VERSION = "0.0.0";
 const GIT_CLONE_MAX_ATTEMPTS = 3;
 const GIT_COMMAND_TIMEOUT_MS = 90_000;
@@ -185,6 +219,18 @@ export interface InstalledPluginRecord {
   paid?: boolean;
   dependencies?: string[];
   source?: unknown;
+  /**
+   * 包内容 hash（`sha256:<hex>`），安装时记录；权限同意按它绑定，
+   * 同版本换内容必须重新确认。内置/纯声明式插件可能缺省。
+   */
+  packageHash?: string;
+  /**
+   * 生命周期状态。卸载不再直接删记录，而是标 `removed` + `removedAt` 保留 30 天墓碑
+   * （计划 A）：重装能复活同一条记录，也不会把别的插件写回的状态当新安装。
+   * 缺省 = `installed`（旧状态文件没有这个字段）。
+   */
+  state?: "installed" | "removed";
+  removedAt?: string;
   /** 内部崩溃恢复代际；协议/UI 投影不暴露。 */
   cacheTransactionId?: string;
 }
@@ -226,6 +272,19 @@ export interface DescribeMarketplacePluginResult {
   diagnostics: PluginValidationDiagnostic[];
   // 插件包内 plugin.json 的展示性回退字段（作者/主页/版本）；商店信息缺失时详情页信息区用它兜底。
   metadata?: PluginManifestDisplayMetadata;
+  // 安装前由插件包清单推导的权限/能力/代码运行声明；来源不可解析或只有合成清单时缺省。
+  declaration?: MarketplacePluginDeclaration;
+}
+
+export interface MarketplacePluginDeclaration {
+  permissions: { requested: string[]; required: string[] };
+  capabilities: {
+    requested: Array<{ id: string; scope: PluginCapabilityScope }>;
+    granted: Array<{ id: string; scope: PluginCapabilityScope }>;
+  };
+  // 只报是否存在扩展代码入口；entry 路径留在本地清单，不进协议。
+  hasCodeRuntime: boolean;
+  trust: PluginTrustLevel;
 }
 
 export interface PluginManifestDisplayMetadata {
@@ -864,9 +923,23 @@ export function loadMarketplaceManifestSync(
   return parseMarketplaceManifest(migrated.value);
 }
 
-export function loadInstalledPluginsSync(storageRoot: string): InstalledPluginsState {
+/**
+ * 完整状态（含 30 天墓碑）。只给写路径（安装/卸载/剪枝）用：
+ * 对外语义「已安装」必须走 {@link loadInstalledPluginsSync}，否则墓碑会被当成
+ * 仍在安装，出现 `plugins list` 里永远删不掉的幽灵行。
+ */
+export function loadInstalledPluginsStateSync(storageRoot: string): InstalledPluginsState {
   const parsed = readJsonFileSync(join(storageRoot, INSTALLED_PLUGINS_FILE));
   return normalizeInstalledPluginsState(parsed);
+}
+
+/** 对外「已安装」视图：removed 墓碑不出现。 */
+export function loadInstalledPluginsSync(storageRoot: string): InstalledPluginsState {
+  const state = loadInstalledPluginsStateSync(storageRoot);
+  return {
+    plugins: state.plugins.filter((record) => record.state !== "removed"),
+    version: 1,
+  };
 }
 
 export async function saveInstalledPlugins(
@@ -880,6 +953,31 @@ export function listInstalledPluginRecords(storageRoot: string): InstalledPlugin
   return loadInstalledPluginsSync(storageRoot).plugins;
 }
 
+/**
+ * 剪掉超期的 removed 墓碑。只删安装记录，不碰 `data/<pluginId>` 用户数据——
+ * 墓碑的作用就是让「卸载后多久内还能恢复」可预期，删数据是另一条独立操作。
+ */
+export async function pruneRemovedPluginRecords(input: {
+  storageRoot: string;
+  now?: Date;
+  retentionDays?: number;
+}): Promise<number> {
+  const retentionDays = input.retentionDays ?? 30;
+  const cutoff = (input.now ?? new Date()).getTime() - retentionDays * 24 * 60 * 60 * 1000;
+  const state = loadInstalledPluginsStateSync(input.storageRoot);
+  const kept = state.plugins.filter((record) => {
+    if (record.state !== "removed") return true;
+    const removedAt = record.removedAt ? Date.parse(record.removedAt) : Number.NaN;
+    // removedAt 坏掉/缺失时按「刚移除」处理：宁可多留一个墓碑，也不要把
+    // 可能还需要恢复的记录删掉。
+    return !Number.isFinite(removedAt) || removedAt > cutoff;
+  });
+  const removedCount = state.plugins.length - kept.length;
+  if (removedCount === 0) return 0;
+  await saveInstalledPlugins(input.storageRoot, { plugins: kept, version: 1 });
+  return removedCount;
+}
+
 export function resolveInstalledPluginRoot(
   storageRoot: string,
   record: InstalledPluginRecord,
@@ -888,9 +986,6 @@ export function resolveInstalledPluginRoot(
     record.installPath ||
     getPluginCacheDir(storageRoot, record.marketplace, record.name, record.version);
   const recovered = recoverAtomicTargetSync(root);
-  // 老版本安装缓存可能只有 .claude-plugin/.codex-plugin 清单（strict:false 合成或早期
-  // 第三方包）。发现与商店详情都从这里取根目录，先一次性迁到 NIBI 自有格式。
-  migrateLegacyPluginManifest(recovered);
   return recovered;
 }
 
@@ -905,6 +1000,8 @@ export async function installMarketplacePlugin(input: {
   credentialStore?: Pick<SharedNibiCredentialStore, "load">;
   /** 验签公钥覆盖（测试与轮换用；默认内置表）。 */
   licensePublicKeys?: Record<string, string>;
+  /** 命中断续分发（warn）时的回调：装还是要装，但调用方要能记诊断/提示。 */
+  onRevocationWarning?: (input: { match: PluginRevocationMatch; pluginId: string }) => void;
 }): Promise<MarketplaceInstallResult> {
   await ensureMarketplaceManifestAvailable({
     marketplace: input.marketplace,
@@ -921,7 +1018,8 @@ export async function installMarketplacePlugin(input: {
     name: input.name,
     storageRoot: input.storageRoot,
   });
-  const state = loadInstalledPluginsSync(input.storageRoot);
+  // 写路径要看到完整状态（含墓碑），否则重装会往数组里追加第二条同 id 记录。
+  const state = loadInstalledPluginsStateSync(input.storageRoot);
   const installed: InstalledPluginRecord[] = [];
   const activations: AtomicDirectoryActivation[] = [];
   try {
@@ -931,6 +1029,18 @@ export async function installMarketplacePlugin(input: {
       if (!manifest) throw new Error(`Marketplace not found: ${marketplace}`);
       const entry = manifest.plugins.find((plugin) => plugin.name === name);
       if (!entry) throw new Error(`Plugin not found: ${pluginId}`);
+      // 撤销门禁放在下载之前：被 block 的版本不该产生任何网络请求、缓存或安装记录。
+      // 条目可能不带 version（git/url 源很常见），此时只有 sha256 条目能命中；
+      // 解析出真实版本后 cacheMarketplacePlugin 会再查一次。
+      const revoked = assertPluginNotRevoked({
+        pluginId,
+        sha256: readPluginSourceSha(entry.source)?.toLowerCase(),
+        storageRoot: input.storageRoot,
+        ...(entry.version ? { version: entry.version } : {}),
+      });
+      if (revoked?.action === "warn") {
+        input.onRevocationWarning?.({ match: revoked, pluginId });
+      }
       // 收费件在**下载之前**拦：没有有效 license 就不产生任何缓存/安装记录。
       const paidAccess = entry.paid
         ? await resolvePaidPluginAccess({
@@ -977,21 +1087,37 @@ export async function uninstallMarketplacePlugin(input: {
   /** `nibi plugins uninstall --keep-data`：删安装缓存但保留 data/<plugin-id> 用户数据目录。 */
   keepData?: boolean;
 }): Promise<InstalledPluginRecord | null> {
-  const state = loadInstalledPluginsSync(input.storageRoot);
+  const state = loadInstalledPluginsStateSync(input.storageRoot);
   const index = state.plugins.findIndex((record) => record.id === input.pluginId);
   if (index < 0) return null;
-  const [removed] = state.plugins.splice(index, 1);
+  const [record] = state.plugins.splice(index, 1);
+  if (!record) return null;
+  // 保留 30 天墓碑（计划 A）：卸载必须能解释「为什么这个插件不再加载」，
+  // 也让重装复用同一条记录而不是悄悄变成新安装。数据目录按 keepData 语义处理。
+  const removed: InstalledPluginRecord = {
+    ...record,
+    removedAt: new Date().toISOString(),
+    state: "removed",
+  };
+  state.plugins.push(removed);
   await saveInstalledPlugins(input.storageRoot, state);
-  if (removed && input.removeCache === true) {
-    await rm(removed.installPath, { force: true, recursive: true });
+  // 视图根里的条目是硬链接/junction，缓存目录一删就成悬空链接；卸载时顺手清掉。
+  // 失败不影响卸载结果（下一次物化会覆盖它）。
+  try {
+    removePluginViewRoot(input.storageRoot, record.id);
+  } catch {
+    // best-effort。
+  }
+  if (input.removeCache === true) {
+    await rm(record.installPath, { force: true, recursive: true });
     // 彻底卸载：data/<plugin-id> 是持久化的 per-plugin 目录（含 materialize 的 generated-commands）。
     // 按「卸载最后一份安装时一并删除」语义，保证重装是干净的。
 
     if (input.keepData !== true) {
-      await rm(getPluginDataDir(input.storageRoot, removed.id), { force: true, recursive: true });
+      await rm(getPluginDataDir(input.storageRoot, record.id), { force: true, recursive: true });
     }
   }
-  return removed ?? null;
+  return removed;
 }
 
 export async function validateMarketplacePlugin(input: {
@@ -1093,6 +1219,7 @@ export async function describeMarketplacePlugin(input: {
       return {
         components: read.components,
         diagnostics,
+        ...(read.declaration ? { declaration: read.declaration } : {}),
         ...(read.metadata ? { metadata: read.metadata } : {}),
       };
     }
@@ -1154,6 +1281,7 @@ export async function describeMarketplacePlugin(input: {
     return {
       components: read.components,
       diagnostics,
+      ...(read.declaration ? { declaration: read.declaration } : {}),
       ...(read.metadata ? { metadata: read.metadata } : {}),
     };
   } catch (error) {
@@ -1170,8 +1298,16 @@ function readComponentsAtRoot(input: {
   entry?: PluginMarketplaceEntry;
   marketplace: string;
   rootPath: string;
-}): { components: PluginComponentGroup[]; metadata?: PluginManifestDisplayMetadata } {
-  let loadedManifest: { manifest: PluginManifest; manifestPath?: string } | null = null;
+}): {
+  components: PluginComponentGroup[];
+  declaration?: MarketplacePluginDeclaration;
+  metadata?: PluginManifestDisplayMetadata;
+} {
+  let loadedManifest: {
+    adapterId: PluginAdapterId;
+    manifest: PluginManifest;
+    manifestPath?: string;
+  } | null = null;
   try {
     loadedManifest = readPluginManifestFromRoot(
       input.rootPath,
@@ -1183,6 +1319,13 @@ function readComponentsAtRoot(input: {
   }
   const loaded = loadedManifest
     ? {
+        canonical: createCanonicalPlugin({
+          adapterId: loadedManifest.adapterId,
+          manifest: loadedManifest.manifest,
+          manifestPath: loadedManifest.manifestPath ?? input.rootPath,
+          rootPath: input.rootPath,
+          trust: resolveMarketplaceTrust(input.marketplace),
+        }),
         id: `${loadedManifest.manifest.name}@${input.marketplace}`,
         manifest: loadedManifest.manifest,
         manifestPath: loadedManifest.manifestPath ?? input.rootPath,
@@ -1195,8 +1338,60 @@ function readComponentsAtRoot(input: {
     diagnostics: input.diagnostics as PluginDiagnostic[],
     ...(loaded ? { loaded } : {}),
   });
+  // 合成清单（strict:false 且没有落盘 manifest）不算包的真实声明；来源不可解析时同样缺省。
+  const declaration =
+    loadedManifest?.manifestPath !== undefined
+      ? resolvePluginDeclaration({
+          adapterId: loadedManifest.adapterId,
+          components,
+          manifest: loadedManifest.manifest,
+          marketplace: input.marketplace,
+        })
+      : undefined;
   const metadata = loadedManifest ? toManifestDisplayMetadata(loadedManifest.manifest) : undefined;
-  return { components, ...(metadata ? { metadata } : {}) };
+  return {
+    components,
+    ...(declaration ? { declaration } : {}),
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
+/** 安装前声明：与已安装详情共用同一套权限/能力推导，代码入口只报存在性。 */
+function resolvePluginDeclaration(input: {
+  adapterId: PluginAdapterId;
+  components: PluginComponentGroup[];
+  manifest: PluginManifest;
+  marketplace: string;
+}): MarketplacePluginDeclaration {
+  const trust = resolveMarketplaceTrust(input.marketplace);
+  // 与已安装发现同口径：外来生态（claude/codex/zcode/dsh）的 runtime 会被跳过，
+  // 不能在安装前声称“会执行代码”。
+  const runtimeRunnable = input.adapterId === "native" || input.adapterId === "agent-plugins";
+  const hasCodeRuntime =
+    runtimeRunnable && resolvePluginRuntime(input.manifest).runtime !== undefined;
+  const hasCode = hasCodeRuntime;
+  // 与已安装发现的 hookInspection.events 同口径：只有内核真正会派发的事件才要求 process。
+  const hasHooks = (input.components.find((group) => group.kind === "hook")?.items ?? []).some(
+    (item) => isRunnablePluginHookEvent(item.name),
+  );
+  const hasMcp = (input.components.find((group) => group.kind === "mcp")?.items.length ?? 0) > 0;
+  const requested = resolvePluginPermissions(input.manifest).requested;
+  const required = resolveRequiredPluginPermissions(input.manifest, {
+    hasCode,
+    hasHooks,
+    hasMcp,
+    trust,
+  });
+  const capabilities = resolvePluginCapabilities(input.manifest, trust).profile;
+  return {
+    permissions: { requested: [...requested], required: [...required] },
+    capabilities: {
+      requested: capabilities.requested.map((grant) => ({ id: grant.id, scope: grant.scope })),
+      granted: capabilities.granted.map((grant) => ({ id: grant.id, scope: grant.scope })),
+    },
+    hasCodeRuntime,
+    trust,
+  };
 }
 
 /** 抽取 plugin.json 里可展示的回退字段；一个都没有时返回 undefined。 */
@@ -1491,12 +1686,34 @@ async function cacheMarketplacePlugin(input: {
     if (resolve(sourceRoot.path) === resolve(target)) {
       await ensureMarketplaceEntryManifest({ entry: input.entry, target });
     }
+    // 原生模块门禁：包里有 .node 但清单没声明 runtime.native 的，安装期直接拒绝，
+    // 不产生安装记录（抛错会回滚上面的原子目录事务）。见计划 §8.4。
+    const manifestSource = readPluginManifestFromRoot(target, input.entry);
+    const rawRuntime = manifestSource?.manifest.runtime;
+    assertPluginNativeModulesDeclared({
+      pluginId: `${input.entry.name}@${input.marketplace}`,
+      rootPath: target,
+      nativeDeclared:
+        typeof rawRuntime === "object" &&
+        rawRuntime !== null &&
+        (rawRuntime as { native?: unknown }).native === true,
+    });
+    // 官方市场禁止插件自带 Node 运行时（计划 §8.5）；local/社区源不禁止。
+    assertPluginRuntimeNotBundled({
+      forbidden: input.marketplace === NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
+      pluginId: `${input.entry.name}@${input.marketplace}`,
+      rootPath: target,
+    });
   } finally {
     // cache 已复制成功后，临时目录 cleanup 失败不能阻断 installed record 落盘。
     await cleanupPluginSourceBestEffort(sourceRoot.cleanup);
   }
 
   const now = new Date().toISOString();
+  // 包 hash 在缓存落盘之后、写安装记录之前算：此时目录内容已经是最终内容，
+  // 同意记录/发现层都拿同一个值。算不出来（超大包等）不阻断安装，只是不绑定 hash
+  // ——发现层会把「有代码但没 hash」当作不可信任代码处理。
+  const packageHash = resolveInstalledPackageHashSafe(target);
   const record: InstalledPluginRecord = {
     id: `${input.entry.name}@${input.marketplace}`,
     name: input.entry.name,
@@ -1506,6 +1723,7 @@ async function cacheMarketplacePlugin(input: {
     installedAt: now,
     updatedAt: now,
     scope: input.scope,
+    ...(packageHash ? { packageHash } : {}),
     ...(input.entry.paid ? { paid: true } : {}),
     ...(input.entry.dependencies ? { dependencies: input.entry.dependencies } : {}),
     ...(input.entry.source !== undefined ? { source: input.entry.source } : {}),
@@ -1519,11 +1737,28 @@ async function cacheMarketplacePlugin(input: {
       ...previousRecord,
       ...record,
       installedAt: previousRecord.installedAt ?? record.installedAt,
+      // 重装/更新复活墓碑：state 回到 installed 并清掉移除时间，
+      // 否则对外「已安装」视图会继续把这条记录过滤掉。
+      removedAt: undefined,
+      state: "installed",
     };
   } else {
     input.state.plugins.push(record);
   }
   return { ...(activation ? { activation } : {}), record };
+}
+
+/**
+ * 包 hash 是「同版本换内容」的唯一凭证，但它是同步全量遍历，超大包会拖慢安装。
+ * 失败只记诊断、不阻断安装：拿不到 hash 时发现层按未绑定处理（要求重新同意/不激活代码），
+ * 比让用户装不上更合理。
+ */
+function resolveInstalledPackageHashSafe(rootPath: string): string | undefined {
+  try {
+    return computePluginPackageHash(rootPath);
+  } catch {
+    return undefined;
+  }
 }
 
 async function resolvePluginSourceRoot(input: {
@@ -1669,6 +1904,48 @@ async function resolvePluginSourceRoot(input: {
 
 export function readPluginSourceSha(source: unknown): string | undefined {
   return readPluginSourceIdentityPin(source);
+}
+
+/**
+ * 撤销门禁的统一入口（安装/更新/发现共用判定）。
+ *
+ * `block` 必须抛错：撤销是不可被用户覆盖的安全决定，不能降级成 warn 或 UI 提示。
+ * `warn` 只记诊断——发布链用它提示「这个版本有已知问题但仍可用」。
+ */
+function assertPluginNotRevoked(input: {
+  storageRoot: string;
+  pluginId: string;
+  version?: string;
+  sha256?: string;
+}): PluginRevocationMatch | null {
+  const match = checkPluginRevocation(input);
+  if (match?.action === "block") {
+    const reason = match.reason ? `：${match.reason}` : "";
+    throw new Error(
+      `Plugin ${input.pluginId} has been revoked and cannot be installed or updated${reason}`,
+    );
+  }
+  return match;
+}
+
+/**
+ * 给发现层用的撤销判定：安装记录 + 磁盘内容 hash。
+ *
+ * 这里用记录里的 `packageHash`（安装时算的）而不是重算目录——发现是同步热路径，
+ * 每轮全量哈希会很慢；内容被替换的情况由 `resolvePluginContentTrust` 的 hash 绑定负责。
+ */
+export function evaluateInstalledPluginRevocation(
+  storageRoot: string,
+  record: Pick<InstalledPluginRecord, "id" | "version" | "packageHash">,
+): PluginRevocationMatch | null {
+  return checkPluginRevocation({
+    pluginId: record.id,
+    storageRoot,
+    ...(record.version ? { version: record.version } : {}),
+    ...(record.packageHash
+      ? { sha256: record.packageHash.replace(/^sha256:/u, "") }
+      : {}),
+  });
 }
 
 export function readPluginSourceIdentityPin(source: unknown): string | undefined {
@@ -1820,11 +2097,9 @@ async function ensureMarketplaceEntryManifest(input: {
 }): Promise<void> {
   if (findPluginManifestPath(input.target)) return;
   if (input.entry.strict !== false) return;
-  // 合成清单也写 NIBI 自有格式；不能再生成 .claude-plugin，否则新安装的插件仍是旧格式。
-  const manifestDir = join(input.target, NIBI_PLUGIN_MANIFEST_DIR);
-  await mkdir(manifestDir, { recursive: true });
+  // 合成清单同样写 Agent Plugins 根 plugin.json + NIBI extensions。
   await writeJsonFile(
-    join(manifestDir, "plugin.json"),
+    join(input.target, "plugin.json"),
     createManifestFromMarketplaceEntry(input.entry),
   );
 }
@@ -1866,10 +2141,34 @@ function createManifestFromMarketplaceEntry(
   delete raw.examplePrompts;
   delete raw.examplePrompts_i18n;
   delete raw.requiresPaidPlan;
+  const extension: Record<string, unknown> = { apiVersion: "1" };
+  for (const key of [
+    "skills",
+    "commands",
+    "agents",
+    "hooks",
+    "mcpServers",
+    "ui",
+    "userConfig",
+    "acceptance",
+    "settings",
+    "dependencies",
+    "channels",
+    "lspServers",
+    "outputStyles",
+    "paid",
+  ]) {
+    if (raw[key] !== undefined) {
+      extension[key] = raw[key];
+      delete raw[key];
+    }
+  }
   return {
+    $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
     ...raw,
     name: entry.name,
     version: entry.version ?? DEFAULT_VERSION,
+    extensions: { [NIBI_PLUGIN_EXTENSION_KEY]: extension },
   };
 }
 
@@ -2357,6 +2656,11 @@ function normalizeInstalledPluginRecordFromMap(
         ...(typeof item.lastUpdated === "string" ? { updatedAt: item.lastUpdated } : {}),
         scope,
         ...(item.paid === true ? { paid: true } : {}),
+        // 墓碑/包 hash 只在旧版 map 布局里出现过时也要保留：丢了 state 会让
+        // 已卸载插件复活，丢了 packageHash 会让同意记录永远对不上。
+        ...(item.state === "removed" ? { state: "removed" as const } : {}),
+        ...(typeof item.removedAt === "string" ? { removedAt: item.removedAt } : {}),
+        ...(typeof item.packageHash === "string" ? { packageHash: item.packageHash } : {}),
       },
     ];
   });
@@ -2394,10 +2698,37 @@ export function assertMarketplaceRevisionNotRolledBack(input: {
   }
 }
 
+/**
+ * 市场目录 schema 版本。
+ *
+ * 计划 §D 的 `schemaVersion: 2` 只做**前向兼容**：v2 目前没有新增必填字段，
+ * 结构与 v1 一致，因此两条都按同一套解析走。这样发布链可以先给目录打上 v2 标记
+ * （给未来字段留出空间），老客户端继续读；反过来，未来真出现 v3 时这里拒绝，
+ * 让用户看到 `plugin_marketplace_invalid`，而不是把不认识的目录当 v1 半解析。
+ */
+export const MARKETPLACE_SCHEMA_VERSION_MIN = 1;
+export const MARKETPLACE_SCHEMA_VERSION_MAX = 2;
+
+function readMarketplaceSchemaVersion(raw: Record<string, unknown>): number | null {
+  const value = raw.schemaVersion;
+  // 缺省 = v1：存量目录都没有这个字段。
+  if (value === undefined) return 1;
+  const parsed =
+    typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : Number.NaN;
+  if (!Number.isInteger(parsed)) return null;
+  if (parsed < MARKETPLACE_SCHEMA_VERSION_MIN || parsed > MARKETPLACE_SCHEMA_VERSION_MAX) {
+    return null;
+  }
+  return parsed;
+}
+
 function parseMarketplaceManifest(value: unknown): PluginMarketplaceManifest | null {
   if (!isRecord(value)) return null;
   const name = typeof value.name === "string" ? value.name.trim() : "";
   if (!MARKETPLACE_NAME_PATTERN.test(name)) return null;
+  // 不认识的 schema 版本必须整份拒绝：用 v1 规则解析 v3 目录会静默丢掉新字段，
+  // 装出来的插件与目录声明不一致。
+  if (readMarketplaceSchemaVersion(value) === null) return null;
   const rawPlugins = value.plugins;
   const pluginEntries = Array.isArray(rawPlugins)
     ? rawPlugins
@@ -2579,11 +2910,9 @@ function normalizeDependencyRef(value: unknown): string | null {
 }
 
 function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): string | null {
-  // NIBI 原生市场根清单优先；`.claude-plugin/marketplace.json` 只作为旧市场布局兼容读取。
   const candidates = [
     ...(explicitPath ? [explicitPath] : []),
-    MARKETPLACE_FILE,
-    LEGACY_MARKETPLACE_FILE,
+    ...MARKETPLACE_SOURCE_FILES,
   ];
   for (const candidate of candidates) {
     const path = resolveInside(rootPath, candidate);
@@ -2593,8 +2922,7 @@ function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): s
 }
 
 function findPluginManifestPath(rootPath: string): string | null {
-  const path = join(rootPath, NIBI_MANIFEST_PATH);
-  return fileExists(path) ? path : null;
+  return findNativePluginManifest(rootPath);
 }
 
 // 缓存路径段与安装记录的版本来源。优先取插件落盘 plugin.json 里的真实
@@ -2622,25 +2950,27 @@ function resolveInstalledPluginVersion(rootPath: string, entry: PluginMarketplac
 function readPluginManifestFromRoot(
   rootPath: string,
   entry: PluginMarketplaceEntry,
-): { manifest: PluginManifest; manifestPath?: string } | null {
-  const manifestPath = findPluginManifestPath(rootPath);
-  if (manifestPath) {
-    const parsed = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
-    if (!isRecord(parsed)) throw new Error("Plugin manifest must be a JSON object");
+): { adapterId: PluginAdapterId; manifest: PluginManifest; manifestPath?: string } | null {
+  const detected = findPluginManifest(rootPath);
+  if (detected) {
+    const document = readPluginManifestDocument(detected.path, detected.adapterId);
+    const parsed = document.manifest;
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
     if (!PLUGIN_NAME_PATTERN.test(name)) throw new Error(`Invalid plugin name: ${name}`);
     return {
+      adapterId: document.adapterId,
       manifest: {
         ...parsed,
         name,
         version: typeof parsed.version === "string" ? parsed.version : DEFAULT_VERSION,
       } as PluginManifest,
-      manifestPath,
+      manifestPath: detected.path,
     };
   }
   if (entry.strict === false) {
     const rawManifest = createManifestFromMarketplaceEntry(entry);
     return {
+      adapterId: "agent-plugins",
       manifest: rawManifest as unknown as PluginManifest,
     };
   }
@@ -2655,7 +2985,11 @@ function validatePluginRoot(input: {
 }): PluginValidationDiagnostic[] {
   const diagnostics: PluginValidationDiagnostic[] = [];
   const pluginId = `${input.entry.name}@${input.marketplace}`;
-  let loadedManifest: { manifest: PluginManifest; manifestPath?: string } | null = null;
+  let loadedManifest: {
+    adapterId: PluginAdapterId;
+    manifest: PluginManifest;
+    manifestPath?: string;
+  } | null = null;
   try {
     loadedManifest = readPluginManifestFromRoot(input.rootPath, input.entry);
   } catch (error) {
