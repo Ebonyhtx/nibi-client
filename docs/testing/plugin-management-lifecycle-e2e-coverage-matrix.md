@@ -142,6 +142,19 @@ Rust 的 `installed_plugins.json` 墓碑过滤、以及商店详情新增的「�
 macOS 首跑在 runner 下载 Rust 1.95.0 时 DNS 解析失败（`static.rust-lang.org`），**未进入任何
 spec**；对失败作业原样重跑后 13/13 通过，未改测试、未缩集合。
 
+## 2026-11-25 第三轮复验（包 hash 信任 / 自带 Node / hooks 支持度）
+
+第三轮改动落在**发现层同意校验**（同版本换内容按包 hash 停用）、**官方自带 Node 门禁**与
+**hooks 事件支持度登记**。前两项直接影响安装/启用路径，因此再次重跑 13 条 spec：
+
+| 环境 | 结果 | 说明 |
+|---|---|---|
+| macOS native CI | **13/13** | run `45580635329`（commit `b9fe0aba`，preset `plugins`，11 分 22 秒） |
+| Windows native CI | **13/13** | 同 run（7 分 02 秒） |
+
+同日单测：adapters **2262**、bootstrap **2803**、contracts **336** 全部通过；typecheck /
+architecture / i18n / lint / public-repo 全绿。
+
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。
 截图与 provider capture 已生成，但尚未完成人工产品审核，因此本表不会把

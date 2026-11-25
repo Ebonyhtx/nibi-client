@@ -371,9 +371,9 @@
 | 10 trust.json / 包 hash 绑定 | 已补**实质缺口**：发现层此前只比同意记录的版本与权限，`resolvePluginContentTrust` 完全没有调用点——同版本原地换内容可绕过同意。现在缓存安装件按 `candidate.packageHash` 绑定同意（`requireHashBound`），不一致报 `plugin_package_hash_mismatch` 并停用，缺绑定报 `plugin_trust_required`；目录扫描的 inline 插件没有安装记录/ hash，仍按本地信任只比版本与权限（不拦死开发流程）。撤销授权入口沿用详情页/已安装管理的「撤销授权」。不新增独立 `trust.json`：同意记录（版本 + 权限 + 包 hash）就是信任记录，再建一份只会产生两个真源 |
 
 验证：`pnpm typecheck` / `check:i18n-keys` / `architecture:check --changed` / `check:dual-kernel-parity` /
-`check:public-repo` 通过，`pnpm lint` 0 error；adapters 2255、bootstrap 插件相关 126 单测通过；
-13 条插件 spec 在 macOS 与 Windows native CI 各 13/13（run `45568243858`），Linux 容器 `ci` 预设通过
-（`45564190899`）。
+`check:public-repo` 通过，`pnpm lint` 0 error；adapters **2262**、bootstrap **2803**、contracts **336**
+单测通过；13 条插件 spec 在 macOS 与 Windows native CI 各 13/13（第三轮 run `45580635329`，
+commit `b9fe0aba`；第二轮 run `45568243858`），Linux 容器 `ci` 预设通过（`45564190899`）。
 
 ### 有意偏离（已定，不按缺口处理）
 
