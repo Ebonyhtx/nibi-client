@@ -186,11 +186,20 @@ const SLEEP: fn(&str, u32) -> Reply = |id, seconds| {
     ))
 };
 
+/// 接收方保持「正在跑工具」的时长：对端必须在这段时间内完成 `ListAgents → SendMessage`，
+/// 消息才会在**同一个**工具边界被并入；晚到会开启新回合（夹具剧本用完后回 `done`，
+/// 断言就会看到 `done` 而不是 `A done`）。
+///
+/// 6 秒在本地够用，但 `cargo test` 在同一 binary 内并发跑 4 条进程级用例（每条都 spawn
+/// 两个内核进程 + 本地 HTTP 夹具），CI 负载下对端启动可能超过窗口。20 秒是这个竞争的
+/// 真实上限，不是把断言改松——投递仍必须发生在工具边界内。
+const RECEIVER_WINDOW_SECONDS: u32 = 20;
+
 #[test]
 fn two_sessions_discover_each_other_and_deliver_at_the_next_tool_boundary() {
     let sandbox = sandbox();
     let fixture_a = sse::serve_with(vec![
-        SLEEP("toolu_wait", 6),
+        SLEEP("toolu_wait", RECEIVER_WINDOW_SECONDS),
         Reply::Fixed(sse::text_reply("A done")),
     ]);
     let a = zcode(
