@@ -1,7 +1,7 @@
 # NIBI vs ZCode 3.18.2 parity report
 
 - Date: 2026-11-21 (post-4.1.4 cleanup refresh).
-- NIBI baseline for this snapshot: `dev` at `981bbc51` (cleanup commit); product version `4.1.4`, released as tag `v4.1.4` = `8a1a1de7`. Current `dev` on 2026-11-26 is `9e632534`; plugin-platform changes after this snapshot are tracked in `docs/plugin-platform-status-2026-11-25.md`.
+- NIBI baseline for this snapshot: `dev` at `981bbc51` (cleanup commit); product version `4.1.4`, released as tag `v4.1.4` = `8a1a1de7`. `dev` has since advanced past `9e632534` (2026-11-26 docs cleanup and 4.1.5 prep); plugin-platform changes after this snapshot are tracked in `docs/plugin-platform-status-2026-11-25.md`.
 - Upstream baseline: unchanged — ZCode `3.18.2` = `fec97590` (Source-Commit `7535935d`, per `<workspace>\ZCODE3.17.2到3.18.2\README.md` "版本坐标").
 - Upstream reference clone: `<workspace>\.ref-zcode` (read-only; plan README "版本坐标").
 - Planning sources: `<workspace>\ZCODE3.17.2到3.18.2\04-NIBI-ABSORPTION-PLAN.md` (hereafter **04**), `05-NIBI-UPSTREAM-FOLLOWUP-PLAN.md` (**05**), `06-POST-BRANDING-REAUDIT-CHECKLIST.md` (**06**), and `README.md` in the same directory.
