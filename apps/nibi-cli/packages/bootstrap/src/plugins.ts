@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
 import { createInterface } from "node:readline";
@@ -2003,9 +2004,22 @@ function extensionPermissionArgs(
   }
   return [
     "--permission",
-    ...roots.map((root) => `--allow-fs-read=${root}`),
-    ...dataPaths.flatMap((path) => [`--allow-fs-read=${path}`, `--allow-fs-write=${path}`]),
+    ...roots.map((root) => `--allow-fs-read=${canonicalPermissionPath(root)}`),
+    ...dataPaths.flatMap((path) => {
+      const canonical = canonicalPermissionPath(path);
+      return [`--allow-fs-read=${canonical}`, `--allow-fs-write=${canonical}`];
+    }),
   ];
+}
+
+// macOS 的 /tmp、/var 是符号链接；Node 权限模型按真实路径校验，直接传符号链接路径
+// 会让扩展宿主在 import 入口或写 data/ 时 ERR_ACCESS_DENIED（表现为激活失败、测试读不到文件）。
+function canonicalPermissionPath(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
 }
 
 function extensionSpawnEnv(): NodeJS.ProcessEnv {
@@ -2189,7 +2203,14 @@ export async function activatePluginExtensions(
 
   const spawnHost = (tier: "T1" | "T2" | "T3", plugins: PluginMetadata[]): ExtensionProcessState => {
     const roots = [...new Set(plugins.map((plugin) => plugin.rootPath))];
-    const dataPaths = [...new Set(plugins.map((plugin) => plugin.dataPath))];
+    const dataPaths = [
+      ...new Set(
+        plugins.map((plugin) => {
+          ensurePluginDataDir(plugin.dataPath);
+          return plugin.dataPath;
+        }),
+      ),
+    ];
     const args = [
       ...extensionPermissionArgs(roots, dataPaths),
       "--max-old-space-size=256",
