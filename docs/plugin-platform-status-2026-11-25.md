@@ -12,7 +12,7 @@
 > 无法从仓库核实的（线上市场内容、发布流水线、外部账号状态）统一标注 **未核实**，不做推断。
 >
 > 编写日期：2026-11-25。核对基线：本产品仓库（分支 `dev`）。
-> 注意：2026-11-25 的实现中多数文件仍处于**工作区未提交**状态（`git status` 显示 `M` / `??`）。
+> 2026-11-25 的插件实现已全部提交入库，本文引用的文件与测试在 HEAD 上可直接核对。
 >
 > **行号会漂移**：本文引用的行号是核对当时的值。多个插件文件在同一批改动里被并行编辑，
 > 行号可能整体下移数行。定位时请以**符号名**（函数/常量/类型）为准，行号只作辅助。
@@ -67,7 +67,7 @@
 | 项 | 状态 | 证据 |
 |---|---|---|
 | 官方市场唯一 id（内置 + CDN 共用 `nibi-official`） | done | `contracts/src/plugins/index.ts:31`（`NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official"`）；`adapters/src/plugins/index.ts:573-586`（内置与缓存都写同一 id）；`official-marketplace.ts:44` / `:81` |
-| 官方目录源 URL | done | `official-marketplace.ts`（`NIBI_OFFICIAL_PLUGIN_MARKETPLACE` 常量拼装）；撤销名单 `plugin-revocations.ts:25`（`https://dl.nibistudio.cn/plugin-revocations.json`） |
+| 官方目录源 URL | done | `official-marketplace.ts`（`NIBI_OFFICIAL_PLUGIN_MARKETPLACE` 常量拼装）；撤销名单 `plugin-revocations.ts:33`（`https://dl.nibistudio.cn/plugins/plugin-revocations.json`，与市场清单同目录） |
 | 市场卡片零来源标签 | done | `PluginStorePage.tsx:893-937`：来源行 `settings.plugins.detail.source`（`:902-905`）位于 `PluginStoreAdvancedSection` 内（`PluginStoreDetailView.tsx:636-648`，「更多详情」折叠区）；卡片 `PluginStoreCard.tsx` 无来源标签 |
 | 来源只在详情页「高级信息」 | done | 同上；文案映射 `pluginStoreListing.ts:33-60`（`resolvePluginOriginLabelId`） |
 | 已安装列表来源标签收敛 | partial | `InstalledPluginManagement.tsx:159` / `:196` 仍渲染 `sourceLabel`（`pluginSourceLabel.ts` 只分「内置」/「从 X 安装」两类行为性标签）。属于计划 §10.8 允许的两类，但仍在列表行而非折叠区 |
@@ -86,7 +86,7 @@
 | Rust 调用点：MCP 工具执行期复核 | done | `kernel/crates/ext/src/mcp/tool.rs:71-74`（`paid_plugin` / `paid_gate` 字段）、`:103-104`、`:249-254`（每次 `call` 前 `gate.check(plugin)`，失败作为工具结果返回） |
 | Rust 调用点：命令/用户面 | done | `kernel/crates/ext/src/commands/user.rs:154-162`（`set_paid_gate` 同时下发给 `skills` 与 `custom`） |
 | Node 执行期 license 门禁 | done（2026-11-25） | `apps/nibi-cli/packages/core/src/mcp/index.ts:81`（`paidPluginGate?` 选项）、`:134-147`（**注册期**判定，拒绝则不注册工具）、`:316`（**handler 复核** `assertPaidPluginStillAllowed`）；注入 `bootstrap/src/app/create-app.ts:374-375`（`createBuiltinPaidPluginGate({ cacheCredentials: false })`） |
-| 扩展宿主隔离级别（共享 vs 独立进程） | partial | 宿主在同一 Node 进程内运行（`bootstrap/src/plugins.ts:2007` 起）；计划里 local = 每插件独立进程（`docs/plugins/plugin-compatibility-model.md:110-112`）未按进程隔离实现 |
+| 扩展宿主隔离级别（共享 vs 独立进程） | done | `bootstrap/src/plugins.ts` 的 `extensionTier`（T1 builtin/official、T2 community、T3 local）+ `spawnHost` 按 tier 分组 `spawn` 子进程：T1/T2 各共享一个宿主、T3 每插件独立进程；子进程 JSON-line 协议、`--max-old-space-size=256`、Node 支持时加 `--permission`。桌面 Host 经 `activatePluginExtensions` 走同一路径（`localPluginManagementService.ts:16`） |
 | `mcp-node-fallback` | done | 计划与 `docs/hooks-runtime-contract.md` 均按已落地处理；Rust 内核 MCP stdio 子进程有独立实现 |
 | 上游 `plugin-api` / 5 slots 接入 | gap（**有意不接**） | 只实现 `composer.status` / `nav.primary` 两个插槽：`contracts/src/plugins/index.ts:372`、`adapters/src/plugins/ui-surfaces.ts:108-110`、UI `packages/ui/src/plugin-ui/components/PluginUiLauncherItems.tsx:44` / `:98`。不接上游 5 slots |
 | 常驻插件 UI | gap（**暂缓**） | 2026-11-24 决策暂缓；仓库内无对应实现 |
@@ -169,16 +169,16 @@
 - **UI**：`packages/ui/src/settings/InstalledPluginManagement.tsx`、`PluginStorePage.tsx`、
   `pluginStoreListing.ts` + 5 个 locale（`en-US` / `zh-CN` / `ja-JP` / `ko-KR` / `ru-RU`）。
 
-### 新增测试（未提交）
+### 新增测试（已提交）
 
 - `adapters/tests/`：`plugin-audit-retention.test.ts`、`plugin-consent-hash.test.ts`、
   `plugin-discovery-integrity-gates.test.ts`、`plugin-native-modules.test.ts`、
   `plugin-package-hash.test.ts`、`plugin-revocations.test.ts`、`plugin-tombstone.test.ts`、
   `plugin-view-root.test.ts`、`plugin-view-root-wiring.test.ts`
-- `core/tests/mcp-paid-plugin-gate.test.ts`
-- `packages/ui/test/pluginGateStatus.test.ts`
+- `core/tests/mcp-paid-plugin-gate.test.ts`、`core/tests/plugin-execution-gate.test.ts`
+- `packages/ui/test/pluginGateStatus.test.ts`、`packages/ui/test/pluginAuditLabels.test.ts`
 
-### 仍未做
+### 闭环记录（2026-11-25，含有意不做）
 
 - ~~view-root 接线~~ **已完成（2026-11-25 第二轮）**：`view-root.ts` 改为**镜像树**（真实目录 +
   硬链接文件），顶层每个条目都复刻，因此 `mcp.json`、清单自定义路径、`runtime.entry`、外来清单
@@ -186,7 +186,10 @@
   Rust 经 `plugin_read_root` 读同一个根；卸载时清视图根。22 条单测 + 3 条接线测试 + 2 条 Rust 测试。
   复制回退（文件系统不支持硬链接）时校验相对文件集合等价，否则回退源目录并报
   `plugin_view_root_unavailable`——绝不使用不完整的视图。
-- **进程级隔离**：扩展宿主仍与 Host 同进程；计划里 local = T3 每插件独立进程未实现。
+- **进程级隔离**：已实现。`bootstrap/src/plugins.ts` 的 `extensionTier` 把 trust 映射到 T1/T2/T3，
+  `spawnHost` 按 tier 分组：T1（builtin/official）共享一个宿主进程、T2（community）共享一个独立宿主、
+  T3（local）**每个插件一个独立进程**；桌面 Host 也经 `activatePluginExtensions` 走同一条路径
+  （`packages/desktop/src/host/localPluginManagementService.ts:16`）。
 - ~~撤销列表的新鲜度~~ **已补（2026-11-25）**：启动后 fire-and-forget 刷新，24h TTL 节流
   （`maybeRefreshPluginRevocations`）；失败也写尝试时间，避免离线时每次启动重试；
   `NIBI_PLUGIN_REVOCATIONS_REFRESH=off` 可关闭，`force` 绕过 TTL。E2E 回放与测试进程跳过。
@@ -334,21 +337,21 @@
 
 引用「14 内置」时必须说明含宿主（node-repl-host）；面向用户的市场数量是 **13**。
 
-## 待清理文档
+## 文档清理记录（2026-11-25）
 
-以下仓库内文档与本文结论冲突或已过时。**仅列出，本轮不修改。**
+原「待清理文档」清单已逐条核实并处理；两条原判**有误**，以核实结果为准。
 
-| 文档 | 冲突点 |
+| 文档 | 处理 |
 |---|---|
-| `docs/plugin-marketplace-ui-ux.md:20-35` | 描述「公开/社区/个人分段 + 详情页信息区」的 V2 IA；未反映「来源收敛到高级信息折叠区」的现行实现 |
-| `docs/plugin-marketplace-ui-ux.md:419` | 已安装列表「icon + 显示名 + 版本 + 来源 badge + 更新 badge…」；来源 badge 的现行口径需与 `pluginSourceLabel.ts` 对齐 |
-| `docs/plugin-marketplace-ui-ux.md:443` | 验收清单「个人分段按用户添加的市场分组…」；属旧 IA 验收项 |
-| `docs/plugins/plugin-compatibility-model.md:110-112` | 声明 `local = T3 每插件独立进程`；当前扩展宿主同进程运行，进程级隔离未实现 |
-| `docs/hooks-runtime-contract.md:9` | 「Node/Host 工作区 hook 面只支持 7 个事件」正确，但未提及插件 hook 面 33 / 可派发 14 的新分层；易被误读为全局 7 个 |
-| `docs/plugin-extension-runtime.md:98-104` | 只写 `composer.status` / `nav.primary` 两个插槽（与实现一致），但未说明「不接上游 5 slots」是决定而非缺口 |
-| `docs/testing/plugin-management-lifecycle-e2e-coverage-matrix.md:16-38` | 表中 `PLM-LC-011` 仍标 `pending` / `never`；对应 spec 属公网 smoke，需注明「不计入 13/13」 |
-| `docs/testing/plugin-management-lifecycle-e2e-coverage-matrix.md:70-71` | 2026-11-23 复核称 `PRA`/`PBD`/`PBO`/`PBS` 的 pending spec「当前不存在」；与表格并存，读者易混 |
-| `docs/claude-code-marketplace-plugin-compat.md`、`docs/claude-marketplace-triplet-plugin-compat.md` | 以 Claude Marketplace 兼容为主视角；未标注 NIBI 当前只保留 `nibi-official` 单一官方市场 |
+| `docs/plugin-marketplace-ui-ux.md:20-35` | 已补：来源/根路径/包 hash/最近审计在详情页「高级信息」折叠区，不在信息区直出 |
+| `docs/plugin-marketplace-ui-ux.md:419` | 已补：来源 badge 只有两类行为性文案（`pluginSourceLabel.ts`），四级信任只在详情页高级信息 |
+| `docs/plugin-marketplace-ui-ux.md:443` | **原判有误**：个人分段确实按 marketplace 分组（`PluginStoreListView.tsx` 的 `personalGroups`），验收项保留 |
+| `docs/plugin-marketplace-ui-ux.md:449-450` | 已修：删除重复的目录自动刷新验收项；「恢复安装」改为「再次安装、不提供单独恢复入口」，与墓碑决策一致 |
+| `docs/plugins/plugin-compatibility-model.md:110-112` | **原判有误**：T3 每插件独立进程**已实现**（`bootstrap/src/plugins.ts` 的 `extensionTier` + `spawnHost`，桌面同样走该函数）。本文档不改；改的是本状态文档原先「进程级隔离未实现」的错误结论 |
+| `docs/hooks-runtime-contract.md:9` | 已补「三个面别混读」：工作区 7 / 插件可声明 33 / 内核派发 14 |
+| `docs/plugin-extension-runtime.md:98-104` | 已标注「只做两个插槽是决定，不是缺口」 |
+| `docs/testing/plugin-management-lifecycle-e2e-coverage-matrix.md:16-38` | 已把 `PLM-LC-011` 标为公网 smoke、不进 preset、不计入 13/13；`PRA/PBD/PBO/PBS` 四行由 `blocked` 改为 `planned`（spec 文件不存在），与 2026-11-23 复核一致 |
+| `docs/claude-code-marketplace-plugin-compat.md`、`docs/claude-marketplace-triplet-plugin-compat.md` | 已标注：官方市场只有 `nibi-official`，Claude Marketplace 只是个人分段的外部源 |
 
 ---
 
@@ -358,7 +361,7 @@
 
 1. **线上官方市场实际条目数**（是否只剩 `math-modeling` 等）：市场内容在服务端/CDN，不在本仓库。
 2. **签名私钥与 kid 轮换操作流程**：仓库内只有公钥表（`nibiContentSignature.ts:39`），私钥托管与轮换审批在仓库外。
-3. **撤销名单的真实线上内容**（`https://dl.nibistudio.cn/plugin-revocations.json`）：需要网络访问与运营权限。
+3. **撤销名单的真实线上内容**（`https://dl.nibistudio.cn/plugins/plugin-revocations.json`）：需要网络访问与运营权限。
 4. **GitHub Actions run 45331930481 的原始日志**：本文只引用仓库内已记录的 run id 与结果摘要，
    未直接访问 GitHub 核实。
 5. ~~2026-11-25 各项实现是否已通过完整测试套件~~ **已核实（同日补跑）**：

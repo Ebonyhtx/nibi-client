@@ -111,6 +111,9 @@ UI：
 | community | T2 | 共享独立扩展宿主 |
 | local | T3 | 每个插件独立进程 |
 
+实现锚点：`apps/nibi-cli/packages/bootstrap/src/plugins.ts` 的 `extensionTier`（trust → tier）与
+`spawnHost`（按 tier 分组 `spawn` 子进程）；桌面 Host 经 `activatePluginExtensions` 走同一路径。
+
 - 桌面：扩展宿主随桌面 Host 进程激活（某工作区首次读取插件面时，按工作区去重）；子进程 JSON-line 协议、`--max-old-space-size=256`，Node 支持时加 `--permission` 限制文件系统。
 - Node app-server / CLI：同一份 `activatePluginExtensions` 实现；无 UI 的宿主 `ui.view` 返回 `capability_unavailable`。
 - 扩展事件经 `IPluginManagementService` 到 renderer。返回 `Event` 的方法必须命名为 `onDynamicXxx`：RPC proxy 把 `onXxx` 当事件属性并序列化返回值，会导致 renderer 拿到非函数。

@@ -100,6 +100,8 @@ export async function deactivate() {}
 - `composer.status`：已启用插件在输入框工具条渲染一个入口。
 - `nav.primary`：已启用插件在主导航渲染一个入口；没有活动会话时不显示（侧栏标签页需要会话 owner）。
 - 两个锚点都走现有侧栏标签页打开链路，不新建页面系统。
+- **只做这两个插槽是决定，不是缺口**：上游的 5 slots 面**有意不接**（2026-11 定案，见
+  `docs/plugin-platform-status-2026-11-25.md`）。不要按「补齐上游 parity」再引入其余插槽。
 
 ## 已知边界
 

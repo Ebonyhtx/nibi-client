@@ -3,6 +3,11 @@
 > 状态（2026-11-22）：插件包主清单是根 `plugin.json`（Agent Plugins 1.0.0 + NIBI 扩展）；
 > `.claude-plugin/plugin.json` 仍由 claude 适配器**只读**识别，不迁移、不改写。市场目录的
 > `.claude-plugin/marketplace.json` 作为外部源规范位置保留读取（本地缓存仍写根 `marketplace.json`）。
+>
+> **市场身份口径（2026-11-25）**：NIBI 的**官方市场只有一个 `nibi-official`**
+> （`PUBLIC_STORE_MARKETPLACE_IDS`）。Claude Code Marketplace 兼容指的是把
+> `claude-plugins-official` / 用户自加市场当作**个人分段的外部市场源**读取，
+> 不是第二官方市场；公开/社区分组也不因此扩容。
 
 ## 目标
 

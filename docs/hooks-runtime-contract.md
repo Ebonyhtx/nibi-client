@@ -8,6 +8,15 @@
 
 Node/Host 工作区 hook 面只支持 7 个事件（Rust 内核另有 33 个，含 PreCompact/PostCompact，见 `kernel/crates/kernel-api/src/hooks.rs`）：
 
+> **三个面别混读**（2026-11 现状）：
+> - **工作区 hook 配置**（项目/用户 hooks，本文范围）：**7 个**，digest / trust / review 记录按
+>   `WORKSPACE_HOOK_EVENT_NAMES` 字节级对齐，不扩容；
+> - **插件清单可声明**：**33 个**（`contracts/src/hooks/index.ts` 的 `PLUGIN_HOOK_EVENT_NAMES`，与
+>   Rust `kernel-api` 的 `HookEventName` 同序同名），走独立命名空间；
+> - **内核真正派发**：其中 **14 个**（同文件 `PLUGIN_HOOK_RUNNABLE_EVENT_NAMES`）。
+>
+> 「只支持 7 个」仅指第一面，不是全局上限。
+
 - `SessionStart`
 - `UserPromptSubmit`
 - `PreToolUse`
