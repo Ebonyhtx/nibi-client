@@ -37,6 +37,8 @@ export const BROKER_METHODS = Object.freeze([
   "stop_computer_control",
   "permission_status",
   "helper_health",
+  // 内部辅助（非模型工具）：Host 轮询当前输入活动（自拉 Helper 没有 child IPC 消费者）。
+  "helper_activity",
   // 内部辅助（非模型工具）：会话结束时释放输入租约。
   "release_input_lease",
 ]);
@@ -48,6 +50,8 @@ const READ_ONLY_METHODS = new Set([
   "request_access",
   "permission_status",
   "helper_health",
+  // 内部辅助（非模型工具）：Host 轮询当前输入活动。
+  "helper_activity",
   // 内部辅助（非模型工具）：会话结束时释放输入租约。
   "release_input_lease",
 ]);

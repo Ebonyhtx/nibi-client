@@ -111,6 +111,47 @@ describe("node_repl MCP server", () => {
     }
   });
 
+  it("also reads the kernel's branded nested request-context key", async () => {
+    const capturedRuntime = captureComputerUseRuntimeFromEnvironment({
+      NIBI_CUA_PERMISSION_BROKER_SOCKET: "/tmp/branded-cua.sock",
+      NIBI_CUA_PERMISSION_BROKER_TOKEN: "branded-cua-token",
+    });
+    let forwardedBroker: unknown;
+    const brandedRuntime = createNodeReplMcpRuntime({
+      cuaRuntime: capturedRuntime,
+      executeJs: async (input) => {
+        forwardedBroker = input.cuaBroker;
+        return { logs: "", result: "ok" };
+      },
+    });
+    const brandedClient = new Client({ name: "branded-cua-test", version: "0.1.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await brandedRuntime.server.connect(serverTransport);
+    await brandedClient.connect(clientTransport);
+    try {
+      await brandedClient.callTool({
+        name: "js",
+        arguments: { code: "1", title: "验证 branded request-context" },
+        _meta: {
+          // Rust 内核写的键名（`ext/src/mcp/tool.rs`）；缺了它 CUA 会报
+          // "node_repl CUA request is missing session_id metadata"。
+          "com.nibistudio.nibi/request-context": {
+            runtime_scope: "main",
+            session_id: "branded-session",
+            turn_id: "turn-1",
+          },
+        },
+      });
+      expect(forwardedBroker).toMatchObject({
+        socketPath: expect.any(String),
+        token: expect.any(String),
+      });
+    } finally {
+      await brandedClient.close();
+      brandedRuntime.dispose();
+    }
+  });
+
   it("requires user-facing titles in the model schema while preserving legacy runtime input", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(["js"]);

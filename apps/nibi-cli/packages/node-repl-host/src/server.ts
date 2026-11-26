@@ -15,6 +15,7 @@ import {
   type NodeReplRunResult,
 } from "@nibi/core/repl";
 import { createComputerUseRuntime, type ComputerUseRuntime } from "@nibi/cua";
+import { createHelperLauncher } from "@nibi/cua/helper-launcher";
 // 只加载 broker 协议常量；shared 总入口会初始化无关领域的 schema。
 import {
   NODE_REPL_BROWSER_BROKER_SOCKET_ENV,
@@ -379,7 +380,13 @@ function invalidParams(message: string): never {
 }
 
 function buildRequestMeta(meta: Record<string, unknown> | undefined): NodeReplRequestMeta {
-  const parsed = requestContextSchema.safeParse(meta?.["com.nibi/request-context"]);
+  // 内核（Rust `ext/src/mcp/tool.rs`）写的嵌套键是上游协议名
+  // `com.nibistudio.nibi/request-context`；早期 NIBI 行写成 `com.nibi/request-context`。
+  // 两个都认：品牌化只改了一边时，CUA/browser 整条链路会以
+  // "node_repl CUA request is missing session_id metadata" 拒绝所有调用（2026-11-26 真机）。
+  const nested =
+    meta?.["com.nibistudio.nibi/request-context"] ?? meta?.["com.nibi/request-context"];
+  const parsed = requestContextSchema.safeParse(nested);
   // 安全边界：顶层 MCP _meta 是第三方可扩展字段，不能成为 NIBI session 路由凭据。
   // 只有 host client 写入的命名空间会进入 Browser bridge；旧 client 的普通 JS 仍可执行。
   return parsed.success ? parsed.data : {};
@@ -455,9 +462,14 @@ export function captureComputerUseRuntimeFromEnvironment(
 ): ComputerUseRuntime | undefined {
   const socketPath = env.NIBI_CUA_PERMISSION_BROKER_SOCKET?.trim();
   if (!socketPath) return undefined;
+  // 宿主只探测稳定 socket、绝不拉起 Helper；SDK 首调自拉这一半必须接上，否则 Helper
+  // 永远不存在，所有 CUA 调用都以 broker_not_accepting 结束（2026-11-26 真机：NIBI 的
+  // 电脑操控一直卡在“正在启动”）。`helper-launcher` 读宿主注入的配方并幂等 fork。
+  const launcher = createHelperLauncher({ socketPath, env });
   return createComputerUseRuntime({
     brokerSocketPath: socketPath,
     refreshMarkerPath: env.NIBI_CUA_PERMISSION_BROKER_REFRESH_MARKER?.trim(),
+    ...(launcher.available ? { ensureBrokerAvailable: () => launcher.ensure() } : {}),
   });
 }
 

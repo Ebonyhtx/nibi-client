@@ -17,6 +17,7 @@
 
 import net from "node:net";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createCuaDriverEngine, CuaEngineUnavailableError } from "../engine/cua-driver.js";
 import { handleRequestLine, resolveStableBrokerSocketPath, serializeResponse } from "../broker.js";
 import { createHelperSemantics } from "./semantics.js";
@@ -92,6 +93,24 @@ export function createHelperBackend(engine, options = {}) {
       lease: semantics.status().lease?.sessionId ?? null,
       kill_switch: semantics.status().killSwitchLatched,
     }),
+    /**
+     * 当前输入活动快照。自拉 Helper 的父进程是 node-repl，`cua_activity` 的 child IPC
+     * 没有 Host 消费者；Host 改从这里轮询，横幅/光标不再依赖 fork 关系。
+     */
+    helper_activity: async () => {
+      const snapshot =
+        typeof activity?.snapshot === "function"
+          ? activity.snapshot()
+          : { active: false, sessionId: null, action: null, point: null };
+      return {
+        active: snapshot.active === true,
+        session_id: snapshot.sessionId ?? null,
+        action: snapshot.action ?? null,
+        x: snapshot.point?.x ?? null,
+        y: snapshot.point?.y ?? null,
+        at: Date.now(),
+      };
+    },
     list_apps: async () => assertEngineOk(await engine.listApps(), "list_apps"),
     launch_app: async (params) => {
       return launchApp({
@@ -507,8 +526,10 @@ export async function startHelper({ socketPath, argv = [], env = process.env } =
   return { server, engine, socketPath: boundPath, metadata, shutdown };
 }
 
+// `new URL(import.meta.url).pathname` 不解码 `%20`：装在 `C:\Program Files\...`（含空格）
+// 或中文路径时，比较永远为 false，Helper 会静默不启动、连 pipe 都不绑（2026-11-26 排查）。
 const isDirectEntry =
-  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 
 if (isDirectEntry) {
   void startHelper().catch((error) => {

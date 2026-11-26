@@ -43,6 +43,12 @@ function windowKey(value) {
  */
 export function createActivityCoordinateLedger() {
   const spaces = new Map();
+  /**
+   * 元素落点（屏幕坐标）：AX 元素点击（`element_token`）没有 x/y，浮层的落点只能从最近
+   * 一次观察的 AX 树里取（引擎给每个元素 `frame`，是屏幕坐标）。2026-11-26 真机：
+   * agent 全程用 element_token 点击，浮层因为拿不到坐标所以从不出现。
+   */
+  const elementPoints = new Map();
   let lastWindowId = null;
 
   function remember(windowId, raw) {
@@ -50,28 +56,50 @@ export function createActivityCoordinateLedger() {
     if (!id || !raw || typeof raw !== "object") return;
     const bounds = raw.windowBounds ?? raw.window_bounds ?? raw.bounds;
     if (
-      !bounds ||
-      finiteNumber(bounds.x) === undefined ||
-      finiteNumber(bounds.y) === undefined ||
-      !positiveNumber(bounds.width) ||
-      !positiveNumber(bounds.height)
+      bounds &&
+      finiteNumber(bounds.x) !== undefined &&
+      finiteNumber(bounds.y) !== undefined &&
+      positiveNumber(bounds.width) &&
+      positiveNumber(bounds.height)
     ) {
-      return;
+      const screenshotWidth = positiveNumber(raw.screenshotWidth ?? raw.screenshot_width);
+      const screenshotHeight = positiveNumber(raw.screenshotHeight ?? raw.screenshot_height);
+      const scale =
+        positiveNumber(raw.screenshotScale ?? raw.screenshot_scale) ??
+        (screenshotWidth ? screenshotWidth / bounds.width : 1);
+      spaces.set(id, {
+        bounds: { x: Number(bounds.x), y: Number(bounds.y) },
+        scaleX: scale,
+        scaleY: screenshotHeight ? screenshotHeight / bounds.height : scale,
+      });
+      lastWindowId = id;
     }
-    const screenshotWidth = positiveNumber(raw.screenshotWidth ?? raw.screenshot_width);
-    const screenshotHeight = positiveNumber(raw.screenshotHeight ?? raw.screenshot_height);
-    const scale =
-      positiveNumber(raw.screenshotScale ?? raw.screenshot_scale) ??
-      (screenshotWidth ? screenshotWidth / bounds.width : 1);
-    spaces.set(id, {
-      bounds: { x: Number(bounds.x), y: Number(bounds.y) },
-      scaleX: scale,
-      scaleY: screenshotHeight ? screenshotHeight / bounds.height : scale,
-    });
-    lastWindowId = id;
+    // 元素 frame 已是屏幕坐标（见 semantics.js 的 normalizeObservation 注释），直接取中心点。
+    const elements = Array.isArray(raw.elements) ? raw.elements : [];
+    for (const element of elements) {
+      if (!element || typeof element !== "object") continue;
+      const token = element.elementToken ?? element.token ?? element.element_token ?? element.id;
+      if (token === undefined || token === null || token === "") continue;
+      const frame = element.frame;
+      if (!frame || typeof frame !== "object") continue;
+      const x = finiteNumber(frame.x);
+      const y = finiteNumber(frame.y);
+      const w = positiveNumber(frame.w ?? frame.width);
+      const h = positiveNumber(frame.h ?? frame.height);
+      if (x === undefined || y === undefined || !w || !h) continue;
+      elementPoints.set(`${id}:${String(token)}`, { x: x + w / 2, y: y + h / 2 });
+      lastWindowId = lastWindowId ?? id;
+    }
   }
 
   function resolve(method, params) {
+    // 元素寻址优先：`left_click` / `set_value` 等带 element_token 时没有 x/y。
+    const token = params?.element_token ?? params?.elementToken ?? params?.token;
+    if (token !== undefined && token !== null && token !== "") {
+      const id = windowKey(params?.window_id ?? params?.windowId) ?? lastWindowId;
+      const point = id ? elementPoints.get(`${id}:${String(token)}`) : undefined;
+      if (point) return point;
+    }
     const raw = actionCoordinates(method, params);
     if (!raw) return undefined;
     const id = windowKey(params?.window_id ?? params?.windowId) ?? lastWindowId;
@@ -117,6 +145,8 @@ export function createCuaActivity({
   let idleTimer = null;
   let activeSessionId = null;
   let hasActiveEvent = false;
+  let lastPoint = null;
+  let lastAction = null;
   let disposed = false;
 
   function publish(message) {
@@ -141,6 +171,8 @@ export function createCuaActivity({
     const sessionId = activeSessionId;
     activeSessionId = null;
     hasActiveEvent = false;
+    lastPoint = null;
+    lastAction = null;
     publish({
       type: ACTIVITY_MESSAGE_TYPE,
       active: false,
@@ -178,6 +210,8 @@ export function createCuaActivity({
       }
       activeSessionId = sessionId;
       hasActiveEvent = true;
+      lastPoint = point ?? lastPoint;
+      lastAction = method;
       publish({
         type: ACTIVITY_MESSAGE_TYPE,
         active: true,
@@ -212,6 +246,21 @@ export function createCuaActivity({
     dispose() {
       disposed = true;
       clearIdleTimer();
+    },
+    /**
+     * 当前活动快照（Host 轮询用）。
+     *
+     * 自拉的 Helper（node-repl fork）没有 Host 父进程可收 child IPC，`cua_activity` 消息
+     * 无人消费；Host 侧的指示器因此拿不到活动（2026-11-26 真机：动作成功但没有光标/横幅）。
+     * Host 改用稳定 pipe 上的 `helper_activity` 轮询这个快照，展示层不依赖 fork 关系。
+     */
+    snapshot() {
+      return {
+        active: hasActiveEvent,
+        sessionId: activeSessionId,
+        action: lastAction,
+        point: lastPoint ? { x: lastPoint.x, y: lastPoint.y } : null,
+      };
     },
   };
 }

@@ -117,7 +117,6 @@ export const OFFICIAL_SPREADSHEETS_REQUIRED_SEED_PATHS = [
   "skills/xlsx/SKILL.md",
   "tools/xlsx_build.py",
   "tools/xlsx_gate.py",
-  "templates/spec-quarter.json",
 ] as const;
 
 export const OFFICIAL_DOCUMENTS_REQUIRED_SEED_PATHS = [
@@ -125,7 +124,6 @@ export const OFFICIAL_DOCUMENTS_REQUIRED_SEED_PATHS = [
   "skills/docx/SKILL.md",
   "tools/docx_build.py",
   "tools/docx_gate.py",
-  "templates/spec-report.json",
 ] as const;
 
 export const OFFICIAL_PRESENTATIONS_REQUIRED_SEED_PATHS = [
@@ -133,9 +131,11 @@ export const OFFICIAL_PRESENTATIONS_REQUIRED_SEED_PATHS = [
   "skills/pptx/SKILL.md",
   "tools/pptx_build.py",
   "tools/pptx_gate.py",
-  "templates/spec-deck.json",
 ] as const;
 
+// 注意：`templates/spec-*.json` / `sample-report.pdf` 不随包（smoke 脚本用仓库内的
+// `templates/_dev/`，README 也写明"样板仅仓库内"）。把它们列进 required 会让 seed 永远
+// 判残缺：干净安装时四个插件全部缺失，只剩旧缓存兜底（2026-11-26 审计发现）。
 export const OFFICIAL_PDF_REQUIRED_SEED_PATHS = [
   ...OFFICIAL_DOC_SHARED_SEED_PATHS,
   "skills/pdf/SKILL.md",
@@ -143,8 +143,6 @@ export const OFFICIAL_PDF_REQUIRED_SEED_PATHS = [
   "tools/pdf_gate.py",
   "tools/pdf_poster.py",
   "tools/pdf_layout.py",
-  "templates/spec-poster.json",
-  "templates/sample-report.pdf",
 ] as const;
 
 // 上游随包内置的六个插件：我们也内置。种子清单钉住"缺了就残缺"的关键件
