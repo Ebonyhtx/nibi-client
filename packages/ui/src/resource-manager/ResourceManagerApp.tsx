@@ -43,6 +43,7 @@ const TAB_LABEL_IDS: Record<ResourceManagerTab, string> = {
 const DEFAULT_REFRESH_INTERVAL_MS = 1_000;
 const CATEGORY_LABEL_IDS: Record<ResourceUsageCategory, string> = {
   base: "resourceManager.category.base",
+  task: "resourceManager.category.task",
   "builtin-plugin": "resourceManager.category.builtinPlugin",
   "community-plugin": "resourceManager.category.communityPlugin",
 };
@@ -67,6 +68,7 @@ export function ResourceManagerApp({
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<ResourceUsageCategory, boolean>>({
     base: true,
+    task: true,
     "builtin-plugin": true,
     "community-plugin": true,
   });

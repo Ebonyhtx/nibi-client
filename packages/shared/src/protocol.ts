@@ -216,8 +216,8 @@ export type PersistedWorkspaceSessionEntry =
 
 // ── Process Monitor ──
 
-/** 资源管理器分类：基础服务 / 内置插件 / 社区插件 */
-export type ResourceUsageCategory = "base" | "builtin-plugin" | "community-plugin";
+/** 资源管理器分类：基础服务 / 任务进程 / 内置插件 / 社区插件（顺序同 `RESOURCE_USAGE_CATEGORY_ORDER`）。 */
+export type ResourceUsageCategory = "base" | "task" | "builtin-plugin" | "community-plugin";
 
 /** 基础服务分组键；插件分组键为插件名或 MCP server name */
 export type ResourceUsageBaseGroupKey = "main" | "gpu" | "renderer" | "host" | "cli" | "utility";

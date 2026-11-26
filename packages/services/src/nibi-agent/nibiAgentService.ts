@@ -5246,7 +5246,11 @@ export function createNibiAgentService(
         expectedPersistence?: "deferred" | "immediate";
       },
     ): Promise<boolean> {
-      const client = await getClient(params);
+      // 关闭不得为"关闭"而拉起 CLI：没有驻留 runtime 时没有任何会话级连接可释放，
+      // 拉起只会凭空新建一整套插件宿主子进程（2026-11-26 资源占用事故）。
+      // 归档/切走路径会高频调用本方法，必须只作用于已经存在的进程。
+      const client = processManager.getExistingClient(params);
+      if (!client || client.isDisposed) return true;
       const result = await client.request(
         nibiProtocolMethods.sessionClose,
         {

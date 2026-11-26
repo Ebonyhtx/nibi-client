@@ -78,6 +78,9 @@ impl Link {
 pub(crate) struct Client {
     transport: Arc<dyn McpTransport>,
     connection: McpConnectionId,
+    /// 兜底关闭用的作用域（[`Client::drop`]）。不延迟作用域寿命：作用域关了任务就不启动，
+    /// 此时靠 transport 自身的析构兜底。
+    spawner: Spawner,
     next: AtomicU64,
     pending: Arc<Mutex<Pending>>,
     closed: CancellationToken,
@@ -169,6 +172,7 @@ impl Client {
         let client = Arc::new(Self {
             transport,
             connection,
+            spawner: spawner.clone(),
             next: AtomicU64::new(0),
             pending: Arc::default(),
             closed: CancellationToken::new(),
@@ -287,6 +291,28 @@ impl Client {
         if let Err(error) = self.transport.close(&self.connection).await {
             tracing::debug!(%error, "closing an MCP connection failed");
         }
+    }
+}
+
+/// 兜底关闭：连接的所有者消失时，transport 里的条目与子进程不能靠持有者再关。
+///
+/// 覆盖的路径（都实测过泄漏，2026-11-26）：
+/// - 会话在握手期间关闭：`McpManager::run` 的 `select!` 丢弃 `connect` future，此时
+///   `server.client` 还没发布（`manager.rs` 的 `serve` 才写入），`stop_all` 拿不到它；
+/// - 任务被作用域中止（`-p` 退出、CLI 换代）；
+/// - 服务器自己断开、manager 只把 `server.client` 置 None 的正常路径。
+///
+/// 显式 `close()` 过的连接已在 transport 表里移除，重复 close 是幂等空操作
+/// （`LocalMcpTransport::close` 对未知 id 返回 Ok）。
+impl Drop for Client {
+    fn drop(&mut self) {
+        let transport = self.transport.clone();
+        let connection = self.connection.clone();
+        self.spawner.spawn_resident("mcp-close-on-drop", async move {
+            if let Err(error) = transport.close(&connection).await {
+                tracing::debug!(%error, "closing an MCP connection after the client was dropped failed");
+            }
+        });
     }
 }
 

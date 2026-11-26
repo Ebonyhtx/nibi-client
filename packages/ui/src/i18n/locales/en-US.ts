@@ -7348,6 +7348,7 @@ const enUS: Record<string, string> = {
   "resourceManager.appUsage": "NIBI",
   "resourceManager.systemUsage": "System",
   "resourceManager.category.base": "Base services",
+  "resourceManager.category.task": "Task processes",
   "resourceManager.category.builtinPlugin": "Built-in plugins",
   "resourceManager.category.communityPlugin": "Community plugins",
   "resourceManager.empty": "No processes",

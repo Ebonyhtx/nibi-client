@@ -1048,6 +1048,22 @@ async fn send_text(
     }
     // 这次提交带的模型与模式先作用到会话（同 Node：Submission 带完整的选择）。
     let view = handle.view().await.ok();
+    // 草稿会话（`persistence: "deferred"`）首轮发送前才装 MCP：草稿期只冻结
+    // skills/hooks/agents，不连插件；工具表必须在 turn 开始前补装并等就绪
+    // （上游 Node 懒连接的同一语义，2026-11-26）。
+    if handle.is_draft()
+        && let Some(workspace) = view.as_ref().map(|view| view.meta.workspace.clone())
+        && let Err(error) = server
+            .kernel
+            .attach_session_plugin_mcp(handle.id(), &workspace)
+            .await
+    {
+        tracing::warn!(
+            %error,
+            session = %handle.id(),
+            "could not attach the draft session's plugin MCP"
+        );
+    }
     if let Some(chosen) = selection(&payload["modelSelection"])
         && view.as_ref().is_none_or(|view| view.selection != chosen)
     {

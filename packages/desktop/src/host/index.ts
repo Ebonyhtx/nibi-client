@@ -82,6 +82,7 @@ import {
   type BotProjectConnection,
   type HostApiNetworkTransport,
 } from "@nibi/services/node";
+import { callBrokerMethod, mintBrokerSocketPath } from "@nibi/cua/broker";
 import { createHostResourceUsageResponder } from "./hostResourceUsage.js";
 import { createLocalPluginManagementBackend } from "./localPluginManagementService.js";
 import {
@@ -894,6 +895,80 @@ const cuaActivityReporter = {
     });
   },
 } satisfies NonNullable<Parameters<typeof createLocalServices>[0]>["cuaActivityReporter"];
+
+/**
+ * 自拉 CUA Helper 的活动轮询（Windows）。
+ *
+ * 自拉的 Helper 由 node-repl 通过 `ensureBrokerAvailable` fork，父进程是 node-repl；
+ * Helper 的 `cua_activity` child IPC 发给 node-repl，Host 的 `onCuaActivity` 收不到
+ * （2026-11-26 真机：CUA 动作成功，但顶部横幅和光标浮层不显示）。这里从稳定命名管道
+ * 轮询 `helper_activity`，把活动送到 main；不依赖 Helper 是谁 fork 的。
+ *
+ * 成本：每 250ms 一次本机命名管道调用；Helper 不在时连接失败直接跳过（静默）。
+ */
+function startCuaActivityPolling(): () => void {
+  if (process.platform !== "win32") return () => {};
+  let socketPath: string;
+  try {
+    socketPath = mintBrokerSocketPath({ env: process.env });
+  } catch {
+    return () => {};
+  }
+  if (!socketPath) return () => {};
+  let lastKey = "";
+  let inFlight = false;
+  const timer = setInterval(() => {
+    if (inFlight) return;
+    inFlight = true;
+    void (async () => {
+      try {
+        const snapshot = (await callBrokerMethod({
+          socketPath,
+          method: "helper_activity",
+          params: null,
+          timeoutMs: 800,
+        })) as {
+          active?: boolean;
+          session_id?: string | null;
+          action?: string | null;
+          x?: number | null;
+          y?: number | null;
+          at?: number;
+        } | null;
+        const active = snapshot?.active === true;
+        const key = `${active}:${snapshot?.action ?? ""}:${snapshot?.x ?? ""}:${snapshot?.y ?? ""}`;
+        if (key === lastKey) return;
+        lastKey = key;
+        cuaActivityReporter.onActivity({
+          active,
+          sessionId:
+            typeof snapshot?.session_id === "string" && snapshot.session_id
+              ? snapshot.session_id
+              : null,
+          action:
+            typeof snapshot?.action === "string" && snapshot.action
+              ? snapshot.action
+              : active
+                ? "input"
+                : "idle",
+          ...(typeof snapshot?.x === "number" ? { x: snapshot.x } : {}),
+          ...(typeof snapshot?.y === "number" ? { y: snapshot.y } : {}),
+          at: typeof snapshot?.at === "number" ? snapshot.at : Date.now(),
+        });
+      } catch {
+        // Helper 未运行或还在启动：静默重试，下一轮再说。
+        lastKey = "";
+      } finally {
+        inFlight = false;
+      }
+    })();
+  }, 250);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
+
+// Host 进程退出时轮询随 interval 一起结束（timer.unref 不会挂住退出）。
+startCuaActivityPolling();
 
 let untrackedPromptRpcCount = 0;
 function reportHostRunningTaskCount(): void {

@@ -26,15 +26,17 @@ function process(
 }
 
 describe("groupResourceUsage", () => {
-  it("固定三组顺序，组内按 CPU/内存降序，小计与未采样标记正确", () => {
+  it("固定四组顺序，组内按 CPU/内存降序，小计与未采样标记正确", () => {
     const groups = groupResourceUsage([
       process(3, "community-plugin", 1, 10),
       process(1, "base", 2, 100),
       process(2, "base", 5, 50),
       process(4, "base", 0, 0, false),
+      process(5, "task", 1, 20),
     ]);
     expect(groups.map((group) => group.category)).toEqual([
       "base",
+      "task",
       "builtin-plugin",
       "community-plugin",
     ]);
@@ -46,12 +48,19 @@ describe("groupResourceUsage", () => {
     });
     expect(groups[0]?.processes.map((item) => item.pid)).toEqual([2, 1, 4]);
     expect(groups[1]).toMatchObject({
+      processCount: 1,
+      cpuPercent: 1,
+      memoryBytes: 20,
+      hasUnsampled: false,
+    });
+    expect(groups[1]?.processes.map((item) => item.pid)).toEqual([5]);
+    expect(groups[2]).toMatchObject({
       processCount: 0,
       cpuPercent: 0,
       memoryBytes: 0,
       hasUnsampled: false,
     });
-    expect(groups[2]?.processCount).toBe(1);
+    expect(groups[3]?.processCount).toBe(1);
   });
 });
 

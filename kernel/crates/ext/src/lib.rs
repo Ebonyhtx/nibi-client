@@ -796,6 +796,20 @@ impl Ext {
         self.session_mcp.start(session, workspace, servers);
     }
 
+    /// 这个会话是否已经有了自己的 MCP 集合（草稿懒连接的判据）。
+    pub fn has_session_mcp(&self, session: &SessionId) -> bool {
+        self.session_mcp.manager_of(session).is_some()
+    }
+
+    /// 等这个会话的 MCP 连接落定（`wait_ready`）。没有集合时立即返回。
+    ///
+    /// 草稿会话在首轮发送前才装 MCP：装完必须等握手结束，否则首轮的工具表里没有插件工具。
+    pub async fn wait_session_mcp_ready(&self, session: &SessionId) {
+        if let Some(connections) = self.session_mcp.manager_of(session) {
+            connections.wait_ready().await;
+        }
+    }
+
     /// 会话关闭：释放它的 MCP 连接与连接任务（在后台任务里关，不等 IO），页面实例一并作废。
     pub fn release_session(&self, session: &SessionId) {
         self.session_mcp.stop(session);

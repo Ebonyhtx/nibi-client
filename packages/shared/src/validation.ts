@@ -1546,7 +1546,7 @@ export const hostResourceUsageProcessSchema = z
   .object({
     pid: z.number().int().positive(),
     name: nonEmptyStringSchema,
-    category: z.enum(["base", "builtin-plugin", "community-plugin"]),
+    category: z.enum(["base", "task", "builtin-plugin", "community-plugin"]),
     groupKey: nonEmptyStringSchema,
     groupLabel: nonEmptyStringSchema,
     cpuPercent: z.number().finite().nonnegative(),

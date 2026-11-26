@@ -639,6 +639,18 @@ impl Server {
                     "a SessionEnd hook failed while closing the session"
                 );
             }
+        } else {
+            // 没有协议订阅者时 Live 已经不在了（归档/切走后的会话就是这样），但内核会话表里的
+            // actor 和它的会话级 MCP 还开着。只按 Live 关闭会让这条 RPC 变成空操作：
+            // 返回 {"closed":true}，插件宿主子进程却留着（2026-11-26 资源占用事故）。
+            // 删除路径早已这样兜底（commands.rs 的 deleteSession）。
+            if let Err(error) = self.kernel.close_open_session(&session).await {
+                tracing::warn!(
+                    session = %session,
+                    %error,
+                    "could not close an open session without a live bridge"
+                );
+            }
         }
         self.hook_admissions
             .lock()

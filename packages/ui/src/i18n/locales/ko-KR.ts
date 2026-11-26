@@ -4384,6 +4384,7 @@ const koKR: Record<string, string> = {
   "remoteConnection.feedback": "피드백",
   "resourceManager.appUsage": "NIBI",
   "resourceManager.category.base": "기본 서비스",
+  "resourceManager.category.task": "작업 프로세스",
   "resourceManager.category.builtinPlugin": "기본 제공 플러그인",
   "resourceManager.category.communityPlugin": "커뮤니티 플러그인",
   "resourceManager.column.pid": "PID",

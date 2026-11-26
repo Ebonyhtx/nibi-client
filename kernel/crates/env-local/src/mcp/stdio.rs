@@ -130,6 +130,11 @@ pub(crate) async fn start(
         .current_dir(launch.cwd)
         .env_clear()
         .envs(&env)
+        // MCP stdio 的进程树只属于这条连接：持有者（`Client`/Connection）被丢下时结束根进程，
+        // 不再等 `Tracked::terminate`。Windows 的 `Containment::ProcessJob` 不随 abort 结束进程
+        // （Job 是进程级静态的，`Tracked` 也没有 Drop），少了这一行，会话在握手期关闭会留下孤儿；
+        // Job 仍负责根进程之外的任何后代。
+        .kill_on_drop(true)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

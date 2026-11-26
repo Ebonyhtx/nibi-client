@@ -1095,6 +1095,19 @@ pub trait Kernel: Send + Sync {
     /// 缺省什么都不做。
     fn stop_session_mcp(&self, _session: &SessionId) {}
 
+    /// 草稿会话（`persistence: "deferred"`）首轮发送前补装插件/配置的 MCP，并等连接落定。
+    ///
+    /// 草稿创建时只冻结 skills/hooks/agents，不连 MCP——上游 Node 也是懒连接：草稿期不应为了
+    /// "可能不会发送的输入"起整套插件子进程。首轮 turn 开始前调用本方法，保证工具表就绪。
+    /// 非草稿或已经装过的会话上是空操作。缺省实现什么都不做。
+    async fn attach_session_plugin_mcp(
+        &self,
+        _session: &SessionId,
+        _workspace: &WorkspaceRef,
+    ) -> Result<(), KernelError> {
+        Ok(())
+    }
+
     /// 给会话装上附加工作目录（NIBI `createSession.additionalDirectories`）：判决链把它们按
     /// "在工作区内"处理，提示词的环境段列出它们。空列表等于没有。缺省实现返回 `Unsupported`。
     async fn set_session_directories(

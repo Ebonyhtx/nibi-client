@@ -6998,6 +6998,7 @@ const zhCN: Record<string, string> = {
   "resourceManager.appUsage": "NIBI",
   "resourceManager.systemUsage": "整机",
   "resourceManager.category.base": "基础服务",
+  "resourceManager.category.task": "任务进程",
   "resourceManager.category.builtinPlugin": "内置插件",
   "resourceManager.category.communityPlugin": "社区插件",
   "resourceManager.empty": "暂无进程",

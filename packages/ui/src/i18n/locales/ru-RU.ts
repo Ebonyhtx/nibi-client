@@ -4447,6 +4447,7 @@ const ruRU: Record<string, string> = {
   "remoteConnection.feedback": "Обратная связь",
   "resourceManager.appUsage": "NIBI",
   "resourceManager.category.base": "Базовые службы",
+  "resourceManager.category.task": "Процессы задач",
   "resourceManager.category.builtinPlugin": "Встроенные плагины",
   "resourceManager.category.communityPlugin": "Плагины сообщества",
   "resourceManager.column.pid": "PID",

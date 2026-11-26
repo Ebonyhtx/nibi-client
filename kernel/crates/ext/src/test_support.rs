@@ -66,6 +66,8 @@ pub(crate) struct FakeMcp {
     auth: Mutex<Vec<(String, Option<String>)>>,
     /// 还有几次 `initialize` 的发送回 HTTP 401（模拟资源服务器拒绝令牌）。
     unauthorized: Mutex<HashMap<String, usize>>,
+    /// 收到过的 `close` 调用（连接 id，按调用顺序）；握手中被取消的连接也必须出现在这里。
+    closed: Mutex<Vec<String>>,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -147,6 +149,11 @@ impl FakeMcp {
     /// 不再拒绝这个服务器的连接（上一次失败之后的「现在能连了」）。
     pub(crate) fn accepting(&self, name: &str) {
         lock(&self.refuse).retain(|refused| refused != name);
+    }
+
+    /// 收到过的 `close` 调用（连接 id，按调用顺序）。
+    pub(crate) fn closed_connections(&self) -> Vec<String> {
+        lock(&self.closed).clone()
     }
 
     /// 这个传输上的连接都报 `pid`（stdio 服务器才有 pid；HTTP / SSE 不设）。
@@ -316,6 +323,7 @@ impl McpTransport for FakeMcp {
     }
 
     async fn close(&self, connection: &McpConnectionId) -> Result<(), McpError> {
+        lock(&self.closed).push(connection.as_str().to_owned());
         if let Some(found) = lock(&self.connections).get(connection.as_str()) {
             let _ = found.sender.send(McpTransportEvent::Closed {
                 reason: None,

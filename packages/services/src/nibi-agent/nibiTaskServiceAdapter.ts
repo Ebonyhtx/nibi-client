@@ -3222,6 +3222,25 @@ export function createNibiTaskServiceAdapter(
     async archiveTask(params): Promise<NibiTaskMeta> {
       const meta = await updateIndexedTaskState(params, { archived: true });
       emitWorkspaceTaskListChanged(params, meta, "task_archived");
+      // 归档保留记录、释放运行资源：会话级 MCP（插件宿主）随 runtime 关闭回收，恢复归档会话时
+      // 冷启动。归档此前只写 index 标记，内核不知情，会话继续 resident 并占着 4~6 个插件子进程
+      // 直到 idle 之后才可能回收（2026-11-26 资源占用事故）。
+      // closeSession 只作用于已存在的 client，不会为归档拉起 CLI；远端会话在本机没有 client，直接跳过。
+      try {
+        await options.nibiAgentService.closeSession({
+          sessionId: params.taskId,
+          workspacePath: params.workspacePath,
+          workspaceIdentity: params.workspaceIdentity,
+        });
+      } catch (error) {
+        // 归档已落库：释放失败不回滚归档，idle 回收仍是兜底。
+        logger.warn(undefined, "归档后释放会话运行资源失败", {
+          error: error instanceof Error ? error.message : String(error),
+          taskId: params.taskId,
+          workspaceIdentity: params.workspaceIdentity ?? null,
+          workspaceKey: resolveWorkspaceKey(params),
+        });
+      }
       return meta;
     },
 

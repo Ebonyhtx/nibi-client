@@ -343,6 +343,12 @@ export interface AttributeHostProcessTreeOptions {
   agents: readonly HostResourceUsageAgent[];
   /** Host 直接管理的内置插件进程（如 Windows CUA Helper）：pid → 插件名 */
   builtinPluginPids?: ReadonlyMap<number, string>;
+  /**
+   * 曾经上报过的插件宿主 pid（Host 侧账本）。CLI 在连接断开后立刻清空
+   * `process/childProcesses`，但 OS 进程可能还活着（关闭竞态、杀树失败）；
+   * 只靠当前上报会把它们继承给 agent，误算进「基础服务」。
+   */
+  pluginLedger?: ReadonlyMap<number, NibiProcessChildProcess>;
 }
 
 type Owner =
@@ -374,14 +380,17 @@ function ownerToRow(
     };
   }
   if (owner.kind === "agent") {
+    // Agent 自己归基础服务；它跑出来的命令/工具进程（bash、git、ripgrep…）归“任务进程”。
+    // 上游 ZCode 的 task 是“agent 类进程里非主会话者”；NIBI 单内核没有每会话 agent 进程，
+    // 最接近的对应物就是 Agent 的执行子进程（2026-11-26）。
     return {
       pid: sample.pid,
       name: isOwnerRoot
         ? formatNibiAgentProcessName(owner.agent.provider, owner.agent.workspacePath)
         : commandDisplayName(sample.command),
-      category: "base",
-      groupKey: "cli",
-      groupLabel: "cli",
+      category: isOwnerRoot ? "base" : "task",
+      groupKey: isOwnerRoot ? "cli" : "task",
+      groupLabel: isOwnerRoot ? "cli" : "task",
       cpuPercent,
       memoryBytes,
     };
@@ -427,6 +436,10 @@ export function attributeHostProcessTree(
   }
 
   const ownerRoots = new Map<number, Owner>();
+  // 先放历史账本，再放当前上报：同一个 pid 两边都有时以当前上报为准（账本可能来自已关闭的连接）。
+  for (const [pid, child] of options.pluginLedger ?? []) {
+    ownerRoots.set(pid, { kind: "mcp", child });
+  }
   for (const agent of options.agents) {
     ownerRoots.set(agent.pid, { kind: "agent", agent });
     for (const child of agent.children) {

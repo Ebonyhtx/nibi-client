@@ -4478,6 +4478,7 @@ const jaJP: Record<string, string> = {
   "remoteConnection.feedback": "フィードバック",
   "resourceManager.appUsage": "NIBI",
   "resourceManager.category.base": "基本サービス",
+  "resourceManager.category.task": "タスクプロセス",
   "resourceManager.category.builtinPlugin": "組み込みプラグイン",
   "resourceManager.category.communityPlugin": "コミュニティプラグイン",
   "resourceManager.column.pid": "PID",

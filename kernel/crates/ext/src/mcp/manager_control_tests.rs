@@ -9,7 +9,7 @@ use serde_json::json;
 use super::super::McpSettings;
 use super::*;
 use crate::mcp::McpScope;
-use crate::test_support::{FakeMcp, server, workspace};
+use crate::test_support::{FakeMcp, held, server, workspace};
 
 fn config(name: &str) -> McpServer {
     McpServer {
@@ -133,4 +133,44 @@ async fn reconnect_disable_and_enable_drive_the_connection() {
         .control(McpAction::Enable, &["files".to_owned()])
         .await;
     assert_eq!(handshakes(&fake, "files"), 3);
+}
+
+/// 会话在握手期间被关闭（归档/快速切走的高频路径）：`stop_all` 只能看到已经发布到
+/// `server.client` 的连接，握手中的连接还没发布。它的释放必须由 `Client::drop` 的兜底
+/// close 完成，否则 transport 条目与插件宿主子进程会永久留在内核里
+/// （2026-11-26 资源占用事故：12 个孤儿插件宿主约 1.9 GB）。
+#[tokio::test]
+async fn stop_all_closes_a_connection_that_is_still_handshaking() {
+    let fake = Arc::new(FakeMcp::default().with("slow", held(|_, _| None)));
+    let scope = TaskScope::root("test", |_| {});
+    let manager = McpManager::new(
+        fake.clone(),
+        scope.spawner(),
+        McpSettings::default(),
+        crate::clock_tests::TokioClock::new(),
+    );
+    manager.start(workspace(), vec![config("slow")]);
+    // 等 initialize 发出：连接已建立，但服务器不回，client 还没发布。
+    for _ in 0..500 {
+        if handshakes(&fake, "slow") == 1 {
+            break;
+        }
+        tokio::task::yield_now().await;
+    }
+    assert_eq!(handshakes(&fake, "slow"), 1);
+    assert!(fake.closed_connections().is_empty());
+
+    manager.stop_all().await;
+    // Drop 里的关闭是后台任务：让出执行机会，等它跑到 transport.close。
+    for _ in 0..500 {
+        if !fake.closed_connections().is_empty() {
+            break;
+        }
+        tokio::task::yield_now().await;
+    }
+    assert_eq!(
+        fake.closed_connections().len(),
+        1,
+        "the in-flight connection must be closed when the session stops"
+    );
 }

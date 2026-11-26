@@ -33,7 +33,7 @@ describe("资源管理器", () => {
     await closeResourceManagerWindow();
   });
 
-  it("从 Help 菜单打开后展示三类分组，Agent 进程会在 Host 采样后拿到真实内存", async function () {
+  it("从 Help 菜单打开后展示四类分组，Agent 进程会在 Host 采样后拿到真实内存", async function () {
     this.timeout(120_000);
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30_000);
 
@@ -41,8 +41,8 @@ describe("资源管理器", () => {
     await switchToElectronRendererTarget(isResourceManagerUrl);
     await waitForResourceManagerReady();
 
-    // 默认 CPU tab：三类分组固定存在（空组也要显示），CPU 指标卡带 Nibi / 整机两个读数。
-    for (const category of ["base", "builtin-plugin", "community-plugin"]) {
+    // 默认 CPU tab：四类分组固定存在（空组也要显示），CPU 指标卡带 Nibi / 整机两个读数。
+    for (const category of ["base", "task", "builtin-plugin", "community-plugin"]) {
       await expect($(`[data-testid="resource-manager-group-${category}"]`)).toBeDisplayed();
     }
     await expect($('[data-testid="resource-manager-cpu-app"]')).toBeDisplayed();

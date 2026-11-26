@@ -109,7 +109,7 @@ impl LocalKernel {
         // 会话级插件快照：NIBI 一个 app-server 承载多个会话，新装/启用的插件必须在
         // 新会话（以及冷恢复）里可见，而不改已有会话。快照只活在这个会话里，不落库。
         // CLI/TUI 没有 loader（单会话进程），继续用 `ext.start()` 的进程级快照。
-        self.apply_session_plugin_snapshot(&id, &workspace, meta.parent.as_ref())
+        self.apply_session_plugin_snapshot(&id, &workspace, meta.parent.as_ref(), !draft)
             .await;
         let parent_for_preferences = meta.parent.clone();
         self.start(
@@ -166,6 +166,7 @@ impl LocalKernel {
         session: &SessionId,
         workspace: &nibi_kernel_api::env::WorkspaceRef,
         parent: Option<&SessionId>,
+        install_mcp: bool,
     ) {
         let Some(loader) = &self.plugin_loader else {
             return;
@@ -192,6 +193,31 @@ impl LocalKernel {
         self.agent_catalog
             .set_session_plugins(session.clone(), agents);
         self.hooks.register_session_plugins(session.clone(), hooks);
+        if !install_mcp {
+            // 草稿会话（`persistence: "deferred"`）：只冻结 skills/hooks/agents 与引用目录，MCP 等
+            // 首轮发送时再装。上游 Node 也是懒连接——草稿期不起任何插件子进程
+            // （2026-11-26 实测：NIBI 草稿一建就起 6 个约 150 MB 的宿主）。
+            tracing::debug!(
+                session = %session,
+                "draft session keeps its plugin MCP unconnected until the first turn"
+            );
+            return;
+        }
+        self.install_session_plugin_mcp(session, workspace, plugins);
+    }
+
+    /// 按插件快照装会话级 MCP（普通会话与草稿首轮共用）。
+    ///
+    /// 幂等：会话已经有自己的集合时不重复安装。返回是否新装。
+    fn install_session_plugin_mcp(
+        &self,
+        session: &SessionId,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+        plugins: &nibi_kernel_ext::plugins::Plugins,
+    ) -> bool {
+        if self.ext.has_session_mcp(session) {
+            return false;
+        }
         // 会话自己要一套 MCP 连接时，进程级配置的服务器也要在场（Node 的 App runtimeConfig.mcp
         // 同时含 CLI 配置与插件服务器）。
         let mut servers: Vec<nibi_kernel_api::mcp_session::SessionMcpServer> = self
@@ -213,14 +239,15 @@ impl LocalKernel {
         // Host 声明提供执行面时按 Node bootstrap 的同一形状装上；插件快照里没有
         // `node-repl-host`（未声明或未启用）时这里是 None。
         if let Some(env) = &self.node_repl_env
-            && let Some(server) = crate::node_repl::builtin_server(&plugins, env)
+            && let Some(server) = crate::node_repl::builtin_server(plugins, env)
         {
             servers.push(server);
         }
         if servers.is_empty() {
-            return;
+            return false;
         }
         self.ext.start_session_mcp(session, workspace, servers);
+        true
     }
 }
 
@@ -788,7 +815,8 @@ impl Kernel for LocalKernel {
             draft: false,
         };
         // 冷恢复：会话 runtime 重建，插件快照重新解析（Node 冷恢复重建 App 的同一语义）。
-        self.apply_session_plugin_snapshot(session, &state.meta.workspace, None)
+        // 冷加载的会话一定是真实会话（草稿没有行可加载），MCP 照常安装。
+        self.apply_session_plugin_snapshot(session, &state.meta.workspace, None, true)
             .await;
         let is_child = state.meta.parent.is_some();
         let handle = self.start(state, Opened::Loaded);
@@ -1180,6 +1208,24 @@ impl Kernel for LocalKernel {
         self.ext.clear_session_plugins(session);
         self.hooks.clear_session(session);
         self.agent_catalog.clear_session(session);
+    }
+
+    /// 草稿会话首轮发送前补装插件 MCP：按当前快照解析、安装并等连接落定。
+    /// 工具表必须在 turn 开始前就绪，否则首轮的插件工具是空的。
+    async fn attach_session_plugin_mcp(
+        &self,
+        session: &SessionId,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> Result<(), KernelError> {
+        let Some(loader) = &self.plugin_loader else {
+            return Ok(());
+        };
+        let loaded = loader.load(workspace).await;
+        self.ext.note_plugin_snapshot(&loaded.plugins);
+        if self.install_session_plugin_mcp(session, workspace, &loaded.plugins) {
+            self.ext.wait_session_mcp_ready(session).await;
+        }
+        Ok(())
     }
 
     /// NIBI `createSession.additionalDirectories`：判决链把它们按"在工作区内"处理，环境段列出它们。

@@ -9,6 +9,7 @@ import {
   HostResponseTypes,
   type HostResourceUsageSnapshotRequestMessage,
   type HostResourceUsageSnapshotResultResponse,
+  type NibiProcessChildProcess,
 } from "@nibi/shared";
 
 export interface CreateHostResourceUsageResponderOptions {
@@ -40,6 +41,27 @@ export function createHostResourceUsageResponder(
     options.sampler ??
     createProcessResourceSampler({ readTable: createProcessResourceTableReader() });
   let active: { requestId: string; controller: AbortController } | undefined;
+  /**
+   * 插件宿主 pid 账本：CLI 在连接关闭后立刻清空 `process/childProcesses`，但 OS 进程可能
+   * 还活着（关闭竞态、杀树失败）。没有账本时采样器会把它继承给 agent，算进「基础服务」。
+   * 只保留仍在整机进程表里的 pid，进程退出即删除。
+   */
+  const pluginLedger = new Map<number, NibiProcessChildProcess>();
+
+  function updatePluginLedger(
+    samples: ReadonlyMap<number, unknown> | undefined,
+    agents: readonly { children: readonly NibiProcessChildProcess[] }[],
+  ): void {
+    for (const agent of agents) {
+      for (const child of agent.children) {
+        pluginLedger.set(child.pid, child);
+      }
+    }
+    if (!samples) return;
+    for (const pid of pluginLedger.keys()) {
+      if (!samples.has(pid)) pluginLedger.delete(pid);
+    }
+  }
 
   async function respond(
     message: HostResourceUsageSnapshotRequestMessage,
@@ -53,12 +75,14 @@ export function createHostResourceUsageResponder(
         .catch(() => []) ?? Promise.resolve([]),
     ]);
     if (signal.aborted) return;
+    updatePluginLedger(samples, agents);
     const processes = samples
       ? attributeHostProcessTree({
           samples,
           hostPid,
           agents,
           builtinPluginPids: options.getBuiltinPluginPids?.(),
+          pluginLedger,
         })
       : [];
     options.postMessage({

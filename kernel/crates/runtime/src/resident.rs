@@ -24,6 +24,10 @@ use nibi_kernel_api::residency::{ResidencyLease, SessionResidencyWatch};
 use tokio::sync::Notify;
 
 /// 常驻池参数（上游默认 8 / 16 / 10 分钟；sampler 60 s）。
+///
+/// NIBI 把空闲阈值压到 2 分钟：每个常驻会话都挂着一整套会话级 MCP（桌面官方插件 4~6 个
+/// Node 宿主，每个约 150 MB）。10 分钟对"点开看一眼就切走"的会话太贵，而切回被卸载的会话
+/// 只是冷加载几百毫秒。sampler 同步缩短到 30 s，保证阈值到期后及时收敛。
 #[derive(Debug, Clone, Copy)]
 pub struct ResidentPoolConfig {
     /// 高于高水位时回收到这个数量。
@@ -41,8 +45,8 @@ impl Default for ResidentPoolConfig {
         Self {
             target_count: 8,
             high_water_count: 16,
-            idle_timeout_ms: 10 * 60 * 1_000,
-            sampler_interval: Duration::from_secs(60),
+            idle_timeout_ms: 2 * 60 * 1_000,
+            sampler_interval: Duration::from_secs(30),
         }
     }
 }

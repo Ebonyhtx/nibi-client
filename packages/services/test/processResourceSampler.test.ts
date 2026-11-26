@@ -213,7 +213,7 @@ describe("attributeHostProcessTree", () => {
     expect(rows.map((row) => [row.pid, row.category, row.groupKey, row.name])).toEqual([
       [70, "base", "host", "zsh"],
       [100, "base", "cli", "nibi-agent-nibi-agent-demo"],
-      [110, "base", "cli", "pnpm"],
+      [110, "task", "task", "pnpm"],
       [120, "builtin-plugin", "builtin:computer-use", "plugin:computer-use:computer-use"],
       [121, "builtin-plugin", "builtin:computer-use", "node"],
       [130, "community-plugin", "plugin:acme", "plugin:acme:tools"],
@@ -239,7 +239,32 @@ describe("attributeHostProcessTree", () => {
     });
     expect(rows.map((row) => [row.pid, row.groupKey, row.name])).toEqual([
       [100, "cli", "nibi-agent-nibi-agent-demo"],
-      [101, "cli", "mcp-server"],
+      [101, "task", "mcp-server"],
+    ]);
+  });
+
+  it("CLI 不再上报的插件宿主按账本归到插件组，不落进基础服务", () => {
+    const samples = new Map<number, ProcessResourceSample>([
+      sample(60, 1, "nibi-host"),
+      sample(100, 60, "nibi-rs"), // agent
+      sample(120, 100, "Nibi.exe"), // 连接已关闭但 OS 进程还在的插件宿主
+      sample(121, 100, "Nibi.exe"), // 普通工具子进程，账本里没有
+    ]);
+    const rows = attributeHostProcessTree({
+      samples,
+      hostPid: 60,
+      agents: [{ pid: 100, provider: "nibi-agent", workspacePath: "/w", children: [] }],
+      pluginLedger: new Map([
+        [
+          120,
+          { pid: 120, serverName: "plugin:pdf:tools", mcpSource: "plugin", pluginName: "pdf" },
+        ],
+      ]),
+    });
+    expect(rows.map((row) => [row.pid, row.category, row.groupKey])).toEqual([
+      [100, "base", "cli"],
+      [120, "community-plugin", "plugin:pdf"],
+      [121, "task", "task"],
     ]);
   });
 });
