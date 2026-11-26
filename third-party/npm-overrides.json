@@ -247,6 +247,13 @@
     "license": "MIT"
   },
   {
+    "package": "@trycua/cua-driver@0.62.1",
+    "file": "third-party/upstream/c0779290c1d4783169aa3dbfb55feb505e563ef8a004bbf55298ceffcfbda8d9.txt",
+    "sha256": "c0779290c1d4783169aa3dbfb55feb505e563ef8a004bbf55298ceffcfbda8d9",
+    "source": "https://raw.githubusercontent.com/trycua/cua/cua-driver-rs-v0.62.1/LICENSE.md",
+    "license": "MIT"
+  },
+  {
     "package": "@ubjs/core@0.31.0-3",
     "file": "third-party/upstream/fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85.txt",
     "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85",
@@ -315,6 +322,11 @@
     "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85",
     "source": "https://www.mozilla.org/media/MPL/2.0/index.815ca599c9df.txt",
     "license": "MPL-2.0"
+  },
+  {
+    "package": "agent-base@6.0.2",
+    "license": "MIT",
+    "acceptedMissingNotice": "upstream repo (TooTallNate/node-agent-base, archived) ships no LICENSE file; package.json declares MIT"
   },
   {
     "package": "ansi-to-react@6.2.6",
@@ -389,6 +401,11 @@
     "file": "third-party/upstream/6ae13df543a24b3fb18c25182cf4f084132f799ea9225410f7037888401b7469.txt",
     "sha256": "6ae13df543a24b3fb18c25182cf4f084132f799ea9225410f7037888401b7469",
     "source": "node_modules/http-mitm-proxy/README.md"
+  },
+  {
+    "package": "https-proxy-agent@5.0.1",
+    "license": "MIT",
+    "acceptedMissingNotice": "upstream repo (TooTallNate/node-https-proxy-agent) ships no LICENSE file; package.json declares MIT"
   },
   {
     "package": "is-node-process@1.2.0",
