@@ -86,11 +86,12 @@ describe("v4 M4/B09 门禁：queue 单项管理与撤回编辑", () => {
     // 双击验证 renderer-local operation lock：第二击不能重复加锁。
     const clicked = await clickV4QueueItemEdit(queueItemId, 2);
     expect(clicked).toBe(true);
-    // U36 冻结：项留在队列里（不再 delete+restore），row 显示 self 锁并暴露释放入口。
+    // U36 冻结：项留在队列里（不再 delete+restore），row 显示 self 锁；
+    // 退出编辑只走 composer 头带的取消，self 行不再暴露「释放」。
     await browser.waitUntil(
       async () => {
         const state = await getV4QueueItemEditState(queueItemId);
-        return state.locked && state.owner === "self" && state.releaseVisible;
+        return state.locked && state.owner === "self" && !state.releaseVisible;
       },
       { timeout: 30000, timeoutMsg: "队列项没有进入 self 编辑锁冻结态" },
     );

@@ -2042,7 +2042,7 @@ function ConversationComposerImpl({
       }),
     [composerAttachments],
   );
-  const topContentNode = useMemo(() => {
+  const inlineContextNode = useMemo(() => {
     if (
       composerAttachments.length === 0 &&
       codeCommentContexts.length === 0 &&
@@ -2425,6 +2425,21 @@ function ConversationComposerImpl({
     openPptxElementReference,
   ]);
 
+  // 编辑条是 composer 卡片的头带，不是浮在 queue 面板与输入框之间的第三块面板。
+  // 放进 topContent 让它和正文/附件同属 ChatPromptEditor 的圆角卡片：卡片 p-3 提供
+  // 与队列条的视觉间隔，取消/rewind 也始终留在 Composer 内部。
+  const topContentNode = useMemo(() => {
+    if (!editBar) return inlineContextNode;
+    return (
+      <>
+        <div className="relative z-10 w-full" data-composer-edit-bar-host="true">
+          {editBar}
+        </div>
+        {inlineContextNode}
+      </>
+    );
+  }, [editBar, inlineContextNode]);
+
   // 发送/停止控制簇（对齐旧 ChatViewComposer.submitControlNode 结构：
   // 左侧 model/thought/usage 簇 + 右侧 stop 或 send）。
   // useMemo：composer 随流式 snapshot 高频重渲染，控制簇只在语义依赖变化时重建，
@@ -2769,12 +2784,6 @@ function ConversationComposerImpl({
             {intl.formatMessage({
               id: `chat.selections.limit.${conversationSelectionLimitReason}`,
             })}
-          </div>
-        ) : null}
-        {editBar ? (
-          // 编辑条位于编辑器上方、同一输入 surface 内；取消/rewind 不离开 Composer。
-          <div className="relative z-10 px-1.5 pt-1.5" data-composer-edit-bar-host="true">
-            {editBar}
           </div>
         ) : null}
         <ChatPromptEditor

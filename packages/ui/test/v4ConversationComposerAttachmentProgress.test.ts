@@ -393,4 +393,20 @@ describe("ConversationComposer attachment upload progress", () => {
     expect(html).toContain('aria-label="重试上传"');
     expect(html).toContain("text-destructive");
   });
+
+  it("编辑条作为 composer 卡片的头带进入 topContent，而不是独立浮条", () => {
+    attachmentState.attachments = [];
+    const html = renderComposer({
+      editBar: createElement("span", { "data-edit-bar-stub": "true" }, "编辑中"),
+    });
+    // mock 的 ChatPromptEditor 把 topContent 渲染在 <form>（卡片）内部；
+    // 编辑条必须出现在这里，才能和正文共享同一圆角容器。
+    const formStart = html.indexOf("<form>");
+    const formEnd = html.indexOf("</form>");
+    const barIndex = html.indexOf('data-composer-edit-bar-host="true"');
+    expect(formStart).toBeGreaterThanOrEqual(0);
+    expect(barIndex).toBeGreaterThan(formStart);
+    expect(barIndex).toBeLessThan(formEnd);
+    expect(html).toContain('data-edit-bar-stub="true"');
+  });
 });

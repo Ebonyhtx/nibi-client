@@ -293,6 +293,8 @@ describe("ConversationQueuePanel", () => {
     expect(html).toContain("正在其他窗口或设备编辑");
     expect(html).toContain('data-testid="v4-queue-item-edit-lock-q-1"');
     expect(html).toContain('data-testid="v4-queue-item-release-edit-q-1"');
+    // other 的锁才用锁形图标；释放入口也只在 other 上出现。
+    expect(html).toContain("lucide-lock-keyhole");
     // 锁定的行隐藏所有改变项的命令入口（另一行仍有）。
     expect(html).not.toContain('data-testid="v4-queue-item-send-now-q-1"');
     expect(html).not.toContain('data-testid="v4-queue-item-edit-q-1"');
@@ -326,6 +328,12 @@ describe("ConversationQueuePanel", () => {
     expect(html).toContain('data-edit-lock-owner="self"');
     expect(html).toContain("正在下方编辑");
     expect(html).not.toContain('data-testid="v4-queue-item-delete-q-1"');
+    // self 的对标是 composer 头带：铅笔图标、没有行内「释放」。
+    const badgeStart = html.indexOf('data-testid="v4-queue-item-edit-lock-q-1"');
+    const badgeHtml = html.slice(badgeStart, html.indexOf("</span>", badgeStart) + 7);
+    expect(badgeHtml).toContain("lucide-pencil");
+    expect(badgeHtml).not.toContain("lucide-lock-keyhole");
+    expect(html).not.toContain('data-testid="v4-queue-item-release-edit-q-1"');
   });
 });
 

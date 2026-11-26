@@ -102,4 +102,11 @@ describe("ComposerEditBar", () => {
       "This message can no longer be edited",
     );
   });
+
+  it("队列项头带用状态文案（正在编辑队列消息）且取消不再带 ×", () => {
+    render(renderBar({ target: queueTarget, state: "editing", onCancel: vi.fn() }));
+    const bar = screen.getByTestId("v4-composer-edit-bar");
+    expect(bar.textContent).toContain("正在编辑队列消息");
+    expect(bar.querySelector(".lucide-x")).toBeNull();
+  });
 });

@@ -1,4 +1,4 @@
-import { FileClockIcon, PencilLineIcon, XIcon } from "lucide-react";
+import { FileClockIcon, PencilLineIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
@@ -13,6 +13,9 @@ function invalidReasonMessageKey(reason: ComposerEditInvalidReason): string {
 
 /**
  * 编辑条：目标身份、失效原因、rewind 与取消。
+ *
+ * 它是 composer 卡片内部的头带（由 ConversationComposer 放进 ChatPromptEditor 的
+ * topContent），不再自带外边框：卡片自身的圆角/底色负责与队列条分隔。
  *
  * data-edit-target-* 是 E2E/单测的稳定事实面：kind/id 来自 target，state/reason 来自
  * 同一份投影裁决，不在 DOM 上另造状态。
@@ -40,10 +43,10 @@ export function ComposerEditBar({
       data-edit-state={state}
       data-invalid-reason={invalidReason ?? undefined}
       className={cn(
-        "flex min-w-0 flex-wrap items-center gap-2 rounded-lg border px-2.5 py-1.5 text-ui-sm",
+        "flex min-w-0 flex-wrap items-center gap-2 rounded-lg px-2.5 py-1 text-ui-sm",
         state === "invalid"
-          ? "border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 text-foreground"
-          : "border-border bg-surface text-foreground-subtle",
+          ? "bg-[var(--color-warning)]/10 text-foreground"
+          : "bg-surface text-foreground-subtle",
       )}
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -80,7 +83,6 @@ export function ComposerEditBar({
         disabled={state === "submitting"}
         onClick={onCancel}
       >
-        <XIcon className="size-3.5" />
         {intl.formatMessage({ id: "chat.composerEdit.cancel" })}
       </Button>
     </div>

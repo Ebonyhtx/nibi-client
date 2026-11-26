@@ -23,7 +23,8 @@ scope、失效裁决与目标切换；命令派发、草稿持久化和 U36 队�
 
 - `SessionPane`：持有 hook，注入队列锁端口与提交端口；把 `draftScopeId/editBar/
 editFocusRequest/editSubmitRequest/onSubmissionSettled` 传给 Composer。
-- `ConversationComposer`：编辑 scope 下草稿不持久化；bar 渲染在编辑器上方；rewind
+- `ConversationComposer`：编辑 scope 下草稿不持久化；bar 作为编辑器卡片的头带渲染在
+  正文上方（与正文/工具栏同一圆角容器），不是 composer 之外的一条独立面板；rewind
   通过 `editSubmitRequest(workspaceMode: "rewind")` 回到同一条提交路径。
 - `ConversationRowView`：编辑按钮只发 begin 意图；当前编辑目标行显示 “Editing below”，
   不再挂载行内 `ChatPromptEditor`。旧行内路径由 `ENABLE_COMPOSER_EDIT_MODE=false` 保留。

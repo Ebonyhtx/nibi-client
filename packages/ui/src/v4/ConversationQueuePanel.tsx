@@ -294,9 +294,18 @@ const QueueRow = memo(function QueueRow({
           data-testid={testId(TID_V4_QUEUE_ITEM_EDIT_LOCK, item.queueItemId)}
           data-queue-item-id={item.queueItemId}
           data-edit-lock-owner={editLockOwner}
-          className="flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-ui-sm text-foreground-subtle"
+          className={cn(
+            // self 是「正在下方编辑」的进行态，和 composer 头带保持同一套铅笔语言；
+            // other 是被别人锁住，才需要底色和锁形图标强调。
+            "flex shrink-0 items-center gap-1 text-ui-sm text-foreground-subtle",
+            editLockOwner === "other" && "rounded-md bg-secondary px-2 py-1",
+          )}
         >
-          <LockKeyholeIcon className="size-3.5" aria-hidden="true" />
+          {editLockOwner === "self" ? (
+            <PencilIcon className="size-3.5" aria-hidden="true" />
+          ) : (
+            <LockKeyholeIcon className="size-3.5" aria-hidden="true" />
+          )}
           {intl.formatMessage({
             id:
               editLockOwner === "self"
@@ -305,7 +314,9 @@ const QueueRow = memo(function QueueRow({
           })}
         </span>
       ) : null}
-      {editLockOwner && onReleaseEditLock ? (
+      {/* 「释放」只服务 other/孤儿锁：self 的退出入口是 composer 头带里的取消，
+          行内再放一个释放会变成两个语义重叠的出口。 */}
+      {editLockOwner === "other" && onReleaseEditLock ? (
         <Button
           type="button"
           variant="ghost"

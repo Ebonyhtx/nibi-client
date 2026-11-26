@@ -5363,7 +5363,7 @@ const zhCN: Record<string, string> = {
   "chat.composerEdit.editingBelow": "正在下方编辑",
   "chat.composerEdit.inComposerHint": "正在下方编辑",
   "chat.composerEdit.title.userQuery": "编辑消息",
-  "chat.composerEdit.title.queueItem": "编辑队列消息",
+  "chat.composerEdit.title.queueItem": "正在编辑队列消息",
   "chat.composerEdit.rewind": "重置对话和文件",
   "chat.composerEdit.invalid.notLatest": "这条消息已不是最新的用户消息，不能再编辑。",
   "chat.composerEdit.invalid.queueItemRemoved": "这条队列消息已不存在。",
