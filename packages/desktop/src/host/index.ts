@@ -19,6 +19,11 @@ import {
  * 3. 后续远端 connect / scoped attachment 都由同一 Host 处理
  */
 import { createHostDatabaseStartup } from "./database-startup/hostDatabaseStartup.js";
+import {
+  cuaActivityEventFromSnapshot,
+  cuaActivityKey,
+  type CuaHelperActivitySnapshot,
+} from "./cuaActivitySnapshot.js";
 import { createHostNetworkCapture } from "./hostNetworkCapture.js";
 import { randomUUID } from "node:crypto";
 import { createPluginSandboxRegistrationBridge } from "./pluginSandbox/index.js";
@@ -927,42 +932,14 @@ function startCuaActivityPolling(): () => void {
           method: "helper_activity",
           params: null,
           timeoutMs: 800,
-        })) as {
-          active?: boolean;
-          session_id?: string | null;
-          action?: string | null;
-          /** 一句话操作说明（"点击「7」"），画在原生光标旁。 */
-          summary?: string | null;
-          x?: number | null;
-          y?: number | null;
-          /** daemon 正在画原生 ghost：宿主不再叠自己的光标浮层（横幅与说明标签保留）。 */
-          native_cursor?: boolean;
-          at?: number;
-        } | null;
-        const active = snapshot?.active === true;
-        const nativeCursor = snapshot?.native_cursor === true;
-        const summary =
-          typeof snapshot?.summary === "string" && snapshot.summary ? snapshot.summary : undefined;
-        const key = `${active}:${snapshot?.action ?? ""}:${summary ?? ""}:${snapshot?.x ?? ""}:${snapshot?.y ?? ""}:${nativeCursor}`;
+        })) as CuaHelperActivitySnapshot | null;
+        // 映射与去重键都放在纯函数里（cuaActivitySnapshot.ts）：这段曾经漏转 nativeCursor，
+        // 单测覆盖不到"宿主有没有把标记送出去"，只能靠真机才发现两个光标叠在一起。
+        const event = cuaActivityEventFromSnapshot(snapshot);
+        const key = cuaActivityKey(event);
         if (key === lastKey) return;
         lastKey = key;
-        cuaActivityReporter.onActivity({
-          active,
-          sessionId:
-            typeof snapshot?.session_id === "string" && snapshot.session_id
-              ? snapshot.session_id
-              : null,
-          action:
-            typeof snapshot?.action === "string" && snapshot.action
-              ? snapshot.action
-              : active
-                ? "input"
-                : "idle",
-          ...(summary ? { summary } : {}),
-          ...(typeof snapshot?.x === "number" ? { x: snapshot.x } : {}),
-          ...(typeof snapshot?.y === "number" ? { y: snapshot.y } : {}),
-          at: typeof snapshot?.at === "number" ? snapshot.at : Date.now(),
-        });
+        cuaActivityReporter.onActivity(event);
       } catch {
         // Helper 未运行或还在启动：静默重试，下一轮再说。
         lastKey = "";
