@@ -359,6 +359,25 @@ export function createComputerUseRuntime(options = {}) {
       }
       if (INPUT_METHOD_NAMES.has(toolName)) {
         const target = resolveActionTarget(ledger, params);
+        // 展示用元素名：Helper 没有元素台账，只有这里能把它和 token/index 对上。
+        // 纯展示字段，取不到就不传（标签退化成"点击"这类通用文案）。
+        const elementLabel = (() => {
+          try {
+            if (target.element_index !== undefined) {
+              const element = ledger.resolveElement(target.element_index);
+              if (typeof element?.name === "string" && element.name.trim()) return element.name;
+            }
+            if (target.element_token !== undefined) {
+              const element = ledger.shown?.elements?.find(
+                (item) => String(item.token) === String(target.element_token),
+              );
+              if (typeof element?.name === "string" && element.name.trim()) return element.name;
+            }
+          } catch {
+            // 台账里查不到不影响动作本身。
+          }
+          return undefined;
+        })();
         // perform_action 只认元素**广告过**的动作（规格：禁止猜测）——菜单路径（含 ">"）除外。
         if (toolName === "perform_action") {
           const action = String(params.action ?? "");
@@ -399,7 +418,11 @@ export function createComputerUseRuntime(options = {}) {
         const baselineStateId = ledger.shown?.stateId ?? null;
         const receipt = await callHelper(
           toolName,
-          { ...target, session_id: context.sessionId ?? null },
+          {
+            ...target,
+            ...(elementLabel ? { element_label: elementLabel } : {}),
+            session_id: context.sessionId ?? null,
+          },
           60_000,
         );
         // possibly_sent：不重试、不等待，直接把回执交给 SDK（它会转成 actionSent 错误）。

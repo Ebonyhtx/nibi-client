@@ -70,17 +70,20 @@ describe("parseCuaActivityMessage", () => {
     expect(parsed).not.toHaveProperty("y");
   });
 
-  it("native_cursor：原生 ghost 在画时不把坐标交给宿主（否则两个光标）", () => {
-    const parsed = parseCuaActivityMessage(activityMessage({ native_cursor: true }));
+  it("native_cursor：坐标保留给说明标签定位，并带上 nativeCursor", () => {
+    const parsed = parseCuaActivityMessage(
+      activityMessage({ native_cursor: true, summary: "点击「7」" }),
+    );
     expect(parsed).toEqual({
       active: true,
       sessionId: "sess-1",
       action: "left_click",
+      x: 120,
+      y: 240,
+      summary: "点击「7」",
       nativeCursor: true,
       at: 1_700_000_000_000,
     });
-    expect(parsed).not.toHaveProperty("x");
-    expect(parsed).not.toHaveProperty("y");
   });
 
   it("inactive 允许 sessionId=null", () => {

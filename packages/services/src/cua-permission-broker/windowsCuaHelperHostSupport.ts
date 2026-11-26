@@ -223,13 +223,18 @@ export function parseCuaActivityMessage(message: unknown): CuaActivityEvent | nu
         : null;
   const x = typeof value.x === "number" && Number.isFinite(value.x) ? value.x : undefined;
   const y = typeof value.y === "number" && Number.isFinite(value.y) ? value.y : undefined;
-  // daemon 模式：原生 ghost 已经画了光标，坐标对宿主只会变成"再画一个"。
+  // daemon 模式：原生 ghost 已经画了光标；坐标保留，但宿主只用它定位"操作说明"标签。
   const nativeCursor = value.native_cursor === true;
+  const summary =
+    typeof value.summary === "string" && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined;
   return {
     active: value.active,
     sessionId,
     action: value.action,
-    ...(x !== undefined && y !== undefined && !nativeCursor ? { x, y } : {}),
+    ...(x !== undefined && y !== undefined ? { x, y } : {}),
+    ...(summary !== undefined ? { summary } : {}),
     ...(nativeCursor ? { nativeCursor: true } : {}),
     at: value.at,
   };

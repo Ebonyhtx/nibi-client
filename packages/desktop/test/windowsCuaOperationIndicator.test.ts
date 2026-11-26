@@ -16,7 +16,12 @@ import {
   type WindowsCuaOperationIndicator,
   type WindowsCuaOperationIndicatorWindow,
 } from "../src/main/windowsCuaOperationIndicator.js";
-import { indicatorWindowSize } from "../src/main/windowsCuaOperationIndicatorContent.js";
+import { cursorLabelBoundsFor } from "../src/main/windowsCuaCursorLabel.js";
+import {
+  CURSOR_LABEL_HEIGHT,
+  CURSOR_LABEL_WIDTH,
+  indicatorWindowSize,
+} from "../src/main/windowsCuaOperationIndicatorContent.js";
 
 const WORK_AREA: Rectangle = { x: 0, y: 0, width: 1000, height: 800 };
 
@@ -122,6 +127,7 @@ function createHarness(
     windows,
     banner: () => windows.find((window) => window.kind === "indicator"),
     cursor: () => windows.find((window) => window.kind === "cursor"),
+    label: () => windows.find((window) => window.kind === "label"),
   };
 }
 
@@ -167,6 +173,30 @@ describe("cursorWindowBoundsFor", () => {
   });
 });
 
+describe("cursorLabelBoundsFor", () => {
+  it("贴在落点右下方，并整体夹进工作区", () => {
+    expect(cursorLabelBoundsFor({ x: 500, y: 400 }, WORK_AREA)).toEqual({
+      x: 518,
+      y: 418,
+      width: CURSOR_LABEL_WIDTH,
+      height: CURSOR_LABEL_HEIGHT,
+    });
+    // 右下越界 → 贴右下边；负坐标 → 贴左上边。
+    expect(cursorLabelBoundsFor({ x: 990, y: 790 }, WORK_AREA)).toEqual({
+      x: WORK_AREA.width - CURSOR_LABEL_WIDTH,
+      y: WORK_AREA.height - CURSOR_LABEL_HEIGHT,
+      width: CURSOR_LABEL_WIDTH,
+      height: CURSOR_LABEL_HEIGHT,
+    });
+    expect(cursorLabelBoundsFor({ x: -50, y: -50 }, WORK_AREA)).toEqual({
+      x: 0,
+      y: 0,
+      width: CURSOR_LABEL_WIDTH,
+      height: CURSOR_LABEL_HEIGHT,
+    });
+  });
+});
+
 describe("Windows CUA operation indicator activity", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -203,6 +233,42 @@ describe("Windows CUA operation indicator activity", () => {
     expect(banner?.moveTopCalls).toBeGreaterThan(0);
     expect(cursor?.scripts.some((script) => script.includes('dataset.state="active"'))).toBe(true);
     expect(cursor?.scripts.some((script) => script.includes("dataset.pulse"))).toBe(true);
+
+    harness.indicator.dispose();
+  });
+
+  it("原生光标模式：只画说明标签，不画自有光标", async () => {
+    const harness = createHarness();
+    harness.indicator.handleActivity({}, activity({ nativeCursor: true, summary: "点击「7」" }));
+    await flushMicrotasks();
+
+    expect(harness.cursor()).toBeUndefined();
+    const label = harness.label();
+    expect(label).toBeDefined();
+    expect(label?.bounds).toEqual(cursorLabelBoundsFor({ x: 120, y: 240 }, WORK_AREA));
+    expect(label?.shown).toBe(true);
+    expect(label?.ignoreMouse).toBe(true);
+    expect(label?.options.focusable).toBe(false);
+    expect(label?.options.show).toBe(false);
+    expect(label?.scripts.some((script) => script.includes("点击「7」"))).toBe(true);
+    expect(label?.scripts.some((script) => script.includes('dataset.state="active"'))).toBe(true);
+
+    harness.indicator.handleActivity({}, activity({ active: false, action: "idle" }));
+    await flushMicrotasks();
+    vi.advanceTimersByTime(200);
+    expect(label?.hidden).toBe(true);
+
+    harness.indicator.dispose();
+  });
+
+  it("原生光标模式但没有摘要：只保留横幅", async () => {
+    const harness = createHarness();
+    harness.indicator.handleActivity({}, activity({ nativeCursor: true, summary: undefined }));
+    await flushMicrotasks();
+
+    expect(harness.label()).toBeUndefined();
+    expect(harness.cursor()).toBeUndefined();
+    expect(harness.banner()?.shown).toBe(true);
 
     harness.indicator.dispose();
   });

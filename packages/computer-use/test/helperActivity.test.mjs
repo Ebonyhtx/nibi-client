@@ -17,6 +17,7 @@ import {
   actionCoordinates,
   createActivityCoordinateLedger,
   createCuaActivity,
+  summarizeAction,
 } from "../helper/activity.js";
 import { startHelper, stopHelper } from "./helper-harness.mjs";
 
@@ -89,6 +90,7 @@ test("上报器：active 事件形状、1.5s 空闲 inactive、发送失败不�
     active: true,
     sessionId: "s-1",
     action: "left_click",
+    summary: "点击",
     x: 10,
     y: 20,
     at: 1234,
@@ -118,7 +120,7 @@ test("上报器：active 事件形状、1.5s 空闲 inactive、发送失败不�
   assert.doesNotThrow(() => exploding.inactive("released"));
 });
 
-test("原生 ghost 在画时不发坐标：宿主不能再叠自己的光标（横幅照旧）", () => {
+test("原生 ghost 在画时：坐标保留（给说明标签定位）、打上 native_cursor、不再由宿主画光标", () => {
   const sent = [];
   let native = false;
   const activity = createCuaActivity({
@@ -130,29 +132,49 @@ test("原生 ghost 在画时不发坐标：宿主不能再叠自己的光标（�
     nativeCursor: () => native,
   });
 
-  activity.active("left_click", { session_id: "s-1" });
+  activity.active("left_click", { session_id: "s-1", element_label: "7" });
   assert.deepEqual(sent[0], {
     type: "cua_activity",
     active: true,
     sessionId: "s-1",
     action: "left_click",
+    summary: "点击「7」",
     x: 10,
     y: 20,
     at: 9,
   });
 
   native = true;
-  activity.active("left_click", { session_id: "s-1" });
+  activity.active("left_click", { session_id: "s-1", element_label: "7" });
   assert.deepEqual(sent[1], {
     type: "cua_activity",
     active: true,
     sessionId: "s-1",
     action: "left_click",
+    summary: "点击「7」",
+    x: 10,
+    y: 20,
     native_cursor: true,
     at: 9,
   });
-  assert.equal("x" in sent[1], false, "坐标准确但不该出现：它只会变成第二个光标");
-  assert.equal("y" in sent[1], false);
+  assert.equal(sent[1].native_cursor, true, "宿主靠这个标记决定不画自己的光标");
+});
+
+test("操作说明：常见动作都有一句可读文案（取不到元素名就退化成通用词）", () => {
+  const cases = [
+    [{}, "left_click", "点击"],
+    [{ element_label: "文件(F)" }, "left_click", "点击「文件(F)」"],
+    [{ text: "HELLO-WORLD-THAT-IS-LONG" }, "type", "输入「HELLO-WORLD-THAT-I…」"],
+    [{ key: "Return" }, "key", "按键 Return"],
+    [{ direction: "down" }, "scroll", "滚动（down）"],
+    [{ action: "文件(F) > 新建" }, "perform_action", "执行「文件(F) > 新建」"],
+    [{ element_label: "搜索" }, "set_value", "填写「搜索」"],
+    [{}, "left_click_drag", "拖拽"],
+    [{}, "paste", "粘贴"],
+  ];
+  for (const [params, method, expected] of cases) {
+    assert.equal(summarizeAction(method, params), expected);
+  }
 });
 
 test("没有 session_id 的动作也会在 settled 后启动空闲计时", () => {

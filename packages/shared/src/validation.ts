@@ -1327,8 +1327,12 @@ export const cuaActivityEventSchema = z
     x: z.number().finite().optional(),
     y: z.number().finite().optional(),
     /**
-     * daemon 正在画原生 ghost：宿主不再叠自己的光标浮层（横幅照旧）。
-     * 为 true 时事件不携带 x/y（坐标只会让宿主再画一个光标）。
+     * 一句话操作说明（"点击「7」"）：原生光标在画时由宿主画在光标旁。
+     * 纯展示字段，缺失时宿主只显示横幅。
+     */
+    summary: z.string().min(1).optional(),
+    /**
+     * daemon 正在画原生 ghost：宿主不再叠自己的光标浮层（横幅与说明标签照旧）。
      */
     nativeCursor: z.boolean().optional(),
     at: z.number().int().nonnegative(),

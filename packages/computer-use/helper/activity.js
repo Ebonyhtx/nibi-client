@@ -131,6 +131,51 @@ export function actionCoordinates(method, params) {
 }
 
 /**
+ * 一句话说明"这次在做什么"（给原生光标旁的小标签用）。
+ *
+ * 只做**展示**：截断、去空白，宁可少说也不要说错。元素名由 runtime 通过
+ * `element_label` 传进来（Helper 自己没有元素台账）。
+ */
+export function summarizeAction(method, params = {}) {
+  const clip = (value, max = 18) => {
+    const text = String(value ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!text) return "";
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+  };
+  const label = clip(params?.element_label, 14);
+  switch (method) {
+    case "left_click":
+      return label ? `点击「${label}」` : "点击";
+    case "left_click_drag":
+      return "拖拽";
+    case "scroll": {
+      const direction = clip(params?.direction, 6);
+      return direction ? `滚动（${direction}）` : "滚动";
+    }
+    case "type": {
+      const text = clip(params?.text);
+      return text ? `输入「${text}」` : "输入文字";
+    }
+    case "key": {
+      const key = clip(params?.key, 12);
+      return key ? `按键 ${key}` : "按键";
+    }
+    case "paste":
+      return "粘贴";
+    case "set_value":
+      return label ? `填写「${label}」` : "填写";
+    case "perform_action": {
+      const action = clip(params?.action, 20);
+      return action ? `执行「${action}」` : "执行动作";
+    }
+    default:
+      return String(method ?? "");
+  }
+}
+
+/**
  * 活动上报器。`active(method, params)` 表示"马上要下发一次输入"；`inactive(reason)` 表示
  * 空闲/释放/急停。所有对外副作用都包在 try/catch 里，任何异常都不会反噬动作。
  */
@@ -153,17 +198,14 @@ export function createCuaActivity({
   let hasActiveEvent = false;
   let lastPoint = null;
   let lastAction = null;
+  let lastSummary = null;
   let disposed = false;
 
   function publish(message) {
     try {
-      if (nativeCursor() !== true) {
-        send?.(message);
-        return;
-      }
-      // 原生 ghost 在画：坐标对宿主只会变成"再画一个光标"，所以整对丢掉（横幅不受影响）。
-      const { x: _x, y: _y, ...rest } = message;
-      send?.({ ...rest, native_cursor: true });
+      // 坐标在 daemon 模式下**保留**：宿主用它把"操作说明"标签放到原生光标旁，
+      // 但会看 native_cursor 决定不再画自己的光标（两个光标是错的）。
+      send?.(nativeCursor() === true ? { ...message, native_cursor: true } : message);
     } catch {
       // 展示旁路的最后一道 fail-open：IPC 断了也不影响输入动作。
     }
@@ -185,6 +227,7 @@ export function createCuaActivity({
     hasActiveEvent = false;
     lastPoint = null;
     lastAction = null;
+    lastSummary = null;
     publish({
       type: ACTIVITY_MESSAGE_TYPE,
       active: false,
@@ -224,11 +267,13 @@ export function createCuaActivity({
       hasActiveEvent = true;
       lastPoint = point ?? lastPoint;
       lastAction = method;
+      lastSummary = summarizeAction(method, params);
       publish({
         type: ACTIVITY_MESSAGE_TYPE,
         active: true,
         sessionId,
         action: method,
+        summary: lastSummary,
         ...(point ? { x: point.x, y: point.y } : {}),
         at: now(),
       });
@@ -271,6 +316,7 @@ export function createCuaActivity({
         active: hasActiveEvent,
         sessionId: activeSessionId,
         action: lastAction,
+        summary: lastSummary,
         point: lastPoint ? { x: lastPoint.x, y: lastPoint.y } : null,
       };
     },

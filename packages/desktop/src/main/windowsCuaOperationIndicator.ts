@@ -9,6 +9,7 @@ import {
   indicatorDataUrl,
   indicatorWindowSize,
 } from "./windowsCuaOperationIndicatorContent.js";
+import { createCursorLabelOverlay } from "./windowsCuaCursorLabel.js";
 
 const HIDE_ANIMATION_MS = 120;
 /**
@@ -30,7 +31,7 @@ const CURSOR_RETRY_MS = 5_000;
 /** 活动键与 turn 键共存于同一聚合表：前缀带 NUL，保证不会和 workspace 路径撞键。 */
 const ACTIVITY_KEY_PREFIX = "\0activity\0";
 
-export type WindowsCuaIndicatorWindowKind = "indicator" | "cursor";
+export type WindowsCuaIndicatorWindowKind = "indicator" | "cursor" | "label";
 
 /**
  * 光标窗口的 bounds：把落点夹进显示器工作区，并让窗口中心对准落点。
@@ -123,6 +124,18 @@ export function createWindowsCuaOperationIndicator(
   const schedule = options.schedule ?? ((callback, delayMs) => setTimeout(callback, delayMs));
   const cancelSchedule = options.cancelSchedule ?? ((timer) => clearTimeout(timer));
   const now = options.now ?? (() => Date.now());
+
+  // 原生光标旁的操作说明（daemon 模式）：独立窗口、独立生命周期，只由活动事件驱动。
+  const cursorLabel = createCursorLabelOverlay({
+    platform,
+    createWindow,
+    getDisplayNearestPoint,
+    toDipPoint,
+    schedule,
+    cancelSchedule,
+    now,
+    logger: options.logger,
+  });
 
   const activeTurnKeysBySource = new Map<object, Set<string>>();
   const ownedWindows = new WeakSet<object>();
@@ -665,20 +678,29 @@ export function createWindowsCuaOperationIndicator(
         scheduleAutoHide(source, key, ACTIVITY_AUTO_HIDE_MS);
         // 只有聚合从空变非空时按当前鼠标显示器重定位，避免并行 source 让横幅跳动。
         ensureWindow(!wasActive);
-        if (
+        const hasPoint =
           typeof event.x === "number" &&
           typeof event.y === "number" &&
           Number.isFinite(event.x) &&
-          Number.isFinite(event.y)
-        ) {
-          showCursorAt({ x: event.x, y: event.y });
+          Number.isFinite(event.y);
+        if (event.nativeCursor === true) {
+          // 原生 ghost 在画：不再叠自有光标；有落点 + 摘要时把"在做什么"贴在旁边。
+          beginCursorHide();
+          if (hasPoint && event.summary) {
+            cursorLabel.showAt({ x: event.x as number, y: event.y as number }, event.summary);
+          }
+          return;
+        }
+        if (hasPoint) {
+          showCursorAt({ x: event.x as number, y: event.y as number });
         }
         return;
       }
       const removed = removeActivityKeys(source, event.sessionId ?? null);
-      // 光标只属于"刚才那次输入"：即使该 source 从未登记（Helper 重启/消息丢失），
-      // inactive 也必须让它淡出，不能停在屏幕上。
+      // 光标/说明只属于"刚才那次输入"：即使该 source 从未登记（Helper 重启/消息丢失），
+      // inactive 也必须让它们淡出，不能停在屏幕上。
       if (!hasActiveActivities()) beginCursorHide();
+      cursorLabel.hide();
       if (removed && !hasActiveTurns()) beginHide();
     } catch (error) {
       options.logger.debug("[cua-operation-indicator] activity handling failed", error);
@@ -696,6 +718,7 @@ export function createWindowsCuaOperationIndicator(
       cancelAutoHide(source, key);
     }
     if (hadActivity && !hasActiveActivities()) beginCursorHide();
+    if (hadActivity) cursorLabel.hide();
     if (!hasActiveTurns()) beginHide();
   }
 
@@ -706,7 +729,7 @@ export function createWindowsCuaOperationIndicator(
   }
 
   function ownsWindow(candidate: object): boolean {
-    return ownedWindows.has(candidate);
+    return ownedWindows.has(candidate) || cursorLabel.ownsWindow(candidate);
   }
 
   function dispose(): void {
@@ -731,6 +754,7 @@ export function createWindowsCuaOperationIndicator(
     cursorShown = false;
     cursorPoint = null;
     if (cursorTarget && !cursorTarget.isDestroyed()) cursorTarget.destroy();
+    cursorLabel.dispose();
     const target = window;
     window = null;
     windowReady = false;

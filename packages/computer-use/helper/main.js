@@ -120,9 +120,11 @@ export function createHelperBackend(engine, options = {}) {
         active: snapshot.active === true,
         session_id: snapshot.sessionId ?? null,
         action: snapshot.action ?? null,
+        // 一句话说明（"点击「7」"/"输入「…」"），宿主画在原生光标旁。
+        summary: snapshot.summary ?? null,
         x: snapshot.point?.x ?? null,
         y: snapshot.point?.y ?? null,
-        // 原生 ghost 正在画时，宿主不要再画自己的光标（但横幅保留）。
+        // 原生 ghost 正在画时，宿主不要再画自己的光标（但横幅与说明标签保留）。
         native_cursor: nativeCursor() === true,
         at: Date.now(),
       };

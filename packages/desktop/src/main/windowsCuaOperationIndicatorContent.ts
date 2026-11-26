@@ -171,3 +171,55 @@ export function cursorOverlayHtml(): string {
 export function cursorOverlayDataUrl(): string {
   return `data:text/html;base64,${Buffer.from(cursorOverlayHtml(), "utf8").toString("base64")}`;
 }
+
+/**
+ * 原生光标旁的操作说明（"点击「7」"）。
+ *
+ * 为什么单独一个窗口：原生 ghost 由 cua-driver daemon 画，我们改不了它的渲染；
+ * 但 helper 的活动事件带落点与一句话摘要，宿主用这个无焦点、穿透的透明窗口贴在落点旁边，
+ * 就得到与 ZCode 同类的"光标 + 说明"。它**不画光标**，只画一行字。
+ */
+export const CURSOR_LABEL_WIDTH = 300;
+export const CURSOR_LABEL_HEIGHT = 36;
+
+export function cursorLabelHtml(): string {
+  return `<!doctype html>
+<html lang="zh-CN" data-state="hidden">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+    body { pointer-events: none; font: 12px/1.4 "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif; }
+    .label-stage {
+      display: flex; align-items: center; height: 100%; padding: 0 2px;
+      opacity: 0; transition: opacity 140ms ease;
+    }
+    html[data-state="active"] .label-stage { opacity: 1; }
+    html[data-state="leaving"] .label-stage { opacity: 0; }
+    .chip {
+      max-width: 100%; padding: 5px 10px; border-radius: 8px;
+      background: rgba(15, 23, 42, 0.88); color: #f8fafc;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+    }
+    @media (prefers-color-scheme: dark) {
+      .chip { background: rgba(2, 6, 23, 0.92); border-color: rgba(148, 163, 184, 0.35); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .label-stage { transition: opacity 1ms linear; }
+    }
+  </style>
+</head>
+<body>
+  <div class="label-stage" role="status" aria-live="polite"><span class="chip" id="label"></span></div>
+</body>
+</html>`;
+}
+
+export function cursorLabelDataUrl(): string {
+  return `data:text/html;base64,${Buffer.from(cursorLabelHtml(), "utf8").toString("base64")}`;
+}
