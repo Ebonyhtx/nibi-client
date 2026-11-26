@@ -42,6 +42,7 @@ export type WindowsCuaDevRuntimeResolutionReason =
   | "invalid-package"
   | "missing-helper-entry"
   | "missing-native-addon"
+  | "missing-daemon"
   | "missing-resources-path"
   | "resources-path-not-absolute"
   | "invalid-runtime-manifest"
@@ -154,11 +155,14 @@ interface RuntimeManifest {
   electronVersion: string;
   entry: string;
   addon: string;
+  /** 可选：原生 agent cursor 的 daemon 可执行文件（Windows；npm 包不含它）。 */
+  daemon?: string;
   /** 可选：producer 声明的运行时依赖包（打包后由 afterPack 验闭包）。 */
   runtimeDependencies?: string[];
   sha256: {
     entry: string;
     addon: string;
+    daemon?: string;
   };
 }
 
@@ -193,6 +197,11 @@ async function resolvePackagedRuntime(
 
   const entryPath = resolveManifestArtifact(root, manifest.entry, "entry");
   const addonPath = resolveManifestArtifact(root, manifest.addon, "addon");
+  // daemon 是可选扩展：老清单没有它时保持"只有引擎"的现状（引擎会退回进程内模式）。
+  const daemonPath =
+    manifest.daemon === undefined
+      ? undefined
+      : resolveManifestArtifact(root, manifest.daemon, "daemon");
   await Promise.all([
     requireContainedRegularArtifact(
       fileSystem,
@@ -210,15 +219,46 @@ async function resolvePackagedRuntime(
       "missing-native-addon",
       "addon",
     ),
-  ]);
-  const [entryBytes, addonBytes] = await Promise.all([
-    readRequiredArtifact(fileSystem, entryPath, manifest.entry, "missing-helper-entry", "entry"),
-    readRequiredArtifact(fileSystem, addonPath, manifest.addon, "missing-native-addon", "addon"),
+    ...(daemonPath === undefined
+      ? []
+      : [
+          requireContainedRegularArtifact(
+            fileSystem,
+            rootRealPath,
+            daemonPath,
+            manifest.daemon as string,
+            "missing-daemon",
+            "daemon",
+          ),
+        ]),
   ]);
   const hashBytes = options.hashBytes ?? defaultHashBytes;
-  const [entryHash, addonHash] = await Promise.all([hashBytes(entryBytes), hashBytes(addonBytes)]);
-  requireArtifactHash(entryHash, manifest.sha256.entry, "entry");
-  requireArtifactHash(addonHash, manifest.sha256.addon, "addon");
+  const entryBytes = await readRequiredArtifact(
+    fileSystem,
+    entryPath,
+    manifest.entry,
+    "missing-helper-entry",
+    "entry",
+  );
+  const addonBytes = await readRequiredArtifact(
+    fileSystem,
+    addonPath,
+    manifest.addon,
+    "missing-native-addon",
+    "addon",
+  );
+  requireArtifactHash(await hashBytes(entryBytes), manifest.sha256.entry, "entry");
+  requireArtifactHash(await hashBytes(addonBytes), manifest.sha256.addon, "addon");
+  if (daemonPath !== undefined) {
+    const daemonBytes = await readRequiredArtifact(
+      fileSystem,
+      daemonPath,
+      manifest.daemon as string,
+      "missing-daemon",
+      "daemon",
+    );
+    requireArtifactHash(await hashBytes(daemonBytes), manifest.sha256.daemon as string, "daemon");
+  }
 
   return {
     root,
@@ -301,7 +341,7 @@ function validateRuntimeManifest(
     "addon",
     "sha256",
   ];
-  const optionalManifestKeys = ["runtimeDependencies"];
+  const optionalManifestKeys = ["runtimeDependencies", "daemon"];
   const manifestKeys = Object.keys(manifest);
   const hasRequiredManifestKeys =
     requiredManifestKeys.every((key) => manifestKeys.includes(key)) &&
@@ -312,13 +352,27 @@ function validateRuntimeManifest(
     manifest.runtimeDependencies === undefined ||
     (Array.isArray(manifest.runtimeDependencies) &&
       manifest.runtimeDependencies.every((item) => isNonEmptyTrimmedString(item)));
+  // daemon 可选，但一旦声明就必须与 entry/addon 不同；路径规范性交给
+  // resolveManifestArtifact 统一判定（与 entry/addon 同一条错误契约）。
+  const daemonOk =
+    manifest.daemon === undefined ||
+    (typeof manifest.daemon === "string" &&
+      manifest.daemon !== manifest.entry &&
+      manifest.daemon !== manifest.addon);
+  const expectedHashKeys =
+    manifest.daemon === undefined ? ["entry", "addon"] : ["entry", "addon", "daemon"];
   const hasExactHashKeys =
     manifest.sha256 !== null &&
     typeof manifest.sha256 === "object" &&
-    hasExactKeys(manifest.sha256, ["entry", "addon"]);
+    hasExactKeys(manifest.sha256, expectedHashKeys);
+  const daemonHashOk =
+    manifest.daemon === undefined ||
+    (isNonEmptyTrimmedString(manifest.sha256.daemon) &&
+      hashPattern.test(manifest.sha256.daemon));
   const compatible =
     hasRequiredManifestKeys &&
     runtimeDependenciesOk &&
+    daemonOk &&
     manifest.schemaVersion === 1 &&
     manifest.packageName === EXPECTED_PACKAGE_NAME &&
     isNonEmptyTrimmedString(manifest.packageVersion) &&
@@ -333,7 +387,8 @@ function validateRuntimeManifest(
     manifest.entry !== manifest.addon &&
     hasExactHashKeys &&
     hashPattern.test(manifest.sha256.entry) &&
-    hashPattern.test(manifest.sha256.addon);
+    hashPattern.test(manifest.sha256.addon) &&
+    daemonHashOk;
   if (compatible) return;
   throw new WindowsCuaDevRuntimeResolutionError(
     "incompatible-runtime-manifest",
@@ -378,7 +433,11 @@ function hasExactKeys(value: object, expectedKeys: readonly string[]): boolean {
   );
 }
 
-function resolveManifestArtifact(root: string, artifact: string, field: "entry" | "addon"): string {
+function resolveManifestArtifact(
+  root: string,
+  artifact: string,
+  field: "entry" | "addon" | "daemon",
+): string {
   // 测试和构建编排可能在非 Windows 主机上检查 Windows 清单；仅用宿主 path.isAbsolute
   // 会把 C:\... 误判成相对路径，因此同时按 Windows 路径语义 fail closed。
   if (!isCanonicalRelativeArtifactPath(artifact)) {
@@ -428,8 +487,8 @@ async function requireContainedRegularArtifact(
   rootRealPath: string,
   artifactPath: string,
   artifact: string,
-  missingReason: "missing-helper-entry" | "missing-native-addon",
-  artifactKind: "entry" | "addon",
+  missingReason: "missing-helper-entry" | "missing-native-addon" | "missing-daemon",
+  artifactKind: "entry" | "addon" | "daemon",
 ): Promise<void> {
   let stats: Pick<Stats, "isFile" | "isSymbolicLink">;
   try {
@@ -455,9 +514,9 @@ async function requireContainedRegularArtifact(
 }
 
 function throwMissingArtifact(
-  reason: "missing-helper-entry" | "missing-native-addon",
+  reason: "missing-helper-entry" | "missing-native-addon" | "missing-daemon",
   artifact: string,
-  artifactKind: "entry" | "addon",
+  artifactKind: "entry" | "addon" | "daemon",
 ): never {
   throw new WindowsCuaDevRuntimeResolutionError(
     reason,
@@ -499,8 +558,8 @@ async function readRequiredArtifact(
   fileSystem: WindowsCuaRuntimeFileSystem,
   artifactPath: string,
   artifact: string,
-  reason: "missing-helper-entry" | "missing-native-addon",
-  artifactKind: "entry" | "addon",
+  reason: "missing-helper-entry" | "missing-native-addon" | "missing-daemon",
+  artifactKind: "entry" | "addon" | "daemon",
 ): Promise<string | Uint8Array> {
   try {
     return await fileSystem.readFile(artifactPath);
@@ -514,7 +573,7 @@ async function readRequiredArtifact(
   }
 }
 
-function throwInvalidArtifactPath(field: "entry" | "addon"): never {
+function throwInvalidArtifactPath(field: "entry" | "addon" | "daemon"): never {
   throw new WindowsCuaDevRuntimeResolutionError(
     "invalid-artifact-path",
     `Windows CUA packaged runtime ${field} must be a contained relative artifact path.`,
@@ -525,7 +584,7 @@ function throwInvalidArtifactPath(field: "entry" | "addon"): never {
 function requireArtifactHash(
   actualHash: string,
   expectedHash: string,
-  artifact: "entry" | "addon",
+  artifact: "entry" | "addon" | "daemon",
 ): void {
   if (actualHash === expectedHash) return;
   throw new WindowsCuaDevRuntimeResolutionError(

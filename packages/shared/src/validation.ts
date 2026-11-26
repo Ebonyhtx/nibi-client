@@ -1326,6 +1326,11 @@ export const cuaActivityEventSchema = z
     action: z.string().min(1),
     x: z.number().finite().optional(),
     y: z.number().finite().optional(),
+    /**
+     * daemon 正在画原生 ghost：宿主不再叠自己的光标浮层（横幅照旧）。
+     * 为 true 时事件不携带 x/y（坐标只会让宿主再画一个光标）。
+     */
+    nativeCursor: z.boolean().optional(),
     at: z.number().int().nonnegative(),
   })
   .strict();

@@ -65,6 +65,13 @@ export function createHelperBackend(engine, options = {}) {
     );
   // 引擎加载状态探针（startHelper 注入）：transport 先于引擎就绪，health 需要能报"引擎还在装"。
   const engineStatus = options.engineStatus;
+  /**
+   * 原生光标探针（startHelper 注入）：`true` 表示引擎连的是随包 cua-driver daemon，
+   * 由它自己画 ghost。宿主据此**不再**叠我们自己的光标浮层（两个光标是错的），
+   * 但横幅照旧——横幅表达"谁在操作"，与光标渲染层无关。
+   * 进程内引擎在 Windows 上不会创建 overlay 窗口，所以这个值不能从 enabled 字段推断。
+   */
+  const nativeCursor = options.nativeCursor ?? (() => false);
   /** 引擎的动作工具大多要 pid + window_id 一起给（缺 pid = "Missing required integer field pid"，
    *  实测踩过两次）。这里是**唯一**的 pid 解析入口：显式给就用，否则按 window_id 现查。 */
   const resolvePid = async (params) => {
@@ -88,6 +95,13 @@ export function createHelperBackend(engine, options = {}) {
       pid: process.pid,
       bundle_id: `nibi-computer-use-${process.platform}-${process.arch}`,
       engine: engine.kind,
+      // daemon = 有原生 ghost；embedded = 动作能力相同但没有 overlay 渲染层。
+      engine_mode:
+        typeof engineStatus === "function" && engineStatus() === "ready"
+          ? nativeCursor()
+            ? "daemon"
+            : "embedded"
+          : undefined,
       // transport 先于引擎就绪；health 必须立刻可答（宿主 full health 不该被引擎加载挡住）。
       engine_status: typeof engineStatus === "function" ? engineStatus() : "ready",
       lease: semantics.status().lease?.sessionId ?? null,
@@ -108,6 +122,8 @@ export function createHelperBackend(engine, options = {}) {
         action: snapshot.action ?? null,
         x: snapshot.point?.x ?? null,
         y: snapshot.point?.y ?? null,
+        // 原生 ghost 正在画时，宿主不要再画自己的光标（但横幅保留）。
+        native_cursor: nativeCursor() === true,
         at: Date.now(),
       };
     },
@@ -458,10 +474,14 @@ export async function startHelper({ socketPath, argv = [], env = process.env } =
   // 等引擎；helper_health 立刻可答。
   const enginePromise = createCuaDriverEngine({ env });
   let engineState = "loading";
+  /** 由 startHelper 在引擎就绪后写入；backend 通过闭包读它（不要经 deferred 代理取属性）。 */
+  let nativeCursorActive = false;
   // 活动上报是纯展示旁路：send 走 child IPC；任何异常都在 reporter 内部吞掉。
-  const activity = createCuaActivity({ send });
+  // nativeCursor 用闭包读：引擎就绪前恒 false，就绪后由 startHelper 写入。
+  const activity = createCuaActivity({ send, nativeCursor: () => nativeCursorActive });
   const backend = createHelperBackend(createDeferredEngine(enginePromise), {
     engineStatus: () => engineState,
+    nativeCursor: () => nativeCursorActive,
     activity,
   });
 
@@ -503,6 +523,7 @@ export async function startHelper({ socketPath, argv = [], env = process.env } =
     throw error;
   }
   engineState = "ready";
+  nativeCursorActive = engine.nativeCursor === true;
   const metadata = await engine.metadata?.().catch(() => undefined);
   send({ type: "ready", socketPath: boundPath, pid: process.pid });
 

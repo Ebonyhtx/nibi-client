@@ -1,4 +1,8 @@
-> **2026-11-15 校正**：driver 已升到 `0.47.23`；输入默认 `delivery_mode="background"`；`perform_action`、`request_access`、`stop_computer_control` 已接线（`select_text` 仍诚实拒绝）；自有 56x56 光标浮层已实现（`b48ee03f`）。下文旧状态只作历史台账。
+> **2026-11-26 校正**：driver 升到 `0.62.1`，引擎改为 **daemon 优先**（`bin/cua-driver.exe`；
+> 原生 ghost 只由 daemon 绘制），缺失/失败回退进程内引擎；输入默认 `delivery_mode="background"`；
+> `perform_action`、`request_access`、`stop_computer_control` 已接线（`select_text` 仍诚实拒绝）；
+> 自有 56x56 光标浮层保留为回退/补强（daemon 模式下由 `nativeCursor` 抑制）。
+> 下文旧状态只作历史台账。
 # Computer Use 实施台账（`@nibi/cua` 真实现）
 
 > 背景与决策见本包 `README.md` 与 `packages/computer-use/vendor/freeall12-computer-use/PROVENANCE.md`。
@@ -324,6 +328,14 @@ running:false**）。此前按名命中注册条目 → list_windows({pid:0}) �
   false，implicit 与显式 `start_session` 会话都一样）；`move_cursor` 后 `position` 正常更新
   到 (400,400)，桌面截图该位置**什么都没有**（含 2s dwell + trail 特效的形态）；
 * 结论：命令面活着、渲染层不工作（或被 capture 排除且肉眼也未见）。不再投入。
+* **2026-11-26 校正（升 0.62.1 时复测）**：不是"Windows 上渲染层不工作"，而是**进程内 SDK
+  根本不建 overlay 窗口**——枚举进程顶层窗口为空，所以 `enabled:true` 也没有任何绘制。
+  把同一个 DLL 换成 `cua-driver.exe mcp/serve` 子进程（daemon）后，
+  `Cua.AgentCursorOverlay` 分层窗口（0,0,屏幕尺寸、`WS_EX_LAYERED|TRANSPARENT|NOACTIVATE`）
+  出现并且 `PrintWindow` 能抓到箭头像素；daemon 约 55 MB，父进程退出即自行结束。
+  现在的形态：`engine/cua-driver.js` daemon 优先、拿不到 `bin/cua-driver.exe` 就回退进程内
+  （动作照旧、无 ghost），`nativeCursor` 如实上报给宿主决定是否再画自有浮层。
+  旧结论只对**进程内**模式成立。
 * 另注意：`launch_app` 会重置 cursor 会话状态；元素数字键的 label 是中文数字
   （零一二…九、乘以、等于）——"7" 永远匹配不到，自动化按 label 找键要按本地化名。
 

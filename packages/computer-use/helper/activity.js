@@ -141,6 +141,12 @@ export function createCuaActivity({
   cancel = clearTimeout,
   idleMs = CUA_ACTIVITY_IDLE_MS,
   coordinates = createActivityCoordinateLedger(),
+  /**
+   * 原生 ghost 是否在画（daemon 模式）。为 true 时事件里**不附带坐标**：宿主用坐标
+   * 决定是否画自己的光标浮层，而原生 ghost 已经画了——两个光标是错的。
+   * 横幅只依赖 active/sessionId，不受影响。
+   */
+  nativeCursor = () => false,
 } = {}) {
   let idleTimer = null;
   let activeSessionId = null;
@@ -151,7 +157,13 @@ export function createCuaActivity({
 
   function publish(message) {
     try {
-      send?.(message);
+      if (nativeCursor() !== true) {
+        send?.(message);
+        return;
+      }
+      // 原生 ghost 在画：坐标对宿主只会变成"再画一个光标"，所以整对丢掉（横幅不受影响）。
+      const { x: _x, y: _y, ...rest } = message;
+      send?.({ ...rest, native_cursor: true });
     } catch {
       // 展示旁路的最后一道 fail-open：IPC 断了也不影响输入动作。
     }

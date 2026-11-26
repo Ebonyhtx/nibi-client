@@ -742,18 +742,6 @@ export default {
     : {}),
   extraResources: [
     { from: resolve(workspaceRoot, noticesFileName), to: noticesFileName },
-    ...(targetPlatform.os === "win32"
-      ? [
-          {
-            // Computer Use Helper（自研；引擎为 @trycua/cua-driver）。
-            // 宿主解析器按 process.resourcesPath 找 <resources>/tools/cua-helper/runtime-manifest.json，
-            // 并校验 entry/addon 的 sha256 与 electronVersion（见 services/.../windowsCuaDevRuntime.ts）。
-            // 目录由 `pnpm --filter @nibi/desktop prepare:cua-helper` 生成（prepare:runtime-assets 已串联）。
-            from: resolve(workspaceRoot, ".staging/tools/cua-helper"),
-            to: "tools/cua-helper",
-          },
-        ]
-      : []),
     ...(targetPlatform.os === "darwin"
       ? [
           ...(shouldPackageComputerUseHelper
@@ -824,14 +812,16 @@ export default {
           },
         ]
       : []),
-    ...(targetPlatform.os === "win32" && shouldPackageComputerUseHelper
+    ...(targetPlatform.os === "win32"
       ? [
           {
-            // 根因：electron-builder 会跳过 from 根目录下的 node_modules；主树与依赖树必须分开映射，
-            // 否则安装包有 manifest/entry，却会在 Helper 启动时缺原生 addon。
-            // 2026-10-26：依赖树改从 `.staging/tools/cua-helper/node_modules` 取——上游的
-            // `prepare:windows-cua-helper` 按包内 node_modules 布局找原生件，pnpm hoisted 布局下必然
-            // ENOENT；我们的 `prepare:cua-helper` 已经产出完整产品态目录（含 node_modules）。
+            // 根因：electron-builder 会跳过 extraResources `from` 根目录下的 node_modules；
+            // 主树与依赖树必须分开映射，否则安装包有 manifest/entry，却会在 Helper 启动时缺原生 addon。
+            // 2026-11-26：原先这里还被 `shouldPackageComputerUseHelper` 门控——它要求仓库里存在
+            // macOS app bundle（`bundled-cua-helper/<arch>/NIBI Computer Use.app`），Windows 上恒 false，
+            // 于是这一对实际从未运行，真正生效的是上面那条未过滤映射（它不带 node_modules）。
+            // 结果是：Windows 包缺 node_modules，afterPack 直接报 missing addon。现在改为只按平台门控，
+            // 同时删掉未过滤的那条，全目录只映射一次（33 MB 的 daemon 不再被并发复制 → 不再 EBUSY）。
             from: resolve(workspaceRoot, ".staging/tools/cua-helper"),
             to: "tools/cua-helper",
             filter: ["**/*", "!node_modules{,/**/*}"],

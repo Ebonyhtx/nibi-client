@@ -19,9 +19,10 @@
  */
 import { createHash } from "node:crypto";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { downloadAndExtractPrebuiltBinary } from "../../../scripts/prebuilt-binary-download.mjs";
 import { getTargetPlatform } from "./target-platform.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -67,6 +68,69 @@ async function packageJsonOf(specifier, fromDir) {
 
 async function copyTree(from, to) {
   await cp(from, to, { recursive: true, force: true, dereference: true });
+}
+
+/**
+ * Cua daemon 归档的 SHA-256（**仓库内固定**）。
+ *
+ * 为什么不读 release 的 checksums.txt：它与归档同源，被替换时也能一起换。
+ * 新增驱动版本时必须在这里补一行；缺失时构建 fail-closed，绝不"跳过校验"。
+ */
+const CUA_DRIVER_DAEMON_ARCHIVE_SHA256 = {
+  "0.62.1": {
+    x86_64: "6fce4254c42dfbf1cbd2d03340da259c5e3cd0d31254907322629c2d89675d9d",
+    arm64: "0dd84b5ceae74ee65440f2332354777241921c349f0e3e07ef78a9c4e594d73e",
+  },
+};
+const CUA_DRIVER_DAEMON_ARCH_TAG = { x64: "x86_64", arm64: "arm64" };
+
+/**
+ * 把 daemon 放到 `<runtime>/bin/cua-driver.exe`。
+ *
+ * 只有 Windows 会真正使用它（宿主解析器只认 win32；macOS 的 app bundle 通道未接）。
+ * 其他平台返回 undefined，清单里就不写 daemon——引擎侧找不到文件会自动退回进程内引擎。
+ */
+async function stageDaemonBinary(outDir, platform, arch, driverVersion) {
+  if (platform !== "win32") return undefined;
+  const archTag = CUA_DRIVER_DAEMON_ARCH_TAG[arch];
+  if (!archTag) throw new Error(`不支持的 daemon 架构：${platform}/${arch}`);
+  const expectedSha256 = CUA_DRIVER_DAEMON_ARCHIVE_SHA256[driverVersion]?.[archTag];
+  if (!expectedSha256) {
+    throw new Error(
+      `没有为 @trycua/cua-driver@${driverVersion} (${archTag}) 固定 daemon 归档摘要；` +
+        "先核对 release 的 checksums.txt，再把 sha256 加进 CUA_DRIVER_DAEMON_ARCHIVE_SHA256。",
+    );
+  }
+  const asset = `cua-driver-rs-${driverVersion}-windows-${archTag}-binary.zip`;
+  const downloadUrl = `https://github.com/trycua/cua/releases/download/cua-driver-rs-v${driverVersion}/${asset}`;
+  const relativePath = "bin/cua-driver.exe";
+  const target = join(outDir, "bin", "cua-driver.exe");
+  await mkdir(dirname(target), { recursive: true });
+
+  // 解压缓存：归档有一个仓库内固定的摘要，但解出来的 exe 摘要没被固定过，所以缓存旁边
+  // 记一份 exe 摘要，命中时按 exe 自身摘要校验（防缓存被改写，也省掉重复 33MB 下载）。
+  const cacheDir = join(REPO_ROOT, ".staging", "cache", "cua-driver", `${driverVersion}-${archTag}`);
+  const cachedExe = join(cacheDir, "cua-driver.exe");
+  const cachedDigest = join(cacheDir, "cua-driver.exe.sha256");
+  if (existsSync(cachedExe) && existsSync(cachedDigest)) {
+    const recorded = (await readFile(cachedDigest, "utf8")).trim();
+    if (sha256File(cachedExe) === recorded) {
+      copyFileSync(cachedExe, target);
+      return relativePath;
+    }
+  }
+
+  await downloadAndExtractPrebuiltBinary({
+    archiveExt: "zip",
+    archiveSha256: expectedSha256,
+    binaryName: "cua-driver.exe",
+    binaryPath: cachedExe,
+    downloadUrl,
+    targetPlatform: platform,
+  });
+  await writeFile(cachedDigest, `${sha256File(cachedExe)}\n`, "utf8");
+  copyFileSync(cachedExe, target);
+  return relativePath;
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -133,7 +197,19 @@ for (const shared of ["@ubjs/core", "@ubjs/node"]) {
   await copyTree(dirname(found.path), target);
 }
 
-// 3) 清单（键必须**恰好**是宿主校验的那九个）
+// 2b) daemon 可执行文件（原生 agent cursor 的唯一来源）
+//     npm 包**不包含** cua-driver 可执行文件；进程内 SDK 在 Windows 上不创建 overlay 窗口
+//     （2026-11-26 实测），只有 daemon 会画 `Cua.AgentCursorOverlay`。所以按驱动版本从
+//     GitHub release 取 daemon，并对归档做仓库内固定的 SHA-256 校验——不能只信 release 上的
+//     checksums.txt（同源，可被同时替换）。
+const daemonRelative = await stageDaemonBinary(
+  outDir,
+  args.platform,
+  args.arch,
+  driverPackage.data.version,
+);
+
+// 3) 清单（必需键固定九个；daemon / runtimeDependencies 是可选扩展键，宿主侧两处校验都认）
 const entryRelative = join("helper", "main.js").replace(/\\/g, "/");
 const addonRelative = join("node_modules", "@trycua", platformPackageName.split("/")[1], addonFileName).replace(/\\/g, "/");
 const manifest = {
@@ -148,9 +224,12 @@ const manifest = {
   // 我们的 Helper 只用引擎包（node 内建 + @trycua），不依赖上游的 express/sharp。
   // 打包后 afterPack 按这份清单验运行时依赖闭包（可选扩展键）。
   runtimeDependencies: ["@trycua/cua-driver", platformPackageName],
+  // 可选扩展键：daemon 可执行文件（只有 Windows 有）。引擎找不到它时退回进程内引擎。
+  ...(daemonRelative ? { daemon: daemonRelative } : {}),
   sha256: {
     entry: sha256File(join(outDir, entryRelative)),
     addon: sha256File(join(outDir, addonRelative)),
+    ...(daemonRelative ? { daemon: sha256File(join(outDir, daemonRelative)) } : {}),
   },
 };
 await writeFile(join(outDir, "runtime-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
@@ -182,7 +261,11 @@ await writeFile(
 | 组件 | 版本 | 许可 | 说明 |
 | --- | --- | --- | --- |
 | \`@trycua/cua-driver\` | ${driverPackage.data.version} | MIT | 桌面自动化引擎（https://github.com/trycua/cua） |
-| \`${platformPackageName}\` | ${platformPackage.data.version} | MIT AND MPL-2.0 | 该平台的预编译原生件 |
+| \`${platformPackageName}\` | ${platformPackage.data.version} | MIT AND MPL-2.0 | 该平台的预编译原生件 |${
+    daemonRelative
+      ? `\n| \`cua-driver.exe\`（daemon） | ${driverPackage.data.version} | MIT | 同一 release 的独立可执行文件；提供原生 agent cursor 渲染（npm 包不含它） |`
+      : ""
+  }
 | \`@ubjs/core\`、\`@ubjs/node\` | ${(await packageJsonOf("@ubjs/core", PACKAGE_ROOT)).data.version} | MPL-2.0 | UniFFI JS 运行时（uniffi-bindgen-react-native，文件级 copyleft；未修改，源码见上游仓库） |
 | freeall12/computer-use 文档与参考实现 | 快照 | MIT | 规格与测试用；见 packages/computer-use/vendor/ 的 PROVENANCE.md |
 
@@ -195,3 +278,6 @@ console.log(`✓ 已打 Computer Use Helper：${relative(REPO_ROOT, outDir) || o
 console.log(`  platform=${args.platform}/${args.arch} electron=${electronVersion} version=${ourPackage.version}`);
 console.log(`  entry=${entryRelative} (${manifest.sha256.entry.slice(0, 12)}…)`);
 console.log(`  addon=${addonRelative} (${manifest.sha256.addon.slice(0, 12)}…)`);
+if (manifest.daemon) {
+  console.log(`  daemon=${manifest.daemon} (${manifest.sha256.daemon.slice(0, 12)}…)`);
+}

@@ -118,6 +118,43 @@ test("上报器：active 事件形状、1.5s 空闲 inactive、发送失败不�
   assert.doesNotThrow(() => exploding.inactive("released"));
 });
 
+test("原生 ghost 在画时不发坐标：宿主不能再叠自己的光标（横幅照旧）", () => {
+  const sent = [];
+  let native = false;
+  const activity = createCuaActivity({
+    send: (message) => sent.push(message),
+    now: () => 9,
+    schedule: () => ({ id: 1 }),
+    cancel: () => {},
+    coordinates: { resolve: () => ({ x: 10, y: 20 }) },
+    nativeCursor: () => native,
+  });
+
+  activity.active("left_click", { session_id: "s-1" });
+  assert.deepEqual(sent[0], {
+    type: "cua_activity",
+    active: true,
+    sessionId: "s-1",
+    action: "left_click",
+    x: 10,
+    y: 20,
+    at: 9,
+  });
+
+  native = true;
+  activity.active("left_click", { session_id: "s-1" });
+  assert.deepEqual(sent[1], {
+    type: "cua_activity",
+    active: true,
+    sessionId: "s-1",
+    action: "left_click",
+    native_cursor: true,
+    at: 9,
+  });
+  assert.equal("x" in sent[1], false, "坐标准确但不该出现：它只会变成第二个光标");
+  assert.equal("y" in sent[1], false);
+});
+
 test("没有 session_id 的动作也会在 settled 后启动空闲计时", () => {
   let delayMs;
   const activity = createCuaActivity({

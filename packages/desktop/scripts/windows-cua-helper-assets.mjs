@@ -524,8 +524,8 @@ async function inspectPackagedWindowsCuaHelper({
       cause: error,
     });
   }
-  // 必需键固定；runtimeDependencies 可选（我们的 producer 用它声明引擎包，
-  // 上游闭源 producer 不写，回落到 express + sharp 的旧口径）。
+  // 必需键固定；runtimeDependencies/daemon 可选（我们的 producer 用它们声明引擎包与
+  // 原生 cursor daemon；上游闭源 producer 不写，回落到 express + sharp 的旧口径）。
   const requiredManifestKeys = [
     "schemaVersion",
     "packageName",
@@ -537,7 +537,7 @@ async function inspectPackagedWindowsCuaHelper({
     "addon",
     "sha256",
   ];
-  const optionalManifestKeys = ["runtimeDependencies"];
+  const optionalManifestKeys = ["runtimeDependencies", "daemon"];
   const manifestKeys = isPlainRecord(manifest) ? Object.keys(manifest) : [];
   const keysOk =
     requiredManifestKeys.every((key) => manifestKeys.includes(key)) &&
@@ -548,19 +548,28 @@ async function inspectPackagedWindowsCuaHelper({
     manifest.runtimeDependencies === undefined ||
     (Array.isArray(manifest.runtimeDependencies) &&
       manifest.runtimeDependencies.every((item) => isNonEmptyTrimmedString(item)));
+  const daemonOk =
+    manifest.daemon === undefined ||
+    (isNonEmptyTrimmedString(manifest.daemon) &&
+      manifest.daemon !== manifest.entry &&
+      manifest.daemon !== manifest.addon);
+  const expectedHashKeys =
+    manifest.daemon === undefined ? ["entry", "addon"] : ["entry", "addon", "daemon"];
   if (
     !isPlainRecord(manifest) ||
     !isPlainRecord(manifest.sha256) ||
     !keysOk ||
     !runtimeDependenciesOk ||
-    !hasExactKeys(manifest.sha256, ["entry", "addon"]) ||
+    !daemonOk ||
+    !hasExactKeys(manifest.sha256, expectedHashKeys) ||
     !isNonEmptyTrimmedString(manifest.packageVersion) ||
     typeof manifest.entry !== "string" ||
     typeof manifest.addon !== "string" ||
     typeof manifest.sha256.entry !== "string" ||
     typeof manifest.sha256.addon !== "string" ||
     !/^[0-9a-f]{64}$/u.test(manifest.sha256.entry) ||
-    !/^[0-9a-f]{64}$/u.test(manifest.sha256.addon)
+    !/^[0-9a-f]{64}$/u.test(manifest.sha256.addon) ||
+    (manifest.daemon !== undefined && !/^[0-9a-f]{64}$/u.test(manifest.sha256.daemon ?? ""))
   ) {
     throw new Error(
       `[windows-cua-helper-assets] invalid ${RUNTIME_MANIFEST} shape: ${manifestPath}`,
@@ -629,6 +638,12 @@ async function inspectPackagedWindowsCuaHelper({
 
   const entryPath = resolveCanonicalPackagedArtifact(root, manifest.entry, "entry");
   const addonPath = resolveCanonicalPackagedArtifact(root, manifest.addon, "addon");
+  // 可选 daemon：原生 agent cursor 的唯一来源（npm 包不含它）。声明了就必须在同一份闭环里
+  // 验存在性、物理包含、哈希与 PE 架构，不能只验 entry/addon。
+  const daemonPath =
+    manifest.daemon === undefined
+      ? undefined
+      : resolveCanonicalPackagedArtifact(root, manifest.daemon, "daemon");
   const [entryBytes, addonBytes] = await Promise.all([
     readRegularFileSnapshot(entryPath, "entry", {
       lstatOperation,
@@ -639,6 +654,13 @@ async function inspectPackagedWindowsCuaHelper({
       readFileOperation,
     }),
   ]);
+  const daemonBytes =
+    daemonPath === undefined
+      ? undefined
+      : await readRegularFileSnapshot(daemonPath, "daemon", {
+          lstatOperation,
+          readFileOperation,
+        });
   const [physicalEntryPath, physicalAddonPath] = await Promise.all([
     realpathOperation(entryPath),
     realpathOperation(addonPath),
@@ -647,6 +669,9 @@ async function inspectPackagedWindowsCuaHelper({
   // afterPack 必须同时验证 realpath containment，不能只依赖 resolve/relative 的字符串检查。
   assertPhysicalContainment(physicalRoot, physicalEntryPath, "entry");
   assertPhysicalContainment(physicalRoot, physicalAddonPath, "addon");
+  if (daemonPath !== undefined) {
+    assertPhysicalContainment(physicalRoot, await realpathOperation(daemonPath), "daemon");
+  }
 
   if (verifyHashes) {
     if (sha256(entryBytes) !== manifest.sha256.entry) {
@@ -655,12 +680,24 @@ async function inspectPackagedWindowsCuaHelper({
     if (sha256(addonBytes) !== manifest.sha256.addon) {
       throw new Error("[windows-cua-helper-assets] addon SHA-256 hash mismatch");
     }
+    if (daemonBytes !== undefined && sha256(daemonBytes) !== manifest.sha256.daemon) {
+      throw new Error("[windows-cua-helper-assets] daemon SHA-256 hash mismatch");
+    }
   }
   const peMachine = parsePeMachine(addonBytes, addonPath);
   if (peMachine !== expectedMachine) {
     throw new Error(
       `[windows-cua-helper-assets] PE machine mismatch: expected 0x${expectedMachine.toString(16)}, got 0x${peMachine.toString(16)}`,
     );
+  }
+  if (daemonBytes !== undefined && daemonPath !== undefined) {
+    // daemon 必须是同架构的 PE（32/64 位错配只会在运行期炸，出包时必须拦住）。
+    const daemonMachine = parsePeMachine(daemonBytes, daemonPath);
+    if (daemonMachine !== expectedMachine) {
+      throw new Error(
+        `[windows-cua-helper-assets] daemon PE machine mismatch: expected 0x${expectedMachine.toString(16)}, got 0x${daemonMachine.toString(16)}`,
+      );
+    }
   }
   // 根因：extraResources 会跳过 from 根目录下的 node_modules；仅校验 entry/addon 会让
   // “Helper 主树存在但运行时依赖闭包缺失”的安装包通过 afterPack。
@@ -679,11 +716,13 @@ async function inspectPackagedWindowsCuaHelper({
     root,
     entryPath,
     addonPath,
+    ...(daemonPath === undefined ? {} : { daemonPath }),
     peMachine,
     manifestPath,
     manifest,
     entryBytes,
     addonBytes,
+    ...(daemonBytes === undefined ? {} : { daemonBytes }),
   };
 }
 
@@ -694,6 +733,7 @@ function toPackagedVerificationResult(inspection) {
     root: inspection.root,
     entryPath: inspection.entryPath,
     addonPath: inspection.addonPath,
+    ...(inspection.daemonPath === undefined ? {} : { daemonPath: inspection.daemonPath }),
     peMachine: inspection.peMachine,
   };
 }
@@ -728,6 +768,10 @@ export async function finalizePackagedWindowsCuaHelper({
     sha256: {
       entry: sha256(inspection.entryBytes),
       addon: sha256(inspection.addonBytes),
+      // 签名会改变字节：daemon 的哈希必须和 entry/addon 一起刷新，否则严格 verifier 立刻红。
+      ...(inspection.daemonBytes === undefined
+        ? {}
+        : { daemon: sha256(inspection.daemonBytes) }),
     },
   };
   await writeFileOperation(

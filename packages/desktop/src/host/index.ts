@@ -933,10 +933,13 @@ function startCuaActivityPolling(): () => void {
           action?: string | null;
           x?: number | null;
           y?: number | null;
+          /** daemon 正在画原生 ghost：宿主不再叠自己的光标浮层（横幅保留）。 */
+          native_cursor?: boolean;
           at?: number;
         } | null;
         const active = snapshot?.active === true;
-        const key = `${active}:${snapshot?.action ?? ""}:${snapshot?.x ?? ""}:${snapshot?.y ?? ""}`;
+        const nativeCursor = snapshot?.native_cursor === true;
+        const key = `${active}:${snapshot?.action ?? ""}:${snapshot?.x ?? ""}:${snapshot?.y ?? ""}:${nativeCursor}`;
         if (key === lastKey) return;
         lastKey = key;
         cuaActivityReporter.onActivity({
@@ -951,8 +954,8 @@ function startCuaActivityPolling(): () => void {
               : active
                 ? "input"
                 : "idle",
-          ...(typeof snapshot?.x === "number" ? { x: snapshot.x } : {}),
-          ...(typeof snapshot?.y === "number" ? { y: snapshot.y } : {}),
+          ...(typeof snapshot?.x === "number" && !nativeCursor ? { x: snapshot.x } : {}),
+          ...(typeof snapshot?.y === "number" && !nativeCursor ? { y: snapshot.y } : {}),
           at: typeof snapshot?.at === "number" ? snapshot.at : Date.now(),
         });
       } catch {

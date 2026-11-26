@@ -223,11 +223,14 @@ export function parseCuaActivityMessage(message: unknown): CuaActivityEvent | nu
         : null;
   const x = typeof value.x === "number" && Number.isFinite(value.x) ? value.x : undefined;
   const y = typeof value.y === "number" && Number.isFinite(value.y) ? value.y : undefined;
+  // daemon 模式：原生 ghost 已经画了光标，坐标对宿主只会变成"再画一个"。
+  const nativeCursor = value.native_cursor === true;
   return {
     active: value.active,
     sessionId,
     action: value.action,
-    ...(x !== undefined && y !== undefined ? { x, y } : {}),
+    ...(x !== undefined && y !== undefined && !nativeCursor ? { x, y } : {}),
+    ...(nativeCursor ? { nativeCursor: true } : {}),
     at: value.at,
   };
 }

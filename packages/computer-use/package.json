@@ -67,7 +67,7 @@
     }
   },
   "scripts": {
-    "test": "node --test test/brokerProtocol.test.mjs test/helperSemantics.test.mjs test/helperActivity.test.mjs test/runtime.test.mjs",
+    "test": "node --test test/brokerProtocol.test.mjs test/helperSemantics.test.mjs test/helperActivity.test.mjs test/runtime.test.mjs test/engineDaemonMode.test.mjs",
     "test:engine": "node --test test/brokerProtocol.test.mjs test/helperSemantics.test.mjs test/runtime.test.mjs && NIBI_CUA_ENGINE_SMOKE=1 NIBI_CUA_ENGINE_MODULE=${NIBI_CUA_ENGINE_MODULE:?需要指向 @trycua/cua-driver 的 entry} node --test test/brokerProtocol.test.mjs",
     "test:acceptance:typed": "node test/run-acceptance.mjs typed",
     "test:acceptance": "node test/run-acceptance.mjs native",
@@ -77,7 +77,7 @@
     "build": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@trycua/cua-driver": "0.47.23"
+    "@trycua/cua-driver": "0.62.1"
   },
   "devDependencies": {
     "tsx": "^4.19.4"
