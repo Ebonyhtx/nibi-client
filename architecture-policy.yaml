@@ -1809,3 +1809,15 @@ exceptions:
       设置页分区保活/懒加载的通用容器（只保留当前与最近访问的一个分区，隐藏用
       hidden/inert/aria-hidden），只服务于 SettingsPage 的渲染生命周期。ui 仍是
       managed:false 的遗留渲染层，按路径准入该文件，接管整包不在本次范围。
+
+  - id: cua-native-cursor-label-presentation
+    rule: unmanaged-new-file
+    paths:
+      - packages/desktop/src/main/windowsCuaCursorLabel.ts
+      - packages/desktop/src/host/cuaActivitySnapshot.ts
+    reason: >-
+      CUA 原生光标旁的展示层新增两个文件：标签透明窗口（跟随 Helper 活动落点、无焦点、
+      鼠标穿透）与「Helper 快照 → 展示事件」的纯映射（曾漏转 nativeCursor 导致双光标）。
+      两者只服务桌面展示，不新增跨模块依赖（仅用已有 shared 契约与 Electron），
+      desktop 主进程仍是 managed:false 的遗留模块，按路径准入这两个文件，
+      接管整个 desktop/src 不在本次范围。
