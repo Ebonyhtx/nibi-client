@@ -32,6 +32,7 @@ import type {
   SyncSubagentSessionTabsRequest,
 } from "@/lib/workspaceSidePane.js";
 import { SessionPane } from "@/v4/SessionPane.js";
+import { useSessionPaneSwitchIsolation } from "@/v4/conversationLayout.js";
 import type { PaneWorkspaceBadge } from "@/v4/ConversationHeader.js";
 import type { ConversationDropTargetController } from "@/v4/composer/conversationDropTarget.js";
 import { V4PaneConversationProvider } from "@/v4/V4ConversationContext.js";
@@ -379,6 +380,11 @@ export function WorkbenchLeafPane({
     sessionId === shell.searchResultHighlightRequest?.taskId
       ? shell.searchResultHighlightRequest
       : null;
+  const { sessionPaneKey, handleSessionCreated: handleIsolatedSessionCreated } =
+    useSessionPaneSwitchIsolation({
+      sessionId,
+      onSessionCreated: handleSessionCreated,
+    });
 
   return (
     <ChatPaneShell
@@ -406,6 +412,7 @@ export function WorkbenchLeafPane({
           />
         ) : null}
         <SessionPane
+          key={sessionPaneKey}
           paneId={paneId}
           readOnly={readOnly}
           sessionId={sessionId}
@@ -421,7 +428,7 @@ export function WorkbenchLeafPane({
           isDesktop={shell.isDesktop}
           compactForRemoteControl={shell.compactForRemoteControl ?? false}
           provider={isPrimary && isShellWorkspace ? shell.provider : undefined}
-          onSessionCreated={handleSessionCreated}
+          onSessionCreated={handleIsolatedSessionCreated ?? handleSessionCreated}
           onSessionDeleted={handleSessionDeleted}
           focused={focused}
           allowEscapeStopOutsidePane={shell.allowEscapeStopOutsidePane}

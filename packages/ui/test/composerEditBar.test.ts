@@ -109,4 +109,39 @@ describe("ComposerEditBar", () => {
     expect(bar.textContent).toContain("正在编辑队列消息");
     expect(bar.querySelector(".lucide-x")).toBeNull();
   });
+
+  it("按目标轮文件改动决定 rewind 按钮可用性，纯对话轮禁用并用外层 wrapper 承接悬停", () => {
+    const onRewind = vi.fn();
+    const { rerender } = render(
+      renderBar({
+        target: userTarget,
+        state: "editing",
+        canRewind: true,
+        workspaceRewind: { enabled: false, reason: "noFiles" },
+        onRewind,
+        onCancel: vi.fn(),
+      }),
+    );
+
+    const disabledBtn = screen.getByTestId("v4-composer-edit-rewind") as HTMLButtonElement;
+    expect(disabledBtn.disabled).toBe(true);
+    expect(disabledBtn.closest('[data-disabled-tooltip-trigger="true"]')).not.toBeNull();
+    fireEvent.click(disabledBtn);
+    expect(onRewind).not.toHaveBeenCalled();
+
+    rerender(
+      renderBar({
+        target: userTarget,
+        state: "editing",
+        canRewind: true,
+        workspaceRewind: { enabled: true, reason: "available" },
+        onRewind,
+        onCancel: vi.fn(),
+      }),
+    );
+    const enabledBtn = screen.getByTestId("v4-composer-edit-rewind") as HTMLButtonElement;
+    expect(enabledBtn.disabled).toBe(false);
+    fireEvent.click(enabledBtn);
+    expect(onRewind).toHaveBeenCalledTimes(1);
+  });
 });

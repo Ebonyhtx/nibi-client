@@ -306,6 +306,7 @@ import {
   type ComposerEditDraft,
   type ComposerEditSubmitInput,
   type ComposerEditSubmitResult,
+  type ComposerEditWorkspaceRewind,
   type ComposerQueueItemEditTarget,
   type ComposerUserQueryEditTarget,
 } from "@/composer-edit-mode/contract.js";
@@ -5648,6 +5649,30 @@ export function SessionPane({
     composerEditMode.isActive &&
     composerEditTarget?.sessionId === sessionId &&
     composerEditTarget.workspaceKey === workspaceKey;
+  // 按 ZCODE 语义校验目标轮是否存在可恢复的文件改动：纯对话轮禁用「重置对话和文件」并用 Tooltip 说明原因。
+  const composerEditWorkspaceRewind = useMemo<ComposerEditWorkspaceRewind | undefined>(() => {
+    if (!composerEditActive || composerEditTarget?.kind !== "userQuery") return undefined;
+    const rows = snapshot?.rows.window ?? EMPTY_TIMELINE_ROWS;
+    const targetRow = rows.find(
+      (candidate) => candidate.kind === "userInput" && candidate.rowId === composerEditTarget.rowId,
+    );
+    const headerRow = targetRow
+      ? rows.find(
+          (candidate) => candidate.kind === "turnHeader" && candidate.turnId === targetRow.turnId,
+        )
+      : undefined;
+    const turnHeader = headerRow?.kind === "turnHeader" ? headerRow : undefined;
+    const fileChanges = turnHeader?.fileChanges;
+    if (!fileChanges || fileChanges.files <= 0) return { enabled: false, reason: "noFiles" };
+    if (fileChanges.state === "reverted") return { enabled: false, reason: "reverted" };
+    if (snapshot?.control.phase === "running" || turnHeader?.state === "running") {
+      return { enabled: false, reason: "running" };
+    }
+    if (turnHeader?.actions?.canRewindFiles !== true) {
+      return { enabled: false, reason: "unavailable" };
+    }
+    return { enabled: true, reason: "available" };
+  }, [composerEditActive, composerEditTarget, snapshot?.control.phase, snapshot?.rows.window]);
   const composerEditBar = useMemo(() => {
     if (!composerEditActive || !composerEditTarget) return undefined;
     return (
@@ -5663,6 +5688,7 @@ export function SessionPane({
         invalidReason={composerEditMode.state.invalidReason}
         canRewind={composerEditTarget.kind === "userQuery"}
         rewindDisabled={composerEditMode.isInvalid}
+        workspaceRewind={composerEditWorkspaceRewind}
         onRewind={composerEditMode.requestRewind}
         onCancel={composerEditMode.cancel}
       />
@@ -5670,6 +5696,7 @@ export function SessionPane({
   }, [
     composerEditActive,
     composerEditTarget,
+    composerEditWorkspaceRewind,
     composerEditMode.state.status,
     composerEditMode.state.invalidReason,
     composerEditMode.isInvalid,

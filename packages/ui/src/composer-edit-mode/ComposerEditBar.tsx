@@ -1,6 +1,7 @@
 import { FileClockIcon, PencilLineIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button.js";
+import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { cn } from "@/components/lib/utils.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
@@ -26,6 +27,7 @@ export function ComposerEditBar({
   invalidReason = null,
   canRewind = false,
   rewindDisabled = false,
+  workspaceRewind,
   onRewind,
   onCancel,
 }: ComposerEditBarProps) {
@@ -35,6 +37,23 @@ export function ComposerEditBar({
     target.kind === "userQuery"
       ? intl.formatMessage({ id: "chat.composerEdit.title.userQuery" })
       : intl.formatMessage({ id: "chat.composerEdit.title.queueItem" });
+  const effectiveRewindDisabled =
+    rewindDisabled ||
+    state === "submitting" ||
+    (workspaceRewind !== undefined && !workspaceRewind.enabled);
+  const rewindButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      data-testid="v4-composer-edit-rewind"
+      disabled={effectiveRewindDisabled}
+      onClick={onRewind}
+    >
+      <FileClockIcon className="size-3.5" />
+      {intl.formatMessage({ id: "chat.composerEdit.rewind" })}
+    </Button>
+  );
   return (
     <div
       data-testid="v4-composer-edit-bar"
@@ -43,10 +62,10 @@ export function ComposerEditBar({
       data-edit-state={state}
       data-invalid-reason={invalidReason ?? undefined}
       className={cn(
-        "flex min-w-0 flex-wrap items-center gap-2 rounded-lg px-2.5 py-1 text-ui-sm",
+        "flex min-w-0 flex-wrap items-center gap-2 rounded-lg border px-2.5 py-1 text-ui-sm",
         state === "invalid"
-          ? "bg-[var(--color-warning)]/10 text-foreground"
-          : "bg-surface text-foreground-subtle",
+          ? "border-warning/35 bg-[var(--color-warning)]/10 text-foreground"
+          : "border-border/55 bg-surface/85 text-foreground-subtle",
       )}
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -63,17 +82,26 @@ export function ComposerEditBar({
         ) : null}
       </span>
       {target.kind === "userQuery" && canRewind && onRewind ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          data-testid="v4-composer-edit-rewind"
-          disabled={rewindDisabled || state === "submitting"}
-          onClick={onRewind}
+        <ControlHintTooltip
+          standalone
+          title={intl.formatMessage({ id: "chat.edit.resetConversationAndFiles.tooltip" })}
+          description={
+            workspaceRewind
+              ? intl.formatMessage({
+                  id: `chat.edit.resetConversationAndFiles.${workspaceRewind.reason}`,
+                })
+              : undefined
+          }
         >
-          <FileClockIcon className="size-3.5" />
-          {intl.formatMessage({ id: "chat.composerEdit.rewind" })}
-        </Button>
+          {effectiveRewindDisabled ? (
+            // disabled 按钮不响应 pointer 事件，外层 span 承接悬停以展示不可用原因。
+            <span className="inline-flex" data-disabled-tooltip-trigger="true">
+              {rewindButton}
+            </span>
+          ) : (
+            rewindButton
+          )}
+        </ControlHintTooltip>
       ) : null}
       <Button
         type="button"

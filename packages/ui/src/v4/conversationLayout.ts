@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import type { ChatViewSummaryPanelVariant } from "@/v4/legacyChatViewTypes.js";
 
 export const CONVERSATION_DRAFT_CONTENT_WIDTH_CLASS_NAME = "max-w-2xl";
@@ -47,4 +48,49 @@ export function getConversationStatusPanelOffsetClassName(
   return layout === "none"
     ? undefined
     : CONVERSATION_STATUS_PANEL_WIDE_OFFSET_CLASS_NAME;
+}
+
+/**
+ * 切换不同会话时通过递增 key 重置 SessionPane 实例以切断旧快照闭包链，
+ * 同时对「草稿页首发送转成新会话」保持同一 key，避免输入焦点或流式启动态闪烁。
+ */
+export function useSessionPaneSwitchIsolation(params: {
+  sessionId: string | null;
+  onSessionCreated?: (sessionId: string) => void;
+}): {
+  sessionPaneKey: string;
+  handleSessionCreated: ((sessionId: string) => void) | undefined;
+} {
+  const promotedSessionIdRef = useRef<string | null>(null);
+  const prevSessionIdRef = useRef<string | null>(params.sessionId);
+  const paneEpochRef = useRef(0);
+
+  if (prevSessionIdRef.current !== params.sessionId) {
+    const promotedFromDraft =
+      prevSessionIdRef.current === null &&
+      params.sessionId !== null &&
+      promotedSessionIdRef.current === params.sessionId;
+    if (!promotedFromDraft) {
+      paneEpochRef.current += 1;
+    }
+    promotedSessionIdRef.current = null;
+    prevSessionIdRef.current = params.sessionId;
+  }
+
+  const onSessionCreated = params.onSessionCreated;
+  const currentSessionId = params.sessionId;
+  const handleSessionCreated = useCallback(
+    (createdSessionId: string) => {
+      if (currentSessionId === null) {
+        promotedSessionIdRef.current = createdSessionId;
+      }
+      onSessionCreated?.(createdSessionId);
+    },
+    [currentSessionId, onSessionCreated],
+  );
+
+  return {
+    sessionPaneKey: `pane-${paneEpochRef.current}`,
+    handleSessionCreated: onSessionCreated ? handleSessionCreated : undefined,
+  };
 }

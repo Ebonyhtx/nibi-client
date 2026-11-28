@@ -13,6 +13,8 @@ export type {
   ComposerEditSubmitResult,
   ComposerEditTarget,
   ComposerEditWorkspaceMode,
+  ComposerEditWorkspaceRewind,
+  ComposerEditWorkspaceRewindReason,
   ComposerQueueItemEditTarget,
   ComposerUserQueryEditTarget,
 } from "./contract.js";

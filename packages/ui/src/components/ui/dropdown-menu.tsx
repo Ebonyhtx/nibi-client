@@ -244,17 +244,25 @@ function DropdownMenuSubTrigger({
 
 function DropdownMenuSubContent({
   className,
+  sideOffset = 4,
+  collisionPadding = 8,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
   return (
-    <DropdownMenuPrimitive.SubContent
-      data-slot="dropdown-menu-sub-content"
-      className={cn(
-        "z-[60] flex flex-col gap-0.5 min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-lg border border-popover-border bg-menu p-1 text-foreground shadow-[var(--nibi-shadow-popover)] duration-150 ease-out data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-        className,
-      )}
-      {...props}
-    />
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.SubContent
+        data-slot="dropdown-menu-sub-content"
+        sideOffset={sideOffset}
+        collisionPadding={collisionPadding}
+        className={cn(
+          // 原因：父级 DropdownMenuContent 开启了 backdrop-blur-lg 与 overflow-x-hidden，
+          // backdrop-filter 会为 position:fixed 子元素建立包含块，未通过 Portal 挂到 body 的子菜单会被父菜单裁切隐藏。
+          "z-[60] flex flex-col gap-0.5 max-h-(--radix-dropdown-menu-content-available-height) max-w-(--radix-dropdown-menu-content-available-width) min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-lg border border-popover-border bg-menu/96 supports-[backdrop-filter]:backdrop-blur-lg p-1 text-foreground shadow-[var(--nibi-shadow-popover)] duration-150 motion-reduce:duration-100 ease-out data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 motion-reduce:slide-in-from-top-0 motion-reduce:slide-in-from-bottom-0 motion-reduce:slide-in-from-left-0 motion-reduce:slide-in-from-right-0 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 motion-reduce:zoom-in-100 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 motion-reduce:zoom-out-100",
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
   );
 }
 

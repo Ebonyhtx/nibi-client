@@ -26,6 +26,7 @@ import type {
   SyncSubagentSessionTabsRequest,
 } from "@/lib/workspaceSidePane.js";
 import { V4ConversationProvider } from "@/v4/V4ConversationContext.js";
+import { useSessionPaneSwitchIsolation } from "@/v4/conversationLayout.js";
 import { SessionPane } from "@/v4/SessionPane.js";
 import type { SessionOpenTrigger } from "@/lib/sessionOpenArmsTelemetry.js";
 import type {
@@ -132,6 +133,11 @@ export function V4ChatPane({
   searchResultHighlightRequest,
   onSearchResultHighlightDone,
 }: V4ChatPaneProps) {
+  const { sessionPaneKey, handleSessionCreated } = useSessionPaneSwitchIsolation({
+    sessionId: sessionId ?? null,
+    onSessionCreated,
+  });
+
   return (
     <V4ConversationProvider
       sessionId={sessionId ?? null}
@@ -153,6 +159,7 @@ export function V4ChatPane({
       }
     >
       <SessionPane
+        key={sessionPaneKey}
         paneId="workspace-main"
         readOnly={readOnly}
         allowEscapeStopOutsidePane={allowEscapeStopOutsidePane}
@@ -163,7 +170,7 @@ export function V4ChatPane({
         isDesktop={isDesktop}
         compactForRemoteControl={compactForRemoteControl}
         provider={provider}
-        onSessionCreated={onSessionCreated}
+        onSessionCreated={handleSessionCreated}
         onSessionDeleted={onSessionDeleted}
         draftComposerHeader={draftComposerHeader}
         gitSummary={gitSummary}

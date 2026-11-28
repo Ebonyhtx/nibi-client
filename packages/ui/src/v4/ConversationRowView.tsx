@@ -1530,26 +1530,6 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
           )}
         </div>
       ) : null}
-      {row.source?.kind === "genUi" && (
-        <div
-          className="mt-1 text-right text-ui-sm text-foreground-subtlest"
-          data-v4-user-input-source="genUi"
-        >
-          {intl.formatMessage({ id: "genUi.from" }, { name: row.source.title || "Gen UI" })}
-        </div>
-      )}
-      {row.source?.kind === "pluginUi" ? (
-        // 插件 UI 代发：来源标记来自 CLI 持久化的 intent.source，不由 renderer 推断。
-        <div
-          data-v4-user-input-source={row.source.pluginId}
-          className="mt-1 text-right text-ui-sm text-foreground-subtlest"
-        >
-          {intl.formatMessage(
-            { id: "pluginUi.fromPlugin" },
-            { name: formatPluginDisplayName(row.source.pluginId) },
-          )}
-        </div>
-      ) : null}
       <ConversationRowSessionSource row={row} />
       {status ? (
         <div

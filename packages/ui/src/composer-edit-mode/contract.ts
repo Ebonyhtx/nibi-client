@@ -74,12 +74,26 @@ export interface ComposerEditState {
   submitRequest: ComposerEditSubmitRequest | null;
 }
 
+export type ComposerEditWorkspaceRewindReason =
+  | "available"
+  | "noFiles"
+  | "reverted"
+  | "running"
+  | "unavailable";
+
+export interface ComposerEditWorkspaceRewind {
+  enabled: boolean;
+  reason: ComposerEditWorkspaceRewindReason;
+}
+
 export interface ComposerEditBarProps {
   target: ComposerEditTarget;
   state: Exclude<ComposerEditStatus, "idle" | "opening">;
   invalidReason?: ComposerEditInvalidReason | null;
   canRewind?: boolean;
   rewindDisabled?: boolean;
+  /** 目标轮的工作区文件重置可用性；缺省时沿用 rewindDisabled。 */
+  workspaceRewind?: ComposerEditWorkspaceRewind;
   onRewind?: () => void;
   onCancel: () => void;
 }
