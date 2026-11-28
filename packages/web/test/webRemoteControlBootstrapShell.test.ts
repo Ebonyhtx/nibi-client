@@ -15,7 +15,9 @@ function readWorkspaceFileDataUrl(path: string, mimeType: string): string {
   return `data:${mimeType};base64,${readWorkspaceFile(path).toString("base64")}`;
 }
 
-function createBootstrapDocument(theme: "nibi-dark" | "nibi-light"): JSDOM {
+function createBootstrapDocument(
+  theme: "nibi-dark" | "nibi-light" | "nibi-obsidian" | "nibi-mist",
+): JSDOM {
   return new JSDOM(readWebIndexHtml(), {
     beforeParse(window) {
       window.localStorage.setItem("nibi:prefs", JSON.stringify({ version: 1, theme }));
@@ -43,11 +45,19 @@ describe("web remote control bootstrap shell", () => {
     expect(readWorkspaceFile("public/logo/icons/icon.ico")).toEqual(
       readWorkspaceFile("packages/desktop/build/icon.ico"),
     );
+    expect(document.querySelector('link[rel="manifest"]')?.getAttribute("href")).toBe(
+      "/manifest.webmanifest",
+    );
+    expect(document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute("href")).toBe(
+      "/nibi-app-icon.png",
+    );
   });
 
   it.each([
-    ["nibi-dark", "dark", "#171614"],
-    ["nibi-light", "light", "#f9f2e4"],
+    ["nibi-dark", "dark", "#181714"],
+    ["nibi-light", "light", "#fcf9f2"],
+    ["nibi-obsidian", "dark", "#11161e"],
+    ["nibi-mist", "light", "#fafbfc"],
   ] as const)(
     "在业务 bundle 执行前把 %s 同步到浏览器主题表面",
     (storedTheme, resolvedTheme, expectedColor) => {

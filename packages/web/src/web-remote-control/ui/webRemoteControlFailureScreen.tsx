@@ -76,14 +76,14 @@ export function WebRemoteControlFailureScreen({
 
   return (
     <div
-      className="flex min-h-screen flex-col bg-background pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+24px)] pl-[max(1rem,env(safe-area-inset-left))] text-foreground"
+      className="flex min-h-screen flex-col bg-sidebar pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+24px)] pl-[max(1rem,env(safe-area-inset-left))] text-foreground"
       style={{ minHeight: "100dvh" }}
     >
       <div className="mx-auto flex h-10 w-full max-w-md items-center">
         <WebRemoteControlBrand subtitle={locale === "zh-CN" ? "Web 远程控制" : "Web Remote"} />
       </div>
       <div className="flex flex-1 items-center justify-center py-6">
-        <main className="w-full max-w-md rounded-2xl border border-card-border bg-card p-6 shadow-sm">
+        <main className="w-full max-w-md rounded-2xl border border-card-border bg-card p-6 shadow-[var(--nibi-shadow-card)]">
           <div className="flex items-start gap-3.5">
             <div
               className={`flex size-11 shrink-0 items-center justify-center rounded-xl border ${toneClassName.icon}`}
@@ -97,7 +97,7 @@ export function WebRemoteControlFailureScreen({
               >
                 <span className="min-w-0 truncate">{copy.badge}</span>
               </div>
-              <h1 className="text-ui-xl font-semibold text-balance text-foreground">
+              <h1 className="font-display text-ui-xl font-semibold text-balance text-foreground">
                 {copy.title}
               </h1>
               <p className="mt-1.5 text-ui-sm leading-relaxed text-pretty text-foreground-subtle">
@@ -135,7 +135,7 @@ export function WebRemoteControlFailureScreen({
             <WebRemoteControlSwitchAccountDialog locale={locale} onConfirm={onReload}>
               <Button
                 type="button"
-                className="mt-5 h-12 w-full rounded-xl text-ui-base font-medium"
+                className="mt-5 h-12 w-full rounded-xl text-ui-base font-medium shadow-[var(--nibi-shadow-primary-btn)]"
               >
                 {primaryActionLabel ?? copy.action}
               </Button>
@@ -143,7 +143,7 @@ export function WebRemoteControlFailureScreen({
           ) : (
             <Button
               type="button"
-              className="mt-5 h-12 w-full rounded-xl text-ui-base font-medium"
+              className="mt-5 h-12 w-full rounded-xl text-ui-base font-medium shadow-[var(--nibi-shadow-primary-btn)]"
               onClick={onReload}
             >
               {primaryActionLabel ?? copy.action}

@@ -42,7 +42,7 @@ export function WebRemoteControlSwitchAccountDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent showCloseButton={false} className="gap-6 p-6 sm:max-w-sm">
         <DialogHeader className="gap-3">
-          <DialogTitle className="text-ui-lg">{copy.title}</DialogTitle>
+          <DialogTitle className="font-display text-ui-lg">{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">

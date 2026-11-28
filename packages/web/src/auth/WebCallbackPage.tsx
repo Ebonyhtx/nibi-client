@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertCircleIcon } from "lucide-react";
 import { Button } from "@nibi/ui";
+import { NibiWorkingIndicator } from "@nibi/ui/working-indicator";
 import type { WebAuthCallbackResult, WebAuthService } from "./webAuthService.js";
 import { WebAuthPageShell } from "./WebLoginPage.js";
 
@@ -49,7 +50,7 @@ export function WebCallbackPage({ authService, onRetry, onSuccess }: WebCallback
                 <AlertCircleIcon className="size-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-ui-xl font-semibold text-balance text-foreground">
+                <h1 className="font-display text-ui-xl font-semibold text-balance text-foreground">
                   {copy.callbackErrorTitle}
                 </h1>
                 <p className="mt-1.5 text-ui-sm leading-relaxed text-pretty text-foreground-subtle">
@@ -76,8 +77,8 @@ export function WebCallbackPage({ authService, onRetry, onSuccess }: WebCallback
             aria-busy="true"
             className="flex flex-col items-center py-4 text-center"
           >
-            <progress aria-label={copy.callbackTitle} className="nibi-remote-spinner mb-5" />
-            <h1 className="text-ui-xl font-semibold text-balance text-foreground">
+            <NibiWorkingIndicator phase="thinking" className="mb-5" />
+            <h1 className="font-display text-ui-xl font-semibold text-balance text-foreground">
               {copy.callbackTitle}
             </h1>
             <p className="mt-2 text-ui-sm leading-relaxed text-pretty text-foreground-subtle">

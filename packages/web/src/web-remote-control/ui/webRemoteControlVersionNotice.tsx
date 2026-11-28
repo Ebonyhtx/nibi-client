@@ -10,7 +10,7 @@ export function showWebRemoteControlVersionNotice(
 ): () => void {
   const dialog = document.createElement("dialog");
   dialog.className =
-    "m-auto max-w-md rounded-2xl border border-popover-border bg-popover p-6 text-foreground shadow-lg backdrop:bg-black/45";
+    "m-auto max-w-md rounded-2xl border border-popover-border bg-popover p-6 text-foreground shadow-[var(--nibi-shadow-popover)] backdrop:bg-black/45";
   // Web 文件不在共享 UI 的 Tailwind 扫描目录内；流式宽度避免依赖未生成的响应式 utility。
   dialog.style.width = "calc(100% - 2rem)";
   // 已打开的 Radix 弹窗会给 body 设置 pointer-events:none；顶层原生 modal 必须显式恢复指针事件。
@@ -31,7 +31,7 @@ export function showWebRemoteControlVersionNotice(
           <RefreshCwIcon className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 id="remote-version-title" className="text-ui-lg font-semibold text-balance">
+          <h2 id="remote-version-title" className="font-display text-ui-lg font-semibold text-balance">
             {zh ? "桌面版本已更新" : "Desktop version changed"}
           </h2>
           <p
@@ -47,7 +47,7 @@ export function showWebRemoteControlVersionNotice(
       <Button
         autoFocus
         size="lg"
-        className="h-11 w-full rounded-xl sm:w-auto sm:self-end sm:px-5"
+        className="h-11 w-full rounded-xl shadow-[var(--nibi-shadow-primary-btn)] sm:w-auto sm:self-end sm:px-5"
         onClick={onReload}
       >
         {zh ? "重新加载" : "Reload"}

@@ -13,6 +13,7 @@ import { NIBI_PROVIDER_ID } from "@nibi/shared";
 import type { ConversationSharePreview } from "@nibi/shared";
 import { ConversationShareReadonlyTimeline } from "@nibi/ui/conversation-share-readonly";
 import { renderOAuthProviderIcon } from "@nibi/ui/oauth-provider-icon";
+import { NibiWorkingIndicator } from "@nibi/ui/working-indicator";
 import { applyTheme, resolveTheme, type Theme } from "@nibi/ui/useTheme";
 import { updatePrefs } from "@nibi/ui/nibi-storage";
 import "./conversationShareLandingPage.css";
@@ -676,12 +677,13 @@ export function ConversationShareLandingStatus({
         state.error === "invalid_contract")
     );
   return (
-    <main className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-background px-4 py-8 text-foreground">
+    <main className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-sidebar px-4 py-8 text-foreground">
       <section className="w-full max-w-md rounded-2xl border border-card-border bg-card p-6 shadow-[var(--nibi-shadow-card)]">
         <div className="mb-4 inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-ui-xs font-medium text-brand">
           {copy.brand}
         </div>
-        <h1 className="text-ui-xl font-semibold text-balance">{content.title}</h1>
+        {state.kind === "loading" ? <NibiWorkingIndicator phase="thinking" className="mb-4" /> : null}
+        <h1 className="font-display text-ui-xl font-semibold text-balance">{content.title}</h1>
         <p className="mt-3 text-ui-base leading-6 text-pretty text-foreground-subtle">
           {content.description}
         </p>

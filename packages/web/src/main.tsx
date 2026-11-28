@@ -30,6 +30,7 @@ import {
   type WebRemoteControlTerminalTransportState as UiWebRemoteControlTerminalTransportState,
 } from "@nibi/ui";
 import { readPrefs } from "@nibi/ui/nibi-storage";
+import { applyTheme } from "@nibi/ui/useTheme";
 import "./styles.css";
 import {
   connectViaProtocol,
@@ -201,29 +202,9 @@ function resolveWebThemePreference(defaultTheme: Theme = WEB_REMOTE_CONTROL_DEFA
 // system 模式下需要查询系统偏好；非 system 模式直接用存储值
 {
   // NIBI 差异（相对上游）：所有 Web 页面首次访问默认浅色，与 @nibi/ui 的 DEFAULT_THEME 单一来源一致；
-  // 已有本地偏好时一律沿用（下面的 resolveWebThemePreference 优先取 storedTheme）。
-  const saved = resolveWebThemePreference("nibi-light");
-  const resolved =
-    saved === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : saved === "dark" || saved === "nibi-dark"
-        ? "dark"
-        : "light";
-  const appliedTheme =
-    saved === "system"
-      ? resolved === "dark"
-        ? "nibi-dark"
-        : "nibi-light"
-      : saved === "dark"
-        ? "nibi-dark"
-        : saved === "light"
-          ? "nibi-light"
-          : saved;
-  document.documentElement.classList.toggle("dark", resolved === "dark");
-  document.documentElement.classList.toggle("theme-nibi-light", appliedTheme === "nibi-light");
-  document.documentElement.classList.toggle("theme-nibi-dark", appliedTheme === "nibi-dark");
+  // 已有本地偏好时一律沿用（下面的 resolveWebThemePreference 优先取 storedTheme），
+  // 复用 @nibi/ui 的 applyTheme 完整写入 .dark 与 4 套 .theme-nibi-* 类，避免清掉 nibi-obsidian 的深色基类。
+  applyTheme(resolveWebThemePreference("nibi-light"));
 }
 
 async function resolveFeedbackUrl(): Promise<string | undefined> {

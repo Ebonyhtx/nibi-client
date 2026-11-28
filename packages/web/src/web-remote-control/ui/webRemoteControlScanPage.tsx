@@ -16,19 +16,19 @@ export function WebRemoteControlScanPage({ locale }: { locale: "zh-CN" | "en-US"
       ];
 
   return (
-    <main className="flex min-h-dvh flex-col bg-background pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+24px)] pl-[max(1rem,env(safe-area-inset-left))] text-foreground">
+    <main className="flex min-h-dvh flex-col bg-sidebar pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+24px)] pl-[max(1rem,env(safe-area-inset-left))] text-foreground">
       <div className="mx-auto flex h-10 w-full max-w-md items-center">
         <WebRemoteControlBrand subtitle={zh ? "Web 远程控制" : "Web Remote"} />
       </div>
       <div className="flex flex-1 items-center justify-center py-6">
-        <section className="w-full max-w-sm rounded-2xl border border-card-border bg-card p-6 text-center shadow-sm">
+        <section className="w-full max-w-sm rounded-2xl border border-card-border bg-card p-6 text-center shadow-[var(--nibi-shadow-card)]">
           <div
             aria-hidden="true"
             className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-border bg-surface text-primary shadow-xs"
           >
             <QrCodeIcon className="size-7" />
           </div>
-          <h1 className="mt-4 text-ui-xl font-semibold text-balance text-foreground">
+          <h1 className="mt-4 font-display text-ui-xl font-semibold text-balance text-foreground">
             {zh ? "请扫描桌面二维码" : "Scan the desktop QR code"}
           </h1>
           <p className="mt-2 text-ui-sm leading-relaxed text-pretty text-foreground-subtle">

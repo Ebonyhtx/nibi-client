@@ -1,5 +1,6 @@
 import { CheckIcon, LoaderCircleIcon, PauseCircleIcon, RefreshCwIcon } from "lucide-react";
 import { DevicePlatformIcon } from "@nibi/ui/device-platform-icon";
+import { NibiWorkingIndicator } from "@nibi/ui/working-indicator";
 import { WebRemoteControlBrand } from "#src/web-remote-control/ui/webRemoteControlBrand.js";
 import type { WebRemoteControlScreenLocale } from "#src/web-remote-control/domain/webRemoteControlScreenCopy.js";
 import type { WebRemoteControlTerminalTransportState } from "#src/web-remote-control/contract.js";
@@ -124,7 +125,7 @@ export function WebRemoteControlLoadingScreen({
     );
 
   return (
-    <div className="flex min-h-dvh w-full flex-col bg-background pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+24px)] pl-[max(1rem,env(safe-area-inset-left))] text-foreground">
+    <div className="flex min-h-dvh w-full flex-col bg-sidebar pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+24px)] pl-[max(1rem,env(safe-area-inset-left))] text-foreground">
       <div className="mx-auto flex h-10 w-full max-w-md items-center">
         <WebRemoteControlBrand subtitle={locale === "zh-CN" ? "Web 远程控制" : "Web Remote"} />
       </div>
@@ -133,20 +134,17 @@ export function WebRemoteControlLoadingScreen({
           role="status"
           aria-live="polite"
           aria-busy="true"
-          className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-card-border bg-card p-6 text-center shadow-sm"
+          className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-card-border bg-card p-6 text-center shadow-[var(--nibi-shadow-card)]"
         >
           <span className="relative flex size-16 items-center justify-center rounded-2xl border border-card-border bg-surface shadow-xs">
             <DevicePlatformIcon platform={device?.platform} className="size-7 text-foreground" />
             {statusBadge}
           </span>
-          <h1 className="mt-4 max-w-full text-ui-xl font-semibold break-words text-balance text-foreground">
+          <h1 className="mt-4 max-w-full font-display text-ui-xl font-semibold break-words text-balance text-foreground">
             {name ? copy.connectingTo(name) : copy.connectingFallback}
           </h1>
           <p className="mt-2.5 inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-ui-sm text-foreground-subtle">
-            <LoaderCircleIcon
-              aria-hidden="true"
-              className="size-3.5 shrink-0 animate-spin text-primary motion-reduce:animate-none"
-            />
+            <NibiWorkingIndicator compact phase={state === "paired" ? "generating" : "starting"} />
             <span className="text-pretty">{stage.label}</span>
           </p>
           {stage.description ? (

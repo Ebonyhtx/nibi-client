@@ -146,7 +146,7 @@ function DeviceSection({
   return (
     <section>
       <SectionHeader label={label} count={devices.length} online={onlineSection} />
-      <ul className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-xs">
+      <ul className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
         {devices.map((device, index) => {
           const name = device.name || copy.unnamed;
           const online = device.onlineConnections.length > 0;
@@ -213,13 +213,13 @@ function AccountRow({
   );
   if (!account) {
     return (
-      <div className="mt-3 flex items-center justify-end rounded-xl border border-card-border bg-card px-3 py-1 shadow-xs">
+      <div className="mt-3 flex items-center justify-end rounded-xl border border-card-border bg-card px-3 py-1 shadow-[var(--nibi-shadow-card)]">
         {switchButton(copy.switchAccountFallback)}
       </div>
     );
   }
   return (
-    <div className="mt-3 flex min-w-0 items-center gap-2.5 rounded-xl border border-card-border bg-card py-1.5 pr-1.5 pl-3 shadow-xs">
+    <div className="mt-3 flex min-w-0 items-center gap-2.5 rounded-xl border border-card-border bg-card py-1.5 pr-1.5 pl-3 shadow-[var(--nibi-shadow-card)]">
       {account.avatarUrl ? (
         <img
           src={account.avatarUrl}
@@ -266,13 +266,13 @@ export function WebRemoteControlDeviceListPage({
 
   // 全局 body/#root 禁止滚动；入口自己承接长列表，保证末行可达。
   return (
-    <main className="h-dvh overflow-y-auto bg-background text-foreground">
+    <main className="h-dvh overflow-y-auto bg-sidebar text-foreground">
       <div className="mx-auto w-full max-w-md pt-[calc(env(safe-area-inset-top)+12px)] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pl-[max(1rem,env(safe-area-inset-left))]">
         <div className="flex h-10 items-center">
           <WebRemoteControlBrand subtitle={locale === "zh-CN" ? "Web 远程控制" : "Web Remote"} />
         </div>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <h1 className="text-ui-xl font-semibold text-balance">{copy.title}</h1>
+          <h1 className="font-display text-ui-2xl font-semibold text-balance">{copy.title}</h1>
           <Button
             type="button"
             variant="ghost"
@@ -332,7 +332,7 @@ export function WebRemoteControlDeviceListPage({
             <div className="mt-6">
               <div
                 aria-hidden="true"
-                className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-xs"
+                className="overflow-hidden rounded-2xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]"
               >
                 {[0, 1].map((rowIndex) => (
                   <div
@@ -355,7 +355,7 @@ export function WebRemoteControlDeviceListPage({
               </p>
             </div>
           ) : !view.error ? (
-            <div className="mt-6 flex flex-col items-center rounded-2xl border border-card-border bg-card px-6 py-10 text-center shadow-xs">
+            <div className="mt-6 flex flex-col items-center rounded-2xl border border-card-border bg-card px-6 py-10 text-center shadow-[var(--nibi-shadow-card)]">
               <span className="flex size-14 items-center justify-center rounded-2xl border border-border bg-surface text-foreground-subtle">
                 <LaptopIcon aria-hidden="true" className="size-7" />
               </span>

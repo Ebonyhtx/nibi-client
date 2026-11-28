@@ -11,7 +11,9 @@ export function WebRemoteControlBrand({
   return (
     <span className={["inline-flex items-center gap-2.5", className].filter(Boolean).join(" ")}>
       <NibiAppLogo className="size-6 rounded-md shadow-xs" />
-      <span className="text-ui-base font-semibold tracking-tight text-foreground">NIBI</span>
+      <span className="font-display text-ui-lg font-semibold tracking-[-0.01em] text-foreground">
+        NIBI
+      </span>
       {subtitle ? (
         <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-ui-xs font-medium text-foreground-subtle">
           {subtitle}

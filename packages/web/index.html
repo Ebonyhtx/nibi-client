@@ -3,8 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#171614" />
+    <meta name="theme-color" content="#fcf9f2" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="NIBI" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/nibi-app-icon.png" />
     <!-- Bugfix: Chrome dev 下可能不发 favicon 网络请求；内嵌小尺寸 App 图标，避免标签页回退到默认图标。 -->
     <link
       rel="icon"
@@ -23,24 +28,33 @@
         const PREFS_KEY = "nibi:prefs";
         const DEFAULT_THEME = "nibi-light";
         const BROWSER_THEME_COLORS = {
-          dark: "#171614",
-          light: "#f9f2e4",
+          "nibi-light": "#fcf9f2",
+          "nibi-dark": "#181714",
+          "nibi-mist": "#fafbfc",
+          "nibi-obsidian": "#11161e",
+          dark: "#181714",
+          light: "#fcf9f2",
         };
         const BOOTSTRAP_SNAPSHOT_KEY = "nibi:web-remote-control:bootstrap-shell";
 
         const normalizeResolvedTheme = (theme) => {
-          if (theme === "dark" || theme === "nibi-dark") return "dark";
-          if (theme === "light" || theme === "nibi-light") return "light";
+          if (theme === "dark" || theme === "nibi-dark" || theme === "nibi-obsidian") return "dark";
+          if (theme === "light" || theme === "nibi-light" || theme === "nibi-mist") return "light";
           return theme;
         };
 
-        const syncBrowserThemeSurface = (theme) => {
-          document.documentElement.setAttribute("data-nibi-browser-theme-surface", theme);
-          document.documentElement.style.colorScheme = theme;
+        const syncBrowserThemeSurface = (resolvedTheme, appliedTheme) => {
+          document.documentElement.setAttribute("data-nibi-browser-theme-surface", resolvedTheme);
+          document.documentElement.style.colorScheme = resolvedTheme;
           document
             .querySelector('meta[name="theme-color"]')
-            ?.setAttribute("content", BROWSER_THEME_COLORS[theme]);
-          document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", theme);
+            ?.setAttribute(
+              "content",
+              BROWSER_THEME_COLORS[appliedTheme] || BROWSER_THEME_COLORS[resolvedTheme],
+            );
+          document
+            .querySelector('meta[name="color-scheme"]')
+            ?.setAttribute("content", resolvedTheme);
         };
 
         try {
@@ -58,16 +72,16 @@
                   typeof snapshot.background === "string"
                     ? snapshot.background
                     : normalizedTheme === "dark"
-                      ? "#171614"
-                      : "#f9f2e4",
+                      ? "#181714"
+                      : "#fcf9f2",
                 );
                 document.documentElement.style.setProperty(
                   "--nibi-bootstrap-fg",
                   typeof snapshot.foreground === "string"
                     ? snapshot.foreground
                     : normalizedTheme === "dark"
-                      ? "#e0dad0"
-                      : "#1c2f4e",
+                      ? "#e6e0d6"
+                      : "#1c2b42",
                 );
                 if (typeof snapshot.border === "string") {
                   document.documentElement.style.setProperty(
@@ -104,15 +118,25 @@
               : normalizeResolvedTheme(saved);
           const fallbackTheme = resolved === "dark" ? "dark" : "light";
           const finalTheme = bootstrapTheme ?? fallbackTheme;
+          const appliedTheme =
+            saved === "nibi-light" ||
+            saved === "nibi-dark" ||
+            saved === "nibi-obsidian" ||
+            saved === "nibi-mist"
+              ? saved
+              : finalTheme === "dark"
+                ? "nibi-dark"
+                : "nibi-light";
           document.documentElement.setAttribute("data-nibi-bootstrap-theme", finalTheme);
-          syncBrowserThemeSurface(finalTheme);
+          syncBrowserThemeSurface(finalTheme, appliedTheme);
           if (finalTheme === "dark") {
             document.documentElement.classList.add("dark");
           }
+          document.documentElement.classList.add(`theme-${appliedTheme}`);
         } catch {
           document.documentElement.setAttribute("data-nibi-bootstrap-theme", "dark");
-          syncBrowserThemeSurface("dark");
-          document.documentElement.classList.add("dark");
+          syncBrowserThemeSurface("dark", "nibi-dark");
+          document.documentElement.classList.add("dark", "theme-nibi-dark");
         }
       })();
     </script>
@@ -126,8 +150,8 @@
       }
 
       body {
-        background: var(--nibi-bootstrap-bg, var(--color-background, #171614));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e0dad0));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #181714));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e6e0d6));
         font-family:
           Inter,
           -apple-system,
@@ -137,8 +161,18 @@
       }
 
       html[data-nibi-bootstrap-theme="light"] body {
-        background: var(--nibi-bootstrap-bg, var(--color-background, #f9f2e4));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1c2f4e));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #fcf9f2));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1c2b42));
+      }
+
+      html.theme-nibi-mist body {
+        background: var(--nibi-bootstrap-bg, var(--color-background, #fafbfc));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1e2a38));
+      }
+
+      html.theme-nibi-obsidian body {
+        background: var(--nibi-bootstrap-bg, var(--color-background, #11161e));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e2e8f0));
       }
 
       html[data-nibi-browser-theme-surface],
@@ -146,13 +180,25 @@
       html[data-nibi-browser-theme-surface] #root {
         /* 修复原因：共享 UI 样式为 Electron vibrancy 强制透明根背景；浏览器入口必须用语义背景
            覆盖该桌面专属行为，否则浏览器工具栏、overscroll 和页面画布会回退为系统白色。 */
-        background: var(--color-background, var(--nibi-bootstrap-bg, #171614)) !important;
+        background: var(--color-background, var(--nibi-bootstrap-bg, #181714)) !important;
       }
 
       html[data-nibi-browser-theme-surface="light"],
       html[data-nibi-browser-theme-surface="light"] body,
       html[data-nibi-browser-theme-surface="light"] #root {
-        background: var(--color-background, var(--nibi-bootstrap-bg, #f9f2e4)) !important;
+        background: var(--color-background, var(--nibi-bootstrap-bg, #fcf9f2)) !important;
+      }
+
+      html.theme-nibi-mist[data-nibi-browser-theme-surface],
+      html.theme-nibi-mist[data-nibi-browser-theme-surface] body,
+      html.theme-nibi-mist[data-nibi-browser-theme-surface] #root {
+        background: var(--color-background, var(--nibi-bootstrap-bg, #fafbfc)) !important;
+      }
+
+      html.theme-nibi-obsidian[data-nibi-browser-theme-surface],
+      html.theme-nibi-obsidian[data-nibi-browser-theme-surface] body,
+      html.theme-nibi-obsidian[data-nibi-browser-theme-surface] #root {
+        background: var(--color-background, var(--nibi-bootstrap-bg, #11161e)) !important;
       }
 
       .nibi-boot-loading {
@@ -162,13 +208,23 @@
         width: 100%;
         height: 100%;
         /* Bugfix: UI 全局样式会把 body/#root 置为透明，预渲染壳必须自己承接主题背景，否则深色主题会露出浏览器白底。 */
-        background: var(--nibi-bootstrap-bg, var(--color-background, #171614));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e0dad0));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #181714));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e6e0d6));
       }
 
       html[data-nibi-bootstrap-theme="light"] .nibi-boot-loading {
-        background: var(--nibi-bootstrap-bg, var(--color-background, #f9f2e4));
-        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1c2f4e));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #fcf9f2));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1c2b42));
+      }
+
+      html.theme-nibi-mist .nibi-boot-loading {
+        background: var(--nibi-bootstrap-bg, var(--color-background, #fafbfc));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #1e2a38));
+      }
+
+      html.theme-nibi-obsidian .nibi-boot-loading {
+        background: var(--nibi-bootstrap-bg, var(--color-background, #11161e));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e2e8f0));
       }
 
       .nibi-boot-loading__logo {
