@@ -432,3 +432,84 @@ describe("getDelayedChannel", () => {
     expect(result).toBe("delayed-result");
   });
 });
+
+describe("ChannelClient and ChannelServer resource cleanup", () => {
+  it("supports re-subscribing to a dynamic event, skips pre-init canceled listens, and clears handlers on dispose", async () => {
+    const [serverProtocol, clientProtocol] = createQueuePair();
+    const server = new ChannelServer(serverProtocol, "test-ctx", 1000, true);
+    const client = new ChannelClient(clientProtocol);
+    const tickEmitter = new Emitter<number>();
+    let listenCount = 0;
+    let unlistenCount = 0;
+
+    server.registerChannel("events", {
+      call: async () => undefined,
+      listen: (_ctx, name) => {
+        if (name === "tick") {
+          listenCount += 1;
+          return (listener) => {
+            const sub = tickEmitter.event(listener);
+            return {
+              dispose: () => {
+                unlistenCount += 1;
+                sub.dispose();
+              },
+            };
+          };
+        }
+        return Event.None;
+      },
+    });
+
+    const channel = client.getChannel("events");
+    // 1. 仅获取 Event 对象但从不订阅时，不能提前注册 handler；并且预初始化期间订阅后立刻退订也不得发 EventListen。
+    const preInitEvent = channel.listen<number>("tick");
+    const earlySub = preInitEvent(() => {});
+    earlySub.dispose();
+
+    server.ready();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(listenCount).toBe(0);
+
+    // 2. 订阅 -> 退订 -> 再订阅同一 Event 仍能正常接收事件。
+    const received: number[] = [];
+    const sub1 = preInitEvent((value) => received.push(value));
+    await vi.waitFor(() => expect(listenCount).toBe(1));
+    tickEmitter.fire(1);
+    await vi.waitFor(() => expect(received).toEqual([1]));
+    sub1.dispose();
+    await vi.waitFor(() => expect(unlistenCount).toBe(1));
+
+    const sub2 = preInitEvent((value) => received.push(value));
+    await vi.waitFor(() => expect(listenCount).toBe(2));
+    tickEmitter.fire(2);
+    await vi.waitFor(() => expect(received).toEqual([1, 2]));
+
+    sub2.dispose();
+    server.dispose();
+    client.dispose();
+    const handlersMap = (client as unknown as { handlers: Map<number, unknown> }).handlers;
+    expect(handlersMap.size).toBe(0);
+  });
+
+  it("prunes timed-out pending requests and clears pending timers on ChannelServer.dispose", async () => {
+    const [serverProtocol, clientProtocol] = createQueuePair();
+    const server = new ChannelServer(serverProtocol, "test-ctx", 25);
+    const client = new ChannelClient(clientProtocol);
+
+    await expect(client.getChannel("missing-timeout").call("ping")).rejects.toThrow(/timed out/);
+    const pendingMap = (server as unknown as { pendingRequests: Map<string, unknown[]> })
+      .pendingRequests;
+    expect(pendingMap.size).toBe(0);
+
+    // 新挂一条 pending request 后立即 dispose，确保挂起队列和 timer 被彻底释放。
+    void client.getChannel("missing-dispose").call("ping").catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(pendingMap.size).toBe(1);
+
+    server.dispose();
+    expect(pendingMap.size).toBe(0);
+
+    client.dispose();
+  });
+});

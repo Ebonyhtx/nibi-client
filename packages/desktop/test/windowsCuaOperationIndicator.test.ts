@@ -95,6 +95,7 @@ interface Harness {
   windows: FakeWindow[];
   banner(): FakeWindow | undefined;
   cursor(): FakeWindow | undefined;
+  label(): FakeWindow | undefined;
 }
 
 function createHarness(
@@ -427,6 +428,49 @@ describe("Windows CUA operation indicator activity", () => {
     expect(
       cursor?.scripts.filter((script) => script.includes("dataset.pulse")).length,
     ).toBeGreaterThan(pulseCount ?? 0);
+
+    harness.indicator.dispose();
+  });
+
+  it("隐藏后空闲超过 45 秒会销毁全部浮层窗口并在下次 CUA 活动时重建", async () => {
+    const harness = createHarness();
+    const source = {};
+    // 非原生光标模式创建 banner + cursor；随后切换原生光标摘要同时创建 label
+    harness.indicator.handleActivity(source, activity({ x: 120, y: 180 }));
+    await flushMicrotasks();
+    harness.indicator.handleActivity(
+      source,
+      activity({ nativeCursor: true, summary: "点击确定", x: 120, y: 180 }),
+    );
+    await flushMicrotasks();
+    const firstBanner = harness.banner()!;
+    const firstCursor = harness.cursor()!;
+    const firstLabel = harness.label()!;
+    expect(firstBanner).toBeDefined();
+    expect(firstCursor).toBeDefined();
+    expect(firstLabel).toBeDefined();
+    expect(firstBanner.destroyed).toBe(false);
+    expect(firstCursor.destroyed).toBe(false);
+    expect(firstLabel.destroyed).toBe(false);
+
+    harness.indicator.clearSource(source);
+    vi.advanceTimersByTime(200);
+    expect(firstBanner.hidden).toBe(true);
+    expect(firstBanner.destroyed).toBe(false);
+
+    vi.advanceTimersByTime(45_000);
+    expect(firstBanner.destroyed).toBe(true);
+    expect(firstCursor.destroyed).toBe(true);
+    expect(firstLabel.destroyed).toBe(true);
+
+    // 再次活动时重新按需创建新窗口。
+    harness.indicator.handleActivity(source, activity({ x: 240, y: 260 }));
+    await flushMicrotasks();
+    const indicators = harness.windows.filter((w) => w.kind === "indicator");
+    expect(indicators).toHaveLength(2);
+    const rebuiltBanner = indicators.at(-1);
+    expect(rebuiltBanner?.destroyed).toBe(false);
+    expect(rebuiltBanner?.shown).toBe(true);
 
     harness.indicator.dispose();
   });

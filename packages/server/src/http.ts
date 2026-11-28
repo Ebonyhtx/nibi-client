@@ -23,6 +23,8 @@ import {
   ServiceCollection,
   INibiAgentService,
   createNibiAgentConnectionScope,
+  IFileWatcherService,
+  createConnectionScopedFileWatcherService,
   IBotsService,
   IProviderProvisioningTargetService,
 } from "@nibi/services";
@@ -114,9 +116,16 @@ function setupChannelServer(
         role: clientMode === "desktop-continuous" ? "trusted-host-relay" : "terminal-client",
       })
     : undefined;
+  const fileWatcherService = services.getOptional(IFileWatcherService);
+  const scopedFileWatcher = fileWatcherService
+    ? createConnectionScopedFileWatcherService(fileWatcherService)
+    : undefined;
   const overrides = new Map<string, unknown>();
   if (connectionScope) {
     overrides.set(INibiAgentService.channelName, connectionScope.service);
+  }
+  if (scopedFileWatcher) {
+    overrides.set(IFileWatcherService.channelName, scopedFileWatcher.service);
   }
   // Provisioning 携带跨 Environment 凭据，只允许 Desktop trusted host 使用；普通 Web
   // remote/replayable 客户端即使知道频道名，也不能获得 target 写入接口。
@@ -134,6 +143,7 @@ function setupChannelServer(
   socket.onClose(() => {
     peer?.dispose();
     reverseClient?.dispose();
+    void scopedFileWatcher?.disposeScope();
     void connectionScope?.dispose();
     rawServer.dispose();
   });

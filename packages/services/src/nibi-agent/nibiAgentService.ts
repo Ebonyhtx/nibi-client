@@ -1651,83 +1651,54 @@ export function createNibiAgentService(
     }
   }
 
-  function getSessionEmitter(params: NibiAgentSessionTarget) {
-    const key = sessionEventKey(params);
-    const existing = sessionEmitters.get(key);
+  const MAX_SESSION_EVENT_SEQ_STATES = 256;
+  const MAX_SESSION_TRACE_IDS = 512;
+
+  function getSelfPruningEmitter<T>(map: Map<string, Emitter<T>>, key: string): Emitter<T> {
+    const existing = map.get(key);
     if (existing) {
       return existing;
     }
-    const created = new Emitter<NibiAgentServiceEvent>();
-    sessionEmitters.set(key, created);
-    return created;
-  }
-
-  function getPluginOperationProgressEmitter(operationId: string) {
-    const existing = pluginOperationProgressEmitters.get(operationId);
-    if (existing) return existing;
-    let created: Emitter<NibiPluginOperationProgressNotification>;
-    created = new Emitter({
+    const created: Emitter<T> = new Emitter<T>({
       onDidRemoveLastListener: () => {
-        if (pluginOperationProgressEmitters.get(operationId) !== created) return;
-        pluginOperationProgressEmitters.delete(operationId);
+        if (map.get(key) !== created) return;
+        map.delete(key);
         created.dispose();
       },
     });
-    pluginOperationProgressEmitters.set(operationId, created);
+    map.set(key, created);
     return created;
+  }
+
+  function getSessionEmitter(params: NibiAgentSessionTarget) {
+    return getSelfPruningEmitter(sessionEmitters, sessionEventKey(params));
+  }
+
+  function getPluginOperationProgressEmitter(operationId: string) {
+    return getSelfPruningEmitter(pluginOperationProgressEmitters, operationId);
   }
 
   function getConversationFrameEmitter(workspace: NibiAgentWorkspaceTarget) {
-    const key = resolveWorkspaceKey(workspace);
-    const existing = conversationFrameEmitters.get(key);
-    if (existing) {
-      return existing;
-    }
-    const created = new Emitter<ConversationTopicWireCandidate>();
-    conversationFrameEmitters.set(key, created);
-    return created;
+    return getSelfPruningEmitter(conversationFrameEmitters, resolveWorkspaceKey(workspace));
   }
 
   function getProviderRuntimeHeadersWorkspaceEmitter(workspace: NibiAgentWorkspaceTarget) {
-    const key = resolveWorkspaceKey(workspace);
-    const existing = providerRuntimeHeadersWorkspaceEmitters.get(key);
-    if (existing) {
-      return existing;
-    }
-    const created = new Emitter<NibiProviderRuntimeHeadersRequestParams>();
-    providerRuntimeHeadersWorkspaceEmitters.set(key, created);
-    return created;
+    return getSelfPruningEmitter(
+      providerRuntimeHeadersWorkspaceEmitters,
+      resolveWorkspaceKey(workspace),
+    );
   }
 
   function getConversationTelemetryFactEmitter(workspace: NibiAgentWorkspaceTarget) {
-    const key = resolveWorkspaceKey(workspace);
-    const existing = conversationTelemetryFactEmitters.get(key);
-    if (existing) return existing;
-    const created = new Emitter<ConversationTelemetryFact>();
-    conversationTelemetryFactEmitters.set(key, created);
-    return created;
+    return getSelfPruningEmitter(conversationTelemetryFactEmitters, resolveWorkspaceKey(workspace));
   }
 
   function getSessionsIndexFrameEmitter(workspace: NibiAgentWorkspaceTarget) {
-    const key = resolveWorkspaceKey(workspace);
-    const existing = sessionsIndexFrameEmitters.get(key);
-    if (existing) {
-      return existing;
-    }
-    const created = new Emitter<SessionsIndexTopicWireCandidate>();
-    sessionsIndexFrameEmitters.set(key, created);
-    return created;
+    return getSelfPruningEmitter(sessionsIndexFrameEmitters, resolveWorkspaceKey(workspace));
   }
 
   function getWorkspaceConfigFrameEmitter(workspace: NibiAgentWorkspaceTarget) {
-    const key = resolveWorkspaceKey(workspace);
-    const existing = workspaceConfigFrameEmitters.get(key);
-    if (existing) {
-      return existing;
-    }
-    const created = new Emitter<WorkspaceConfigTopicWireCandidate>();
-    workspaceConfigFrameEmitters.set(key, created);
-    return created;
+    return getSelfPruningEmitter(workspaceConfigFrameEmitters, resolveWorkspaceKey(workspace));
   }
 
   /** v4 订阅 connectionId：同 host 进程内多个独立消费者（renderer/syncer）用 scope 后缀区分。 */
@@ -1902,7 +1873,15 @@ export function createNibiAgentService(
     const key = sessionEventKey({ ...workspace, sessionId });
     const existing = sessionEventSequenceStates.get(key);
     if (existing) {
+      sessionEventSequenceStates.delete(key);
+      sessionEventSequenceStates.set(key, existing);
       return existing;
+    }
+    if (sessionEventSequenceStates.size >= MAX_SESSION_EVENT_SEQ_STATES) {
+      const oldest = sessionEventSequenceStates.keys().next();
+      if (!oldest.done) {
+        sessionEventSequenceStates.delete(oldest.value);
+      }
     }
     const created: SessionEventSequenceState = {
       assignedSeqByEventId: new Map<string, number>(),
@@ -2166,7 +2145,7 @@ export function createNibiAgentService(
         if (message.method === V4_NOTIFICATIONS.conversationTelemetryFact) {
           const parsed = conversationTelemetryFactSchema.safeParse(message.params);
           if (parsed.success) {
-            getConversationTelemetryFactEmitter(workspace).fire(parsed.data);
+            conversationTelemetryFactEmitters.get(resolveWorkspaceKey(workspace))?.fire(parsed.data);
           } else {
             // 严格丢弃未知字段，避免 CLI runtime 新字段未经审计穿透到 renderer reporter。
             logger.warn(undefined, "丢弃无效 v4 conversation telemetry fact", {
@@ -2234,7 +2213,7 @@ export function createNibiAgentService(
           if (typeof topic === "string" && topic.startsWith("sessions-index/")) {
             const indexParsed = sessionsIndexTopicWireCandidateSchema.safeParse(message.params);
             if (indexParsed.success) {
-              getSessionsIndexFrameEmitter(workspace).fire(indexParsed.data);
+              sessionsIndexFrameEmitters.get(resolveWorkspaceKey(workspace))?.fire(indexParsed.data);
             } else {
               logger.warn(undefined, "丢弃无效 v4 sessions-index frame", {
                 issues: indexParsed.error.issues.map((issue) => ({
@@ -2250,7 +2229,9 @@ export function createNibiAgentService(
           if (typeof topic === "string" && topic.startsWith("workspace-config/")) {
             const configParsed = workspaceConfigTopicWireCandidateSchema.safeParse(message.params);
             if (configParsed.success) {
-              getWorkspaceConfigFrameEmitter(workspace).fire(configParsed.data);
+              workspaceConfigFrameEmitters
+                .get(resolveWorkspaceKey(workspace))
+                ?.fire(configParsed.data);
             } else {
               logger.warn(undefined, "丢弃无效 v4 workspace-config frame", {
                 issues: configParsed.error.issues.map((issue) => ({
@@ -2265,7 +2246,7 @@ export function createNibiAgentService(
           }
           const parsed = conversationTopicWireCandidateSchema.safeParse(message.params);
           if (parsed.success) {
-            getConversationFrameEmitter(workspace).fire(parsed.data);
+            conversationFrameEmitters.get(resolveWorkspaceKey(workspace))?.fire(parsed.data);
           } else {
             logger.warn(undefined, "丢弃无效 v4 conversation frame", {
               issues: parsed.error.issues.map((issue) => ({
@@ -2879,7 +2860,16 @@ export function createNibiAgentService(
   ): TraceId | undefined {
     const traceId = snapshot.session.traceId as TraceId | undefined;
     if (traceId) {
-      sessionTraceIdBySessionKey.set(sessionEventKey(target), traceId);
+      const key = sessionEventKey(target);
+      if (sessionTraceIdBySessionKey.has(key)) {
+        sessionTraceIdBySessionKey.delete(key);
+      } else if (sessionTraceIdBySessionKey.size >= MAX_SESSION_TRACE_IDS) {
+        const oldest = sessionTraceIdBySessionKey.keys().next();
+        if (!oldest.done) {
+          sessionTraceIdBySessionKey.delete(oldest.value);
+        }
+      }
+      sessionTraceIdBySessionKey.set(key, traceId);
     }
     return traceId;
   }
@@ -3256,6 +3246,7 @@ export function createNibiAgentService(
     }
     sessionsIndexFrameEmitters.clear();
     sessionEventSequenceStates.clear();
+    sessionTraceIdBySessionKey.clear();
     pendingPermissions.clear();
     pendingUserInputs.clear();
     pendingProviderRuntimeHeaders.clear();
@@ -3922,7 +3913,7 @@ export function createNibiAgentService(
       const client = await getReadOnlyClient(workspace, "existing-only").catch(() =>
         getPluginManagementClient(),
       );
-      return requestSessionDeletionExecute(client, {
+      const outcome = await requestSessionDeletionExecute(client, {
         sessionId,
         workspace: {
           workspacePath: workspace.workspacePath,
@@ -3933,6 +3924,14 @@ export function createNibiAgentService(
         revision,
         operationId,
       });
+      if (outcome.status === "deleted") {
+        for (const deletedId of new Set([sessionId, ...outcome.sessionIds])) {
+          const deletedKey = sessionEventKey({ ...workspace, sessionId: deletedId });
+          sessionEventSequenceStates.delete(deletedKey);
+          sessionTraceIdBySessionKey.delete(deletedKey);
+        }
+      }
+      return outcome;
     },
 
     async readSession(params: NibiAgentReadSessionParams) {
@@ -4624,7 +4623,7 @@ export function createNibiAgentService(
     },
 
     onDynamicPluginOperationProgress(operationId: string) {
-      return getPluginOperationProgressEmitter(operationId).event;
+      return (listener) => getPluginOperationProgressEmitter(operationId).event(listener);
     },
 
     async collectLocalRuntimeChildProcesses(signal?: AbortSignal) {
@@ -5414,12 +5413,8 @@ export function createNibiAgentService(
 
     onDynamicWorkspaceProviderRuntimeHeadersCancelled(params: NibiAgentWorkspaceTarget) {
       const key = resolveWorkspaceKey(params);
-      let emitter = providerRuntimeHeadersCancelledEmitters.get(key);
-      if (!emitter) {
-        emitter = new Emitter<NibiProviderRuntimeHeadersCancelled>();
-        providerRuntimeHeadersCancelledEmitters.set(key, emitter);
-      }
-      return emitter.event;
+      return (listener) =>
+        getSelfPruningEmitter(providerRuntimeHeadersCancelledEmitters, key).event(listener);
     },
 
     onDynamicSessionRuntimePreferencesRequest() {
@@ -5518,8 +5513,8 @@ export function createNibiAgentService(
     },
 
     onDynamicProviderRuntimeHeadersRequest(params: NibiAgentSessionTarget) {
-      const emitter = getSessionEmitter(params);
       return (listener) => {
+        const emitter = getSessionEmitter(params);
         const disposable = emitter.event((event) => {
           if (event.type !== "providerRuntimeHeaders.request") {
             return;
@@ -5541,8 +5536,8 @@ export function createNibiAgentService(
     },
 
     onDynamicWorkspaceProviderRuntimeHeadersRequest(params: NibiAgentWorkspaceTarget) {
-      const emitter = getProviderRuntimeHeadersWorkspaceEmitter(params);
       return (listener) => {
+        const emitter = getProviderRuntimeHeadersWorkspaceEmitter(params);
         const disposable = emitter.event((request) => {
           listener(request);
         });
@@ -5562,8 +5557,8 @@ export function createNibiAgentService(
     },
 
     onDynamicSessionEvent(params: NibiAgentSessionSubscribeParams) {
-      const emitter = getSessionEmitter(params);
       return (listener) => {
+        const emitter = getSessionEmitter(params);
         // cancelled / retryTimer 的作用域是单个订阅者：调用方 dispose 时取消自己的重试，
         // 不影响共享 emitter 上的其他订阅者。
         let cancelled = false;
@@ -6409,7 +6404,7 @@ export function createNibiAgentService(
     },
 
     onDynamicConversationFrame(params: NibiAgentWorkspaceTarget) {
-      return getConversationFrameEmitter(params).event;
+      return (listener) => getConversationFrameEmitter(params).event(listener);
     },
 
     onDynamicLocalTtftFacts(params: NibiAgentWorkspaceTarget) {
@@ -6419,7 +6414,7 @@ export function createNibiAgentService(
         });
     },
     onDynamicConversationTelemetryFact(params: NibiAgentWorkspaceTarget) {
-      return getConversationTelemetryFactEmitter(params).event;
+      return (listener) => getConversationTelemetryFactEmitter(params).event(listener);
     },
 
     onDynamicPluginUiToolResult() {
@@ -6503,7 +6498,7 @@ export function createNibiAgentService(
     },
 
     onDynamicSessionsIndexFrame(params: NibiAgentWorkspaceTarget) {
-      return getSessionsIndexFrameEmitter(params).event;
+      return (listener) => getSessionsIndexFrameEmitter(params).event(listener);
     },
 
     // ── workspace-config 通道（配置目录活性）：复用 conversationSubscribe RPC，
@@ -6542,7 +6537,7 @@ export function createNibiAgentService(
     },
 
     onDynamicWorkspaceConfigFrame(params: NibiAgentWorkspaceTarget) {
-      return getWorkspaceConfigFrameEmitter(params).event;
+      return (listener) => getWorkspaceConfigFrameEmitter(params).event(listener);
     },
 
     onDynamicProcessResourceSample() {

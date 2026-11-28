@@ -1028,23 +1028,62 @@ export function createNibiTaskServiceAdapter(
     return taskIndexSyncer.getWorkspaceEmitter(workspace);
   }
 
-  function getTaskEmitter(params: TaskTarget): Emitter<NibiStreamEvent> {
-    const key = taskKey(params);
-    let emitter = taskEmitters.get(key);
-    if (!emitter) {
-      emitter = new Emitter<NibiStreamEvent>();
-      taskEmitters.set(key, emitter);
+  function getSelfPruningTaskEmitter<T>(map: Map<string, Emitter<T>>, key: string): Emitter<T> {
+    const existing = map.get(key);
+    if (existing) {
+      return existing;
     }
-    return emitter;
+    const created: Emitter<T> = new Emitter<T>({
+      onDidRemoveLastListener: () => {
+        if (map.get(key) !== created) return;
+        map.delete(key);
+        created.dispose();
+      },
+    });
+    map.set(key, created);
+    return created;
+  }
+
+  function clearTaskTransientCaches(params: TaskTarget): void {
+    const key = taskKey(params);
+    apiRetryByTaskKey.delete(key);
+    backgroundTaskControlsByTaskKey.delete(key);
+    toolProjectionMemoryByTaskKey.delete(key);
+    liveToolProjectionsByTaskKey.delete(key);
+    activePromptInputIds.delete(key);
+    const turnKeyPrefix = `${resolveWorkspaceKey(params)}:${params.taskId}:`;
+    for (const candidateTurnKey of Array.from(streamedTurnText.keys())) {
+      if (candidateTurnKey.startsWith(turnKeyPrefix)) {
+        streamedTurnText.delete(candidateTurnKey);
+      }
+    }
+  }
+
+  function clearDeletedTaskState(params: TaskTarget): void {
+    clearTaskTransientCaches(params);
+    const key = taskKey(params);
+    runtimeCommands.delete(key);
+    legacySnapshotTaskKeys.delete(key);
+    const existingTarget = taskTargets.get(params.taskId);
+    if (
+      existingTarget &&
+      resolveWorkspaceKey(existingTarget) === resolveWorkspaceKey(params)
+    ) {
+      taskTargets.delete(params.taskId);
+    }
+    const idleSink = v4TaskStreamSinks.get(key);
+    if (idleSink && idleSink.listenerCount === 0) {
+      v4TaskStreamSinks.delete(key);
+      idleSink.dispose();
+    }
+  }
+
+  function getTaskEmitter(params: TaskTarget): Emitter<NibiStreamEvent> {
+    return getSelfPruningTaskEmitter(taskEmitters, taskKey(params));
   }
 
   function getGlobalTaskEmitter(taskId: string): Emitter<NibiStreamEvent> {
-    let emitter = globalTaskEmitters.get(taskId);
-    if (!emitter) {
-      emitter = new Emitter<NibiStreamEvent>();
-      globalTaskEmitters.set(taskId, emitter);
-    }
-    return emitter;
+    return getSelfPruningTaskEmitter(globalTaskEmitters, taskId);
   }
 
   /** 每 task 一个 v4 读路径投影；只有 legacy 订阅不可用时才真正建立 v4 订阅。 */
@@ -1061,7 +1100,7 @@ export function createNibiTaskServiceAdapter(
         },
         // 双投：listener 供 onDynamicTaskEvent（bot 主路径，带 workspace 身份）；
         // 全局 emitter 供 onDynamicStreamEvent（bot 的 fallback 分支、Host 间镜像）。
-        publishGlobal: (event) => getGlobalTaskEmitter(target.taskId).fire(event),
+        publishGlobal: (event) => globalTaskEmitters.get(target.taskId)?.fire(event),
         warn: (message, error) => logger.warn(undefined, message, error),
       });
       v4TaskStreamSinks.set(key, sink);
@@ -1070,8 +1109,8 @@ export function createNibiTaskServiceAdapter(
   }
 
   function emitTaskEvent(params: TaskTarget, event: NibiStreamEvent): void {
-    getTaskEmitter(params).fire(event);
-    getGlobalTaskEmitter(params.taskId).fire(event);
+    taskEmitters.get(taskKey(params))?.fire(event);
+    globalTaskEmitters.get(params.taskId)?.fire(event);
   }
 
   // 委托到 syncer，让 archive/rename/pin/delete 等 task 元数据变更和
@@ -1762,8 +1801,16 @@ export function createNibiTaskServiceAdapter(
     errorEmitter.dispose();
     taskEmitters.clear();
     globalTaskEmitters.clear();
+    taskTargets.clear();
+    runtimeCommands.clear();
     runtimeCommandDrains.clear();
+    apiRetryByTaskKey.clear();
+    backgroundTaskControlsByTaskKey.clear();
     streamedTurnText.clear();
+    activePromptInputIds.clear();
+    toolProjectionMemoryByTaskKey.clear();
+    liveToolProjectionsByTaskKey.clear();
+    legacySnapshotTaskKeys.clear();
   }
 
   async function disposeNibiAgentServiceAndWait(): Promise<void> {
@@ -3012,6 +3059,7 @@ export function createNibiTaskServiceAdapter(
         { type: "delete" },
       );
       if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(params);
+      clearDeletedTaskState(params);
     },
 
     async deleteArchivedTask(params): Promise<boolean> {
@@ -3023,6 +3071,7 @@ export function createNibiTaskServiceAdapter(
         { type: "delete" },
       );
       if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(params);
+      clearDeletedTaskState(params);
       emitWorkspaceTaskListChanged(params, meta, "task_deleted");
       return true;
     },
@@ -3056,6 +3105,7 @@ export function createNibiTaskServiceAdapter(
             { type: "delete" },
           );
           if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(target);
+          clearDeletedTaskState(target);
           result.deletedTaskIds.push(taskId);
         } catch (error) {
           result.failedTaskIds.push(taskId);
@@ -3139,6 +3189,13 @@ export function createNibiTaskServiceAdapter(
             operationId: params.operationId,
           });
           if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(params);
+          for (const deletedId of new Set([params.taskId, ...result.sessionIds])) {
+            clearDeletedTaskState({
+              workspacePath: params.workspacePath,
+              workspaceIdentity: params.workspaceIdentity,
+              taskId: deletedId,
+            });
+          }
           emitWorkspaceTaskListChanged(params, undefined, "task_deleted");
         } else if (result.status === "blocked") {
           // 没删任何东西：释放预留，让下一次预检可以带新 revision 重试。
@@ -3241,6 +3298,7 @@ export function createNibiTaskServiceAdapter(
           workspaceKey: resolveWorkspaceKey(params),
         });
       }
+      clearTaskTransientCaches(params);
       return meta;
     },
 
@@ -3255,7 +3313,7 @@ export function createNibiTaskServiceAdapter(
     },
 
     onDynamicStreamEvent(taskId: string): Event<NibiStreamEvent> {
-      return getGlobalTaskEmitter(taskId).event;
+      return (listener) => getGlobalTaskEmitter(taskId).event(listener);
     },
 
     onDynamicTaskTerminalOutcome(taskId: string): Event<NibiTaskTerminalOutcome> {

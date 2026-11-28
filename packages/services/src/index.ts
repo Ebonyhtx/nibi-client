@@ -85,7 +85,7 @@ export {
 export { ISystemService } from "./system/system.js";
 
 // Terminal service — ITerminalService is both a type (interface) and value (descriptor)
-export { ITerminalService } from "./terminal/terminal.js";
+export { createConnectionScopedTerminalService, ITerminalService } from "./terminal/terminal.js";
 
 // Setting service — ISettingService is both a type (interface) and value (descriptor)
 export { ISettingService } from "./setting/setting.js";
@@ -278,7 +278,10 @@ export { IOutputStyleService } from "./output-style/outputStyle.js";
 export type { SessionRealtimePort } from "./session/sessionRealtimePort.js";
 
 // FileWatcher service — IFileWatcherService is both a type (interface) and value (descriptor)
-export { IFileWatcherService } from "./fileWatcher/fileWatcher.js";
+export {
+  createConnectionScopedFileWatcherService,
+  IFileWatcherService,
+} from "./fileWatcher/fileWatcher.js";
 
 // OAuth service — IOAuthService is both a type (interface) and value (descriptor)
 export { IOAuthService, type NibiMembershipStatus } from "./oauth/oauth.js";

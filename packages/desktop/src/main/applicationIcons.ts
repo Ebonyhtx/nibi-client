@@ -12,6 +12,7 @@ import { getAppIconDataUrl } from "./editors.js";
 import { logger } from "./logger.js";
 import { readWindowsAumidIcon } from "./windowsAumidIcon.js";
 
+const MAX_APPLICATION_ICON_CACHE_ENTRIES = 128;
 const applicationIconCache = new Map<string, Promise<ApplicationIconInfo | null>>();
 const SAFE_BUNDLE_ID = /^[A-Za-z0-9.-]+$/;
 const SAFE_WINDOWS_FIXED_DRIVE_PATH = /^[A-Za-z]:[\\/][^\\/]/u;
@@ -267,8 +268,29 @@ export function getApplicationIcon(
   if (!normalized) return Promise.resolve(null);
   const cacheKey = normalized.locators.map(locatorCacheKey).join("|");
   const cached = applicationIconCache.get(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    applicationIconCache.delete(cacheKey);
+    applicationIconCache.set(cacheKey, cached);
+    return cached;
+  }
+  while (applicationIconCache.size >= MAX_APPLICATION_ICON_CACHE_ENTRIES) {
+    const oldest = applicationIconCache.keys().next();
+    if (oldest.done) break;
+    applicationIconCache.delete(oldest.value);
+  }
   const pending = loadApplicationIcon(normalized);
   applicationIconCache.set(cacheKey, pending);
+  void pending.then(
+    (result) => {
+      if (result === null && applicationIconCache.get(cacheKey) === pending) {
+        applicationIconCache.delete(cacheKey);
+      }
+    },
+    () => {
+      if (applicationIconCache.get(cacheKey) === pending) {
+        applicationIconCache.delete(cacheKey);
+      }
+    },
+  );
   return pending;
 }

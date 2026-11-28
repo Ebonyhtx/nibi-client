@@ -320,6 +320,12 @@ export class SqliteSessionStore
     } catch {
       /* 库已关闭或只读：不能覆盖关闭结果。 */
     } finally {
+      try {
+        // 关闭连接前尝试被动回收 WAL，避免退出后残留过大的 -wal 文件
+        this.db.exec("pragma wal_checkpoint(PASSIVE)");
+      } catch {
+        /* 仅尽力回收 WAL，连接已关闭或只读时忽略。 */
+      }
       this.db.close();
     }
   }

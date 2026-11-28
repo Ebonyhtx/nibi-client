@@ -434,7 +434,10 @@ import {
 } from "./conversation-share/conversationShareService.js";
 import { createLocalConversationShareArtifactSource } from "./conversation-share/conversationShareArtifactSource.js";
 import { ConversationShareHttpClient } from "./conversation-share/conversationShareHttpClient.js";
-import { createProxyAwareShareDownload } from "./conversation-share/proxyAwareDownload.js";
+import {
+  closeProxyDownloadAgents,
+  createProxyAwareShareDownload,
+} from "./conversation-share/proxyAwareDownload.js";
 import { IBotsService } from "./bots/bots.js";
 import { IFileWatcherService } from "./fileWatcher/fileWatcher.js";
 import { IOAuthService } from "./oauth/oauth.js";
@@ -3254,6 +3257,7 @@ export function disposeServiceResources(services: ServiceCollection): void {
   if (pluginManagementBackend?.dispose) void pluginManagementBackend.dispose().catch(() => {});
   localPluginManagementBackends.delete(services);
   disposeQuitBlockerReporter(services);
+  void closeProxyDownloadAgents().catch(() => {});
 }
 
 export async function disposeServiceResourcesAndWait(services: ServiceCollection): Promise<void> {
@@ -3309,6 +3313,7 @@ export async function disposeServiceResourcesAndWait(services: ServiceCollection
   }
   localPluginManagementBackends.delete(services);
   disposeQuitBlockerReporter(services);
+  await closeProxyDownloadAgents().catch(() => {});
 }
 
 /** 所有应用入口在开放 RPC / 调度器前等待；失败不启动业务写者。 */

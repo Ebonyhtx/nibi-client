@@ -23,3 +23,48 @@ export interface IFileWatcherService {
 export const IFileWatcherService = createServiceDescriptor<IFileWatcherService>(
   ServiceChannels.FileWatcher,
 );
+
+/**
+ * 为单个 RPC 连接（MessagePort / WebSocket）包装文件监听器作用域：
+ * 记录本连接通过 `watch` 创建的 ID，`unwatch` 时移除；连接断开调用 `disposeScope()` 自动补 `unwatch`。
+ */
+export function createConnectionScopedFileWatcherService(service: IFileWatcherService): {
+  service: IFileWatcherService;
+  disposeScope: () => Promise<void>;
+} {
+  const ownedIds = new Set<string>();
+  let disposed = false;
+  const scoped = new Proxy(service, {
+    get(target, prop, receiver) {
+      if (prop === "watch") {
+        return async (params: { path: string; recursive?: boolean }) => {
+          const result = await target.watch(params);
+          if (disposed) {
+            await target.unwatch({ id: result.id }).catch(() => {});
+            return result;
+          }
+          ownedIds.add(result.id);
+          return result;
+        };
+      }
+      if (prop === "unwatch") {
+        return async (params: { id: string }) => {
+          ownedIds.delete(params.id);
+          await target.unwatch(params);
+        };
+      }
+      const value = Reflect.get(target, prop, receiver) as unknown;
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  return {
+    service: scoped,
+    async disposeScope() {
+      if (disposed) return;
+      disposed = true;
+      const ids = Array.from(ownedIds);
+      ownedIds.clear();
+      await Promise.all(ids.map((id) => service.unwatch({ id }).catch(() => {})));
+    },
+  };
+}

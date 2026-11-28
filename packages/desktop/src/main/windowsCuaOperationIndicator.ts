@@ -9,7 +9,10 @@ import {
   indicatorDataUrl,
   indicatorWindowSize,
 } from "./windowsCuaOperationIndicatorContent.js";
-import { createCursorLabelOverlay } from "./windowsCuaCursorLabel.js";
+import {
+  createCursorLabelOverlay,
+  createOverlayIdleDestroyTimer,
+} from "./windowsCuaCursorLabel.js";
 
 const HIDE_ANIMATION_MS = 120;
 /**
@@ -144,6 +147,7 @@ export function createWindowsCuaOperationIndicator(
   let windowReady = false;
   let windowShown = false;
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
+  const bannerIdleDestroy = createOverlayIdleDestroyTimer(schedule, cancelSchedule);
   const autoHideTimersBySource = new Map<object, Map<string, ReturnType<typeof setTimeout>>>();
   let reconcileTimer: ReturnType<typeof setTimeout> | null = null;
   let setupRetryAvailable = false;
@@ -153,6 +157,7 @@ export function createWindowsCuaOperationIndicator(
   let cursorReady = false;
   let cursorShown = false;
   let cursorHideTimer: ReturnType<typeof setTimeout> | null = null;
+  const cursorIdleDestroy = createOverlayIdleDestroyTimer(schedule, cancelSchedule);
   let cursorFailedAt = 0;
   let cursorPoint: Point | null = null;
   /** 当前是否仍希望光标可见；load 完成前到达的 inactive 不能把它亮出来。 */
@@ -215,6 +220,7 @@ export function createWindowsCuaOperationIndicator(
   }
 
   function cancelPendingHide(): void {
+    bannerIdleDestroy.cancel();
     if (!hideTimer) return;
     cancelSchedule(hideTimer);
     hideTimer = null;
@@ -305,6 +311,7 @@ export function createWindowsCuaOperationIndicator(
   }
 
   function cancelCursorHideTimer(): void {
+    cursorIdleDestroy.cancel();
     if (!cursorHideTimer) return;
     cancelSchedule(cursorHideTimer);
     cursorHideTimer = null;
@@ -466,6 +473,11 @@ export function createWindowsCuaOperationIndicator(
       try {
         target.hide();
         cursorShown = false;
+        cursorIdleDestroy.arm(() => {
+          if (!disposed && !cursorDesiredVisible && target === cursorWindow) {
+            discardCursorWindow(target);
+          }
+        });
       } catch (error) {
         options.logger.warn("[cua-cursor-overlay] hide failed, destroying window", error);
         discardCursorWindow(target);
@@ -579,6 +591,17 @@ export function createWindowsCuaOperationIndicator(
     try {
       target.hide();
       windowShown = false;
+      bannerIdleDestroy.arm(() => {
+        if (disposed || hasActiveTurns() || target !== window || target.isDestroyed()) return;
+        window = null;
+        windowReady = false;
+        windowShown = false;
+        try {
+          target.destroy();
+        } catch (destroyError) {
+          options.logger.debug("[cua-operation-indicator] idle destroy failed", destroyError);
+        }
+      });
       return;
     } catch (error) {
       // 关闭是这个浮层的安全底线：它在声称"NIBI 正在操作电脑"，隐藏失败就等于向用户

@@ -107,6 +107,33 @@ interface FeishuUserInfoResponse {
   };
 }
 
+const MAX_FEISHU_ACCESS_TOKEN_CACHE = 64;
+const MAX_FEISHU_TYPING_REACTION_IDS = 512;
+const MAX_FEISHU_USER_DISPLAY_NAMES = 1024;
+
+function pruneExpiredCacheEntries<T extends { expiresAt: number }>(
+  cache: Map<string, T>,
+  minExpiresAt: number,
+): void {
+  for (const [key, entry] of cache) {
+    if (entry.expiresAt <= minExpiresAt) {
+      cache.delete(key);
+    }
+  }
+}
+
+function setFeishuBoundedEntry<V>(cache: Map<string, V>, key: string, value: V, maxSize: number): void {
+  if (cache.has(key)) {
+    cache.delete(key);
+  }
+  while (cache.size >= maxSize) {
+    const oldest = cache.keys().next();
+    if (oldest.done) break;
+    cache.delete(oldest.value);
+  }
+  cache.set(key, value);
+}
+
 const accessTokenCache = new Map<string, { token: string; expiresAt: number }>();
 const typingReactionIds = new Map<string, string>();
 const userDisplayNameCache = new Map<string, { name: string | null; expiresAt: number }>();
@@ -1347,6 +1374,8 @@ async function readTenantAccessToken(
   const cacheKey = `${getFeishuDomainProvider(bot)}:${bot.feishuAppId}:${bot.credentialRef}`;
   const cached = accessTokenCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 60_000) {
+    accessTokenCache.delete(cacheKey);
+    accessTokenCache.set(cacheKey, cached);
     return cached.token;
   }
   const requestedAt = Date.now();
@@ -1372,10 +1401,16 @@ async function readTenantAccessToken(
   // 飞书可能返回尚未过期的旧令牌；固定缓存 90 分钟会超过其真实剩余有效期。
   // 从请求开始计时，避免网络耗时被错误计入令牌的可用时间。
   if (typeof payload.expire === "number" && Number.isFinite(payload.expire) && payload.expire > 0) {
-    accessTokenCache.set(cacheKey, {
-      token: payload.tenant_access_token,
-      expiresAt: requestedAt + payload.expire * 1_000,
-    });
+    pruneExpiredCacheEntries(accessTokenCache, Date.now());
+    setFeishuBoundedEntry(
+      accessTokenCache,
+      cacheKey,
+      {
+        token: payload.tenant_access_token,
+        expiresAt: requestedAt + payload.expire * 1_000,
+      },
+      MAX_FEISHU_ACCESS_TOKEN_CACHE,
+    );
   } else {
     accessTokenCache.delete(cacheKey);
   }
@@ -1627,6 +1662,8 @@ async function readFeishuUserDisplayName(
   const cacheKey = `${getFeishuDomainProvider(bot)}:${bot.feishuAppId ?? ""}:${bot.credentialRef ?? ""}:${trimmedUserId}`;
   const cached = userDisplayNameCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
+    userDisplayNameCache.delete(cacheKey);
+    userDisplayNameCache.set(cacheKey, cached);
     return cached.name;
   }
   const token = await readTenantAccessToken(bot, deps);
@@ -1652,10 +1689,17 @@ async function readFeishuUserDisplayName(
   const name = resolveFeishuUserDisplayName(payload);
   // Bugfix: 飞书消息事件只稳定携带 sender_id，不携带发送者名称。
   // 这里缓存通讯录查询结果，避免同一个用户连续发消息时每条都请求 contact API。
-  userDisplayNameCache.set(cacheKey, {
-    name,
-    expiresAt: Date.now() + 10 * 60_000,
-  });
+  const nowMs = Date.now();
+  pruneExpiredCacheEntries(userDisplayNameCache, nowMs);
+  setFeishuBoundedEntry(
+    userDisplayNameCache,
+    cacheKey,
+    {
+      name,
+      expiresAt: nowMs + 10 * 60_000,
+    },
+    MAX_FEISHU_USER_DISPLAY_NAMES,
+  );
   return name;
 }
 
@@ -1699,7 +1743,12 @@ async function addFeishuTypingReaction(
     throw new Error(payload.msg || "Feishu add typing reaction failed.");
   }
   if (payload.data?.reaction_id) {
-    typingReactionIds.set(key, payload.data.reaction_id);
+    setFeishuBoundedEntry(
+      typingReactionIds,
+      key,
+      payload.data.reaction_id,
+      MAX_FEISHU_TYPING_REACTION_IDS,
+    );
   }
 }
 
@@ -1713,27 +1762,31 @@ async function deleteFeishuTypingReaction(
   if (!reactionId) {
     return;
   }
-  const token = await readTenantAccessToken(bot, deps);
-  if (!token) {
-    return;
-  }
-  const response = await fetchBotProviderJson<FeishuReactionResponse>(
-    `${getFeishuBaseUrl(bot)}/open-apis/im/v1/messages/${messageId}/reactions/${reactionId}`,
-    {
-      method: "DELETE",
-      headers: {
-        authorization: `Bearer ${token}`,
+  try {
+    const token = await readTenantAccessToken(bot, deps);
+    if (!token) {
+      return;
+    }
+    const response = await fetchBotProviderJson<FeishuReactionResponse>(
+      `${getFeishuBaseUrl(bot)}/open-apis/im/v1/messages/${messageId}/reactions/${reactionId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
       },
-    },
-  );
-  if (!response.ok) {
-    throw new Error(`Feishu delete typing reaction failed: HTTP ${response.status}`);
+    );
+    if (!response.ok) {
+      throw new Error(`Feishu delete typing reaction failed: HTTP ${response.status}`);
+    }
+    const payload = response.payload ?? {};
+    if (payload.code !== 0) {
+      throw new Error(payload.msg || "Feishu delete typing reaction failed.");
+    }
+  } finally {
+    // 无论 token 缺失还是远端撤回报错，都必须释放本地追踪键，防止永久残留。
+    typingReactionIds.delete(key);
   }
-  const payload = response.payload ?? {};
-  if (payload.code !== 0) {
-    throw new Error(payload.msg || "Feishu delete typing reaction failed.");
-  }
-  typingReactionIds.delete(key);
 }
 
 async function readFeishuAppSecret(

@@ -8,6 +8,7 @@
  * 规则与中继共用 `shared/node/egressProxy`（未配置/命中 noProxy → 直连），保证
  * 「设置页配了代理」对所有 Node 侧出口语义一致。
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fetch as undiciFetch, ProxyAgent } from "undici";
 import {
@@ -25,34 +26,65 @@ export interface ShareDownloadSettings extends EgressProxySettings {
 type DownloadInit = { signal?: AbortSignal };
 export type ShareDownload = (url: string, init?: DownloadInit) => Promise<Response>;
 
+const MAX_PROXY_AGENTS = 8;
+const MAX_CA_CACHE_ENTRIES = 32;
 const agents = new Map<string, ProxyAgent>();
-const caCache = new Map<string, string | null>();
+const caCache = new Map<string, { pem: string; hash: string }>();
 
-function readCaPem(path: string | null | undefined): string | null {
+function readCaPem(path: string | null | undefined): { pem: string; hash: string } | null {
   const trimmed = path?.trim();
   if (!trimmed) return null;
-  if (caCache.has(trimmed)) return caCache.get(trimmed) ?? null;
+  const cached = caCache.get(trimmed);
+  if (cached) {
+    caCache.delete(trimmed);
+    caCache.set(trimmed, cached);
+    return cached;
+  }
   try {
     const pem = readFileSync(trimmed, "utf8");
-    caCache.set(trimmed, pem);
-    return pem;
+    const hash = createHash("sha256").update(pem).digest("hex").slice(0, 16);
+    if (caCache.size >= MAX_CA_CACHE_ENTRIES) {
+      const oldest = caCache.keys().next().value;
+      if (oldest !== undefined) caCache.delete(oldest);
+    }
+    const entry = { pem, hash };
+    caCache.set(trimmed, entry);
+    return entry;
   } catch {
-    // CA 读不到不是致命错误：仍走代理，只是证书按系统信任链校验。
-    caCache.set(trimmed, null);
+    // CA 读取失败不写入负缓存，避免文件暂不可读后永久锁死回退。
     return null;
   }
 }
 
-function agentFor(proxyUrl: string, caPem: string | null): ProxyAgent {
-  const key = `${proxyUrl}\u0000${caPem ? "ca" : "system"}`;
+function agentFor(proxyUrl: string, ca: { pem: string; hash: string } | null): ProxyAgent {
+  const key = `${proxyUrl}\u0000${ca ? `ca:${ca.hash}` : "system"}`;
   const existing = agents.get(key);
-  if (existing) return existing;
+  if (existing) {
+    agents.delete(key);
+    agents.set(key, existing);
+    return existing;
+  }
+  if (agents.size >= MAX_PROXY_AGENTS) {
+    const oldest = agents.entries().next();
+    if (!oldest.done) {
+      agents.delete(oldest.value[0]);
+      void oldest.value[1].close().catch(() => {});
+    }
+  }
   const agent = new ProxyAgent({
     uri: proxyUrl,
-    ...(caPem ? { connect: { ca: caPem } } : {}),
+    ...(ca ? { connect: { ca: ca.pem } } : {}),
   });
   agents.set(key, agent);
   return agent;
+}
+
+/** 关闭并清空模块级分享下载代理连接池，供宿主退出回收。 */
+export async function closeProxyDownloadAgents(): Promise<void> {
+  const active = Array.from(agents.values());
+  agents.clear();
+  caCache.clear();
+  await Promise.all(active.map((agent) => agent.close().catch(() => {})));
 }
 
 /**

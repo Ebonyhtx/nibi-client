@@ -64,6 +64,7 @@ export function installPluginSandboxHost(input: {
 }): PluginSandboxHost {
   if (installedHost) return installedHost;
   const detachByKey = new Map<string, () => void>();
+  const stopLoadingListenerByGuest = new WeakMap<WebContents, () => void>();
   const watchedOwners = new Set<number>();
   const guests = new Map<string, WebContents>();
   const activity = new DesktopBrowserScreenshotActivityController({
@@ -75,6 +76,14 @@ export function installPluginSandboxHost(input: {
   const releaseExecution = (sandboxId: string) => {
     executions.get(sandboxId)?.lease?.release();
     executions.delete(sandboxId);
+  };
+  const detachGuestListeners = (guest: WebContents | undefined) => {
+    if (!guest) return;
+    const onStopLoading = stopLoadingListenerByGuest.get(guest);
+    if (onStopLoading) {
+      stopLoadingListenerByGuest.delete(guest);
+      guest.removeListener?.("did-stop-loading", onStopLoading);
+    }
   };
   const syncExecution = (sandboxId: string) => {
     const state = executions.get(sandboxId);
@@ -194,10 +203,44 @@ export function installPluginSandboxHost(input: {
     ...(input.logger ? { logger: input.logger } : {}),
   });
 
+  const watchOwner = (owner: WebContents) => {
+    if (watchedOwners.has(owner.id)) return;
+    watchedOwners.add(owner.id);
+    const ownerId = owner.id;
+    const onOwnerGone = () => {
+      watchedOwners.delete(ownerId);
+      owner.removeListener?.("destroyed", onOwnerGone);
+      owner.removeListener?.("render-process-gone", onOwnerGone);
+      owner.removeListener?.("did-start-navigation", onMainFrameNavigate);
+      registry.disposeOwner(ownerId);
+    };
+    const onMainFrameNavigate = (
+      _event: Electron.Event,
+      _url: string,
+      isInPlace: boolean,
+      isMainFrame: boolean,
+    ) => {
+      if (isMainFrame && !isInPlace) onOwnerGone();
+    };
+    owner.once("destroyed", onOwnerGone);
+    owner.on?.("render-process-gone", onOwnerGone);
+    owner.on?.("did-start-navigation", onMainFrameNavigate);
+  };
+
   const host: PluginSandboxHost = {
     async clearBrowserData() {
       clearing = true;
       for (const owner of watchedOwners) registry.disposeOwner(owner);
+      for (const [sandboxId, detach] of detachByKey) {
+        detachByKey.delete(sandboxId);
+        detach();
+      }
+      for (const sandboxId of Array.from(executions.keys())) {
+        releaseExecution(sandboxId);
+      }
+      for (const guest of guests.values()) {
+        detachGuestListeners(guest);
+      }
       await Promise.all([...guests.values()].map(stopGuest));
       guests.clear();
       const names = await readdir(join(app.getPath("sessionData"), "Partitions")).catch(
@@ -223,13 +266,7 @@ export function installPluginSandboxHost(input: {
       const handle = registry.register(registerInput);
       partitions.add(handle.partition);
       // prepare 后尚未挂载的登记也属于窗口；关闭和清除数据不能漏掉它们。
-      if (!watchedOwners.has(owner.id)) {
-        watchedOwners.add(owner.id);
-        owner.once("destroyed", () => {
-          watchedOwners.delete(owner.id);
-          registry.disposeOwner(owner.id);
-        });
-      }
+      watchOwner(owner);
       preparePluginSandboxSession({
         session: electronSession.fromPartition(handle.partition),
         registry,
@@ -260,26 +297,31 @@ export function installPluginSandboxHost(input: {
         );
         return;
       }
+      const previousGuest = guests.get(sandboxId);
+      if (previousGuest && previousGuest !== guest) {
+        detachGuestListeners(previousGuest);
+        releaseExecution(sandboxId);
+      }
+      detachByKey.get(sandboxId)?.();
+      detachByKey.delete(sandboxId);
+
       guests.set(sandboxId, guest);
+      const onDidStopLoading = () => syncExecution(sandboxId);
+      stopLoadingListenerByGuest.set(guest, onDidStopLoading);
       // dom-ready / did-finish-load 回调时仍可能处于 loading，早到的活动请求会被上面的守卫跳过。
       // 以真正停止加载的事件承接待处理请求，不能依赖插件或 session 再发一次活动请求。
-      guest.on("did-stop-loading", () => syncExecution(sandboxId));
+      guest.on("did-stop-loading", onDidStopLoading);
       guest.once("destroyed", () => {
+        detachGuestListeners(guest);
         if (guests.get(sandboxId) === guest) {
           releaseExecution(sandboxId);
+          detachByKey.get(sandboxId)?.();
+          detachByKey.delete(sandboxId);
           guests.delete(sandboxId);
         }
       });
-      // H14：宿主 webContents 销毁（窗口关闭 / 崩溃）时释放它名下全部登记；每个 owner 只挂一次。
-      if (!watchedOwners.has(hostWebContents.id)) {
-        watchedOwners.add(hostWebContents.id);
-        const ownerId = hostWebContents.id;
-        hostWebContents.once("destroyed", () => {
-          watchedOwners.delete(ownerId);
-          registry.disposeOwner(ownerId);
-        });
-      }
-      detachByKey.get(sandboxId)?.();
+      // H14：宿主 webContents 关闭 / 崩溃 / 整页刷新时释放它名下全部登记；每个 owner 只挂一次。
+      watchOwner(hostWebContents);
       detachByKey.set(
         sandboxId,
         attachPluginSandboxGuest({

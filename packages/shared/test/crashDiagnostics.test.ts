@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   classifyDiagnosticText,
@@ -310,5 +314,32 @@ describe("classifyDiagnosticText", () => {
     expect(classifyDiagnosticText("boom", "EPIPE", true)).toBe("errno");
     expect(classifyDiagnosticText("boom", "", true)).toBe("generic");
     expect(classifyDiagnosticText("boom", "", false)).toBe("none");
+  });
+});
+
+describe("browser safety of process-diagnostic", () => {
+  it("matches node:crypto sha256 across UTF-8 and block padding boundaries", () => {
+    const samples = [
+      "",
+      "ascii-crash-log",
+      "中文崩溃日志 🚀",
+      "a".repeat(55),
+      "a".repeat(56),
+      "a".repeat(64),
+      "a".repeat(130),
+    ];
+    for (const sample of samples) {
+      const expected = createHash("sha256").update(sample).digest("hex").slice(0, 16);
+      expect(fingerprintCrash({ parts: [sample] })).toBe(expected);
+    }
+  });
+
+  it("avoids node: built-in imports so browser/renderer bundles evaluate cleanly", () => {
+    const modulePath = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../src/process-diagnostic.ts",
+    );
+    const source = readFileSync(modulePath, "utf8");
+    expect(source).not.toMatch(/\bfrom\s+["']node:/);
   });
 });

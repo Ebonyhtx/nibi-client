@@ -94,6 +94,11 @@ export async function runSqliteSessionMigrationsAsync(
       if (mode !== "wal" && !isMemoryJournalMode(dbPath, mode))
         throw new SqliteSessionMigrationError(`SQLite refused WAL journal mode for ${dbPath}; received ${mode}`, { dbPath, kind: "sql_failed" });
     });
+    // 开启 WAL 后降低同步 fsync 开销，并限制非内存库 WAL 文件体积上限
+    db.exec("pragma synchronous = normal");
+    if (!isMemoryDatabasePath(dbPath)) {
+      db.exec("pragma journal_size_limit = 67108864");
+    }
     await acquire(() => { migration = { kind: inspectMigrationKind(db, dbPath), executedCount: 0, committedCount: 0 }; });
     await progress("checking");
     await acquire(() => db.exec("begin immediate"));

@@ -149,9 +149,20 @@ export class ChannelClient implements IChannelClient, IDisposable {
 
   private requestEvent(channelName: string, name: string, arg?: any): Event<any> {
     const id = this.lastRequestId++;
+    let subscribed = false;
+    let listenSent = false;
     const emitter = new Emitter<any>({
       onWillAddFirstListener: () => {
+        subscribed = true;
+        listenSent = false;
+        this.handlers.set(id, (response) => {
+          emitter.fire((response as { data: any }).data);
+        });
         const doRequest = () => {
+          if (this.isDisposed || !subscribed) {
+            return;
+          }
+          listenSent = true;
           this.activeRequests.add(emitter);
           this.sendRequest(RequestType.EventListen, id, channelName, name, arg);
         };
@@ -159,18 +170,18 @@ export class ChannelClient implements IChannelClient, IDisposable {
         if (this.state === State.Idle) {
           doRequest();
         } else {
-          this.whenInitialized().then(doRequest);
+          void this.whenInitialized().then(doRequest);
         }
       },
       onDidRemoveLastListener: () => {
+        subscribed = false;
         this.activeRequests.delete(emitter);
-        this.sendCancelOrDispose(RequestType.EventDispose, id);
         this.handlers.delete(id);
+        if (listenSent) {
+          listenSent = false;
+          this.sendCancelOrDispose(RequestType.EventDispose, id);
+        }
       },
-    });
-
-    this.handlers.set(id, (response) => {
-      emitter.fire((response as { data: any }).data);
     });
 
     return emitter.event;
@@ -270,6 +281,7 @@ export class ChannelClient implements IChannelClient, IDisposable {
       disposable.dispose();
     }
     this.activeRequests.clear();
+    this.handlers.clear();
     this.pendingRejections.clear();
     this._onDidInitialize.dispose();
   }

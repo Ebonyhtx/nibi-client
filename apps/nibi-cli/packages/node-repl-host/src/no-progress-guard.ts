@@ -37,6 +37,8 @@ interface TurnProgress {
 // js 永不因「没有进展」而失败，弱模型会在一个 turn 内反复调用直到额度耗尽；core 的重复调用提醒按完整
 // input 计签名，模型改一个字符就重置。这里补上「结果没变」这个维度。文案只授权结束、不要求换做法：
 // 现场模型已在反复写「本轮结束」，换做法式文案只会把它推回去继续调用。
+const MAX_NO_PROGRESS_SESSIONS = 512;
+
 export function createNoProgressGuard(): NoProgressGuard {
   const turns = new Map<string, TurnProgress>();
   return {
@@ -48,7 +50,15 @@ export function createNoProgressGuard(): NoProgressGuard {
       let turn = turns.get(sessionId);
       if (!turn || turn.turnId !== turnId) {
         turn = { turnId, calls: 0, codeStreak: 0, resultStreak: 0 };
-        turns.set(sessionId, turn);
+      } else {
+        // 刷新最近活跃会话到 LRU 队尾，避免长生命周期进程无限保留过期会话条目
+        turns.delete(sessionId);
+      }
+      turns.set(sessionId, turn);
+      while (turns.size > MAX_NO_PROGRESS_SESSIONS) {
+        const oldestSessionId = turns.keys().next().value;
+        if (oldestSessionId === undefined) break;
+        turns.delete(oldestSessionId);
       }
 
       const codeHash = digest(code);

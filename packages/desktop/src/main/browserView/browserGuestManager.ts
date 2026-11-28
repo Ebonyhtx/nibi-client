@@ -459,8 +459,18 @@ export class BrowserGuestManager {
     }
     return ids;
   }
-  /** close 后只保留 opaque id tombstone，拒绝迟到的 renderer attach，不保留 owner/guest。 */
+  /** close 后只保留有上限的 opaque id tombstone，拒绝迟到的 renderer attach，不保留 owner/guest。 */
   private readonly closedTabIds = new Set<string>();
+  private markClosedTabId(tabId: string): void {
+    const MAX_CLOSED_TAB_IDS = 2_000;
+    if (this.closedTabIds.has(tabId)) {
+      this.closedTabIds.delete(tabId);
+    } else if (this.closedTabIds.size >= MAX_CLOSED_TAB_IDS) {
+      const oldest = this.closedTabIds.values().next();
+      if (!oldest.done) this.closedTabIds.delete(oldest.value);
+    }
+    this.closedTabIds.add(tabId);
+  }
   private readonly activeTabByScope = new Map<string, string>();
   private readonly defaultTabByScope = new Map<string, string>();
   private readonly waiters = new Map<string, PendingWaiter[]>();
@@ -1107,7 +1117,7 @@ export class BrowserGuestManager {
     // 跨 window/workspace 越权关闭他人 tab 仍然被拒绝。
     const existing = this.tabs.get(payload.tabId);
     if (!existing || existing.lifecycle === "closed") {
-      this.closedTabIds.add(payload.tabId);
+      this.markClosedTabId(payload.tabId);
       return;
     }
     // close 是收敛意图：remoteSessionId 的防重连语义只属于 attach（见 attachGuest 的
@@ -3337,7 +3347,7 @@ export class BrowserGuestManager {
     if (tab.lifecycle === "closed") return;
     this.abortRecordings((entry) => entry.tabId === tab.tabId, "tab closed");
     tab.lifecycle = "closed";
-    this.closedTabIds.add(tab.tabId);
+    this.markClosedTabId(tab.tabId);
     // tab 已不可再执行命令；不必为一个可能永久不回包的旧 CDP capture 保留 manager 引用。
     this.inFlightScreenshots.delete(tab.tabId);
     this.abandonedScreenshotCaptures.delete(tab.tabId);

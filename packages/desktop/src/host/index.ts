@@ -64,6 +64,10 @@ import {
   INibiTaskService,
   INibiSessionService,
   ICuaPipSessionService,
+  IFileWatcherService,
+  ITerminalService,
+  createConnectionScopedFileWatcherService,
+  createConnectionScopedTerminalService,
   createNibiAgentConnectionScope,
   type NibiAgentV4ClientMode,
   collectServiceMemoryDiagnostics,
@@ -920,40 +924,57 @@ function startCuaActivityPolling(): () => void {
     return () => {};
   }
   if (!socketPath) return () => {};
+  const MIN_POLL_INTERVAL_MS = 250;
+  const MAX_POLL_INTERVAL_MS = 5_000;
+  let delayMs = MIN_POLL_INTERVAL_MS;
   let lastKey = "";
-  let inFlight = false;
-  const timer = setInterval(() => {
-    if (inFlight) return;
-    inFlight = true;
-    void (async () => {
-      try {
-        const snapshot = (await callBrokerMethod({
-          socketPath,
-          method: "helper_activity",
-          params: null,
-          timeoutMs: 800,
-        })) as CuaHelperActivitySnapshot | null;
-        // 映射与去重键都放在纯函数里（cuaActivitySnapshot.ts）：这段曾经漏转 nativeCursor，
-        // 单测覆盖不到"宿主有没有把标记送出去"，只能靠真机才发现两个光标叠在一起。
-        const event = cuaActivityEventFromSnapshot(snapshot);
-        const key = cuaActivityKey(event);
-        if (key === lastKey) return;
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const scheduleNext = (waitMs: number) => {
+    if (stopped) return;
+    timer = setTimeout(() => {
+      void pollOnce();
+    }, waitMs);
+    timer.unref?.();
+  };
+
+  const pollOnce = async () => {
+    if (stopped) return;
+    try {
+      const snapshot = (await callBrokerMethod({
+        socketPath,
+        method: "helper_activity",
+        params: null,
+        timeoutMs: 800,
+      })) as CuaHelperActivitySnapshot | null;
+      delayMs = MIN_POLL_INTERVAL_MS;
+      const event = cuaActivityEventFromSnapshot(snapshot);
+      const key = cuaActivityKey(event);
+      if (key !== lastKey) {
         lastKey = key;
         cuaActivityReporter.onActivity(event);
-      } catch {
-        // Helper 未运行或还在启动：静默重试，下一轮再说。
-        lastKey = "";
-      } finally {
-        inFlight = false;
       }
-    })();
-  }, 250);
-  timer.unref?.();
-  return () => clearInterval(timer);
+    } catch {
+      // Helper 未运行或不可用时指数退避（250ms -> 5s），避免空转刷命名管道。
+      lastKey = "";
+      delayMs = Math.min(delayMs * 2, MAX_POLL_INTERVAL_MS);
+    }
+    scheduleNext(delayMs);
+  };
+
+  scheduleNext(MIN_POLL_INTERVAL_MS);
+  return () => {
+    stopped = true;
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+  };
 }
 
-// Host 进程退出时轮询随 interval 一起结束（timer.unref 不会挂住退出）。
-startCuaActivityPolling();
+// Host 进程退出时通过 stopCuaActivityPolling 显式收口（timer.unref 也防止挂住退出）。
+const stopCuaActivityPolling = startCuaActivityPolling();
 
 let untrackedPromptRpcCount = 0;
 function reportHostRunningTaskCount(): void {
@@ -2357,6 +2378,21 @@ function exposeServicesOnMessagePort(
   if (connectionScope) {
     overrides.set(INibiAgentService.channelName, connectionScope.service);
   }
+  const fileWatcherService = services.getOptional(IFileWatcherService);
+  const scopedFileWatcher = fileWatcherService
+    ? createConnectionScopedFileWatcherService(fileWatcherService)
+    : undefined;
+  if (scopedFileWatcher) {
+    overrides.set(IFileWatcherService.channelName, scopedFileWatcher.service);
+  }
+  const terminalService =
+    attachmentScope.kind === "local" ? services.getOptional(ITerminalService) : undefined;
+  const scopedTerminal = terminalService
+    ? createConnectionScopedTerminalService(terminalService)
+    : undefined;
+  if (scopedTerminal) {
+    overrides.set(ITerminalService.channelName, scopedTerminal.service);
+  }
   const conversationShareService = services.getOptional(IConversationShareService);
   if (conversationShareService) {
     // Share service 若继续持有 raw Agent，会绕过当前 MessagePort 已握手的 trusted carrier，
@@ -2411,6 +2447,8 @@ function exposeServicesOnMessagePort(
       void remoteMediaPreviewProxy?.dispose().catch((error: unknown) => {
         logger.warn("failed to dispose remote media preview proxy", error);
       });
+      void scopedFileWatcher?.disposeScope().catch(() => {});
+      void scopedTerminal?.disposeScope().catch(() => {});
       // close 排在所有已接收 SAT/DRN 之后；scope.dispose 自身会再次幂等确保 closed，
       // 但绝不让迟到 saturated 在 close 后复活 CLI pause state。
       void forwardFlowState("closed")
@@ -2497,6 +2535,7 @@ async function disposeHostResources(reason: string): Promise<HostShutdownResult>
     logger.info(`disposing host resources, reason=${reason}`);
 
     pluginSandboxRegistrationBridge.dispose();
+    stopCuaActivityPolling();
     stopHostNetworkTelemetry();
     hostNetworkCapture.setCaptureId(null);
     hostSelfResourceTelemetry.stop();

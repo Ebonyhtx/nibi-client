@@ -416,6 +416,12 @@ export class TaskIndexRepo {
   close(options?: { throwOnError?: boolean }): void {
     let closeError: unknown;
     try {
+      try {
+        // 关闭连接前执行非阻塞 PASSIVE checkpoint，控制 WAL 文件累积体积
+        this.db?.exec("PRAGMA wal_checkpoint(PASSIVE)");
+      } catch {
+        /* 非阻塞 WAL 回收失败时不阻断关闭。 */
+      }
       this.db?.close();
     } catch (error) {
       closeError = error;
@@ -438,6 +444,10 @@ export class TaskIndexRepo {
       this.db.exec("PRAGMA foreign_keys = ON");
       this.db.exec("PRAGMA journal_mode = WAL");
       this.db.exec("PRAGMA synchronous = NORMAL");
+      if (this.dbPath !== ":memory:" && !this.dbPath.startsWith("file::memory:")) {
+        // 限制持久化索引库 WAL 文件上限为 64 MiB，防止长期运行后 WAL 膨胀
+        this.db.exec("PRAGMA journal_size_limit = 67108864");
+      }
     }
     const taskMigration = await runTasksDatabaseMigrations(this.db, path);
     const migration = await projectStorage.migrate(this.getDatabase(), {

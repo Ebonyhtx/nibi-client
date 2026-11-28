@@ -68,6 +68,30 @@ export interface CursorLabelOverlay {
   dispose(): void;
 }
 
+export const OVERLAY_IDLE_DESTROY_DELAY_MS = 45_000;
+
+/** 为透明置顶浮层提供统一的隐藏后空闲销毁计时器，避免长期驻留 Chromium 渲染进程。 */
+export function createOverlayIdleDestroyTimer(
+  schedule: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>,
+  cancelSchedule: (timer: ReturnType<typeof setTimeout>) => void,
+  delayMs = OVERLAY_IDLE_DESTROY_DELAY_MS,
+) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const cancel = () => {
+    if (!timer) return;
+    cancelSchedule(timer);
+    timer = null;
+  };
+  const arm = (onExpire: () => void) => {
+    cancel();
+    timer = schedule(() => {
+      timer = null;
+      onExpire();
+    }, delayMs);
+  };
+  return { arm, cancel };
+}
+
 export function createCursorLabelOverlay(
   options: CursorLabelOverlayOptions,
 ): CursorLabelOverlay {
@@ -77,6 +101,7 @@ export function createCursorLabelOverlay(
   let ready = false;
   let shown = false;
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
+  const idleDestroy = createOverlayIdleDestroyTimer(options.schedule, options.cancelSchedule);
   let failedAt = 0;
   let point: Point | null = null;
   let text = "";
@@ -84,6 +109,7 @@ export function createCursorLabelOverlay(
   let disposed = false;
 
   function cancelHideTimer(): void {
+    idleDestroy.cancel();
     if (!hideTimer) return;
     options.cancelSchedule(hideTimer);
     hideTimer = null;
@@ -252,6 +278,11 @@ export function createCursorLabelOverlay(
       try {
         target.hide();
         shown = false;
+        idleDestroy.arm(() => {
+          if (!disposed && !desiredVisible && target === window && !target.isDestroyed()) {
+            discard(target);
+          }
+        });
       } catch (error) {
         options.logger.warn("[cua-cursor-label] hide failed, destroying window", error);
         discard(target);

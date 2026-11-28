@@ -17,6 +17,8 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
     string,
     { request: any; timer: ReturnType<typeof setTimeout> }[]
   >();
+  private flushTimers = new Set<ReturnType<typeof setTimeout>>();
+  private isDisposed = false;
   private protocolListener: IDisposable | null;
 
   constructor(
@@ -36,8 +38,14 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
   }
 
   registerChannel(channelName: string, channel: IServerChannel<TContext>): void {
+    if (this.isDisposed) return;
     this.channels.set(channelName, channel);
-    setTimeout(() => this.flushPendingRequests(channelName), 0);
+    const flushTimer = setTimeout(() => {
+      this.flushTimers.delete(flushTimer);
+      if (this.isDisposed) return;
+      this.flushPendingRequests(channelName);
+    }, 0);
+    this.flushTimers.add(flushTimer);
   }
 
   private sendResponse(response: IRawResponse): void {
@@ -219,22 +227,40 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
     this.activeRequests.set(request.id, disposable);
   }
 
+  private removePendingRequestById(channelName: string, id: number): void {
+    const queue = this.pendingRequests.get(channelName);
+    if (!queue) return;
+    const index = queue.findIndex((item) => item.request.id === id);
+    if (index < 0) return;
+    const [removed] = queue.splice(index, 1);
+    if (removed) clearTimeout(removed.timer);
+    if (queue.length === 0) {
+      this.pendingRequests.delete(channelName);
+    }
+  }
+
   private disposeActiveRequest(id: number): void {
     const disposable = this.activeRequests.get(id);
-    if (!disposable) {
+    if (disposable) {
+      disposable.dispose();
+      this.activeRequests.delete(id);
       return;
     }
-    disposable.dispose();
-    this.activeRequests.delete(id);
+    for (const channelName of Array.from(this.pendingRequests.keys())) {
+      this.removePendingRequestById(channelName, id);
+    }
   }
 
   private collectPendingRequest(request: any): void {
+    if (this.isDisposed) return;
     const pendingRequests = this.pendingRequests.get(request.channelName) ?? [];
     if (pendingRequests.length === 0) {
       this.pendingRequests.set(request.channelName, pendingRequests);
     }
 
     const timer = setTimeout(() => {
+      this.removePendingRequestById(request.channelName, request.id);
+      if (this.isDisposed) return;
       console.error(`Unknown channel: ${request.channelName}`);
       if (request.type !== RequestType.Promise) {
         return;
@@ -255,11 +281,13 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
   }
 
   private flushPendingRequests(channelName: string): void {
+    if (this.isDisposed) return;
     const requests = this.pendingRequests.get(channelName);
     if (!requests) {
       return;
     }
 
+    this.pendingRequests.delete(channelName);
     for (const { request, timer } of requests) {
       clearTimeout(timer);
       switch (request.type) {
@@ -271,15 +299,27 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
           break;
       }
     }
-    this.pendingRequests.delete(channelName);
   }
 
   dispose(): void {
+    if (this.isDisposed) return;
+    this.isDisposed = true;
     this.protocolListener?.dispose();
     this.protocolListener = null;
+    for (const timer of this.flushTimers) {
+      clearTimeout(timer);
+    }
+    this.flushTimers.clear();
+    for (const queue of this.pendingRequests.values()) {
+      for (const item of queue) {
+        clearTimeout(item.timer);
+      }
+    }
+    this.pendingRequests.clear();
     for (const disposable of this.activeRequests.values()) {
       disposable.dispose();
     }
     this.activeRequests.clear();
+    this.channels.clear();
   }
 }
