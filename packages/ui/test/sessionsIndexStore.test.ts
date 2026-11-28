@@ -595,6 +595,32 @@ describe("SessionsIndexStore", () => {
     store.close();
   });
 
+  it("resync 回内核文本 unknown subscription → 同样自愈，不落 error", async () => {
+    // 内核（4.1.6 及更早）对"这一层已不认这份 subscription"回的是自己的文本而不是
+    // fault.subscription.notOwned（归档再取消归档即触发），语义相同，必须同样自愈。
+    const store = new SessionsIndexStore();
+    let sub = 0;
+    const kit = mockTransport({
+      subscribe: vi.fn(async () => ({
+        ack: {
+          subscriptionId: `sub-${++sub}`,
+          mode: "snapshot" as const,
+          logEpoch: "epoch-1",
+        },
+      })),
+      activate: vi.fn(),
+      resync: vi.fn(async () => {
+        throw new Error("unknown subscription sub-1a220e71f41-e9392d9d-13");
+      }),
+    });
+    await store.connect(kit.transport, { forceSnapshot: true });
+    expect(store.getStatus()).toBe("live");
+    kit.pushFrame(deltaFrame([], 99, 100));
+    await vi.waitFor(() => expect(kit.transport.subscribe).toHaveBeenCalledTimes(2));
+    expect(store.getStatus()).toBe("live");
+    store.close();
+  });
+
   it("换代 subscribe ACK 丢弃 await 窗口内创建的旧 recovery；迟到 resync 失败不污染新订阅", async () => {
     const store = new SessionsIndexStore();
     let sub = 0;

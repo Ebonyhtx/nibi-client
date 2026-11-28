@@ -211,7 +211,12 @@ pub async fn resync(server: &Server, params: &Value) -> Result<Reply, RpcError> 
         .as_str()
         .unwrap_or_default()
         .to_owned();
-    let gone = || RpcError::invalid_params(format!("unknown subscription {subscription}"));
+    // 2026-11-28 修复：resync 对"这一层已不认这份 subscription"必须返回 Host 既定的
+    // `fault.subscription.notOwned` 码——两个 store 的恢复路径只对它做 fresh subscribe
+    // 自愈（会话归档再取消归档时，bridge 里的会话已关，旧代码的
+    // `unknown subscription` 文本会被当成瞬态错误，pane 卡死在错误态等手动重连）。
+    // 括号里保留 subscription id 便于对日志。
+    let gone = || RpcError::invalid_params(format!("fault.subscription.notOwned ({subscription})"));
     let force = params["forceSnapshot"].as_bool().unwrap_or(false);
     if let Some(session) = topic.strip_prefix(CONVERSATION_PREFIX) {
         let live = server

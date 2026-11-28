@@ -650,3 +650,29 @@ async fn a_subagent_child_stays_out_of_the_sessions_index() {
         "a subagent child must not publish a sessions-index row"
     );
 }
+
+/// resync 一个网关里不存在的会话（会话归档后再取消归档即触发）：必须回 Host 既定的
+/// `fault.subscription.notOwned` 码。两个 store 的恢复路径只对它做 fresh subscribe 自愈；
+/// 旧文本 `unknown subscription` 会被当成瞬态错误，pane 卡死在错误态等手动重连
+/// （2026-11-28 真机：归档 → 取消归档 → 「unknown subscription sub-…」）。
+#[tokio::test]
+async fn a_resync_for_a_session_outside_the_bridge_reports_not_owned() {
+    let (server, _wire, _scope, _writer, _draft) = harness();
+    let error = match resync(
+        &server,
+        &json!({
+            "topic": "conversation/sess_archived",
+            "subscriptionId": "sub-1a220e71f41-e9392d9d-13",
+        }),
+    )
+    .await
+    {
+        Err(error) => error,
+        Ok(_) => panic!("resync for a session outside the bridge must fail"),
+    };
+    assert!(
+        error.message.contains("fault.subscription.notOwned"),
+        "unexpected resync error: {}",
+        error.message
+    );
+}

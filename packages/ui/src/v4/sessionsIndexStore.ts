@@ -496,7 +496,13 @@ export class SessionsIndexStore {
           this.handleRuntimeUnavailable();
           return;
         }
-        if (message.includes("fault.subscription.notOwned") && this.transport) {
+        if (
+          (message.includes("fault.subscription.notOwned") ||
+            // 内核（4.1.6 及更早）对同一确定性条件回自己的文本
+            // `unknown subscription <id>`，语义与 notOwned 相同，同样自愈。
+            message.includes("unknown subscription")) &&
+          this.transport
+        ) {
           // 与 conversationProjectionStore.issueRecovery 同因（线上事件）：
           // notOwned 是 ownership 状态分歧的确定性失效而非瞬态故障，停在 error 会让
           // 会话列表永久卡死。携当前水位 fresh subscribe 由服务端裁决 resume/snapshot，

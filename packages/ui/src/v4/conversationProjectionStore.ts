@@ -954,7 +954,13 @@ export class ConversationProjectionStore {
         this.recovery = null;
         const message = error instanceof Error ? error.message : String(error);
         logger.warn(`[v4-store] resync ${this.topic} 失败: ${message}`);
-        if (message.includes("fault.subscription.notOwned")) {
+        if (
+          message.includes("fault.subscription.notOwned") ||
+          // 内核（4.1.6 及更早）对同一确定性条件回的是自己的文本
+          // `unknown subscription <id>`（会话归档后 bridge 已关，取消归档即触发），
+          // 语义与 notOwned 相同：某层已不认这份 subscription，fresh subscribe 自愈。
+          message.includes("unknown subscription")
+        ) {
           // 线上事件：notOwned 表示某一层已不认这份 subscription
           // ownership（scope 换代静默驱逐、错位 unsubscribe 等状态分歧），是确定性失效
           // 而非瞬态故障；停在 error 等手动重连会让会话永久卡死。本地 snapshot 仍是一致
