@@ -53,6 +53,27 @@ interface WhiteboardStoreState {
   }) => WhiteboardDocument | null;
 }
 
+const MAX_WHITEBOARD_WORKSPACES = 16;
+
+function pruneWhiteboardWorkspaces(
+  workspaces: Record<string, WhiteboardWorkspaceState>,
+  activeWorkspaceKey: string,
+): Record<string, WhiteboardWorkspaceState> {
+  const keys = Object.keys(workspaces);
+  if (keys.length <= MAX_WHITEBOARD_WORKSPACES) {
+    return workspaces;
+  }
+  const next = { ...workspaces };
+  for (const key of keys) {
+    if (key === activeWorkspaceKey) continue;
+    delete next[key];
+    if (Object.keys(next).length <= MAX_WHITEBOARD_WORKSPACES) {
+      break;
+    }
+  }
+  return next;
+}
+
 function getWorkspaceState(
   state: WhiteboardStoreState,
   workspaceKey: string,
@@ -76,17 +97,19 @@ function updateBoard(
     return { workspaces: state.workspaces };
   }
 
-  return {
-    workspaces: {
-      ...state.workspaces,
-      [workspaceKey]: {
-        ...workspaceState,
-        boardsById: {
-          ...workspaceState.boardsById,
-          [params.boardId]: params.updater(board),
-        },
-      },
+  // 把当前活跃 workspace 移动到键尾，保持最近使用顺位并限制常驻上限。
+  const nextWorkspaces = { ...state.workspaces };
+  delete nextWorkspaces[workspaceKey];
+  nextWorkspaces[workspaceKey] = {
+    ...workspaceState,
+    boardsById: {
+      ...workspaceState.boardsById,
+      [params.boardId]: params.updater(board),
     },
+  };
+
+  return {
+    workspaces: pruneWhiteboardWorkspaces(nextWorkspaces, workspaceKey),
   };
 }
 
@@ -104,17 +127,17 @@ export const useWhiteboardStore = create<WhiteboardStoreState>()((set, get) => (
 
     set((state) => {
       const currentWorkspaceState = getWorkspaceState(state, workspaceKey);
-      return {
-        workspaces: {
-          ...state.workspaces,
-          [workspaceKey]: {
-            boardIds: [...currentWorkspaceState.boardIds, board.id],
-            boardsById: {
-              ...currentWorkspaceState.boardsById,
-              [board.id]: board,
-            },
-          },
+      const nextWorkspaces = { ...state.workspaces };
+      delete nextWorkspaces[workspaceKey];
+      nextWorkspaces[workspaceKey] = {
+        boardIds: [...currentWorkspaceState.boardIds, board.id],
+        boardsById: {
+          ...currentWorkspaceState.boardsById,
+          [board.id]: board,
         },
+      };
+      return {
+        workspaces: pruneWhiteboardWorkspaces(nextWorkspaces, workspaceKey),
       };
     });
 

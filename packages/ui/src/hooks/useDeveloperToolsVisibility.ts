@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import {
+  DEVELOPER_TOOLS_PREFERENCE_EVENT,
   DEVELOPER_TOOLS_STORAGE_KEYS,
   readDeveloperToolsEnabled,
 } from "@/lib/developerToolsPreference.js";
-
-const DEVELOPER_TOOLS_PREFERENCE_POLL_MS = 1_000;
 
 export function useDeveloperToolsVisibility(): boolean {
   const [enabled, setEnabled] = useState(readDeveloperToolsEnabled);
@@ -23,16 +22,23 @@ export function useDeveloperToolsVisibility(): boolean {
         refresh();
       }
     };
+    const handleVisibility = () => {
+      if (typeof document === "undefined" || !document.hidden) {
+        refresh();
+      }
+    };
 
     window.addEventListener("storage", handleStorage);
     window.addEventListener("focus", refresh);
-    const intervalId = window.setInterval(refresh, DEVELOPER_TOOLS_PREFERENCE_POLL_MS);
+    window.addEventListener(DEVELOPER_TOOLS_PREFERENCE_EVENT, refresh);
+    document.addEventListener("visibilitychange", handleVisibility);
     refresh();
 
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("focus", refresh);
-      window.clearInterval(intervalId);
+      window.removeEventListener(DEVELOPER_TOOLS_PREFERENCE_EVENT, refresh);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 

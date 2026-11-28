@@ -110,6 +110,7 @@ export function UsageMetricCard({
     <div
       className={cn(
         "truncate font-semibold tabular-nums text-foreground",
+        (valueSize === "lg" || valueSize === "xl") && "font-display tracking-[-0.015em]",
         valueSize === "sm"
           ? "text-ui-base"
           : valueSize === "base"
@@ -124,7 +125,7 @@ export function UsageMetricCard({
   );
 
   return (
-    <div className="min-w-0 rounded-xl border border-card-border bg-card px-3.5 py-3 shadow-[var(--nibi-shadow-card)]">
+    <div className="min-w-0 rounded-xl border border-card-border bg-card px-3.5 py-3 shadow-[var(--nibi-shadow-card)] transition-colors hover:border-border-hover">
       <div className="flex min-w-0 items-center gap-2 text-ui-base text-foreground-subtle">
         <Icon className="size-3.5 shrink-0 text-foreground-subtle" />
         <span className="truncate">{label}</span>
@@ -156,8 +157,8 @@ export function UsageEmptyState({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
-      <div className="text-ui-base font-medium text-foreground">{title}</div>
+    <div className="rounded-xl border border-dashed border-border/75 bg-surface/35 px-5 py-10 text-center">
+      <div className="font-display text-ui-lg font-medium text-foreground">{title}</div>
       <div className="mt-2 text-ui-base text-foreground-subtle">{description}</div>
     </div>
   );

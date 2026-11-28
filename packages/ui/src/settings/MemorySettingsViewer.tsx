@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { useMinuteClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import type { ProjectMemoryWorkspaceSummary } from "@nibi/services";
 import {
   TID_SETTINGS_MEMORY_COUNT,
@@ -46,14 +47,7 @@ export function MemorySettingsViewer({
   const { intl, locale } = useNibiIntl();
   const sectionActive = useSettingsSectionActive();
   const [searchQuery, setSearchQuery] = useState("");
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    // 隐藏分区不跑相对时间计时器；重新可见时立即对齐一次。
-    if (!sectionActive) return undefined;
-    setNow(Date.now());
-    const interval = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(interval);
-  }, [sectionActive]);
+  const now = useMinuteClock(Boolean(sectionActive));
   const formatMemoryCount = (count: number) =>
     intl.formatMessage(
       {

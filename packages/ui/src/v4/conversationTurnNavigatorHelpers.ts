@@ -70,6 +70,8 @@ export interface ResolveConversationTurnNavigatorVisualFocusItemIndexOptions {
 }
 
 export const CONVERSATION_TURN_NAVIGATOR_MIN_WIDTH_PX = 864;
+/** 超过该总行数的超长历史不再在打开会话时自动全量拉取，避免将数千轮历史整批钉入前端内存。 */
+export const CONVERSATION_TURN_NAVIGATOR_AUTO_HYDRATE_MAX_ROWS = 400;
 
 export type ConversationTurnNavigatorHydrationResult =
   | { status: "hydrated"; logEpoch: string }
@@ -82,7 +84,14 @@ export function shouldHydrateConversationTurnNavigatorDirectory(params: {
   containerWidthPx: number;
   hasLoadHandler: boolean;
   loadingOlder: boolean;
+  totalRowCount?: number;
 }): boolean {
+  if (
+    typeof params.totalRowCount === "number" &&
+    params.totalRowCount > CONVERSATION_TURN_NAVIGATOR_AUTO_HYDRATE_MAX_ROWS
+  ) {
+    return false;
+  }
   return (
     params.canLoadOlder &&
     !params.loadingOlder &&

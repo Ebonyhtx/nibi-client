@@ -42,7 +42,7 @@ export function AppUsagePanel() {
       <div className="space-y-5">
         <AppUsageLifetimeSummaryStrip snapshot={lifetimeSnapshot} />
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-ui-base font-medium text-foreground">
+          <div className="font-display text-ui-base font-semibold text-foreground">
             {intl.formatMessage({ id: "settings.usage.appUsageRangeTitle" })}
           </div>
           <AppUsageRangeTabs range={range} onRangeChange={setRange} />
@@ -63,7 +63,7 @@ export function AppUsagePanel() {
       <div className="space-y-5">
         <AppUsageLifetimeSummaryStrip snapshot={lifetimeSnapshot} />
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-ui-base font-medium text-foreground">
+          <div className="font-display text-ui-base font-semibold text-foreground">
             {intl.formatMessage({ id: "settings.usage.appUsageRangeTitle" })}
           </div>
           <AppUsageRangeTabs range={range} onRangeChange={setRange} />
@@ -164,10 +164,10 @@ export function AppUsageLifetimeSummaryStrip({ snapshot }: { snapshot: AppUsageS
       {items.map((item, index) => (
         <Fragment key={item.label}>
           {index > 0 ? (
-            <div aria-hidden="true" className="hidden h-7 w-px bg-border/65 sm:block" />
+            <div aria-hidden="true" className="hidden h-7 w-px bg-border/55 sm:block" />
           ) : null}
           <div className="min-w-0 flex-1 px-4 py-3 text-center">
-            <div className="truncate text-ui-lg font-medium tabular-nums text-foreground">
+            <div className="truncate font-display text-ui-lg font-semibold tabular-nums tracking-[-0.01em] text-foreground">
               {item.value}
             </div>
             <div className="mt-1 truncate text-ui-base text-foreground-subtle">{item.label}</div>

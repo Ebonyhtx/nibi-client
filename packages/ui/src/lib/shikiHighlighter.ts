@@ -56,7 +56,6 @@ function normalizeCodeLanguage(language: string): BundledLanguage {
   return FALLBACK_CODE_LANGUAGE;
 }
 
-const highlighterCache = new Map<string, Promise<HighlighterCore>>();
 const MAX_TOKENS_CACHE_ENTRIES = 200;
 const tokensCache = new Map<string, TokenizedCode>();
 
@@ -81,12 +80,22 @@ function setCachedTokens(key: string, value: TokenizedCode): void {
   }
   tokensCache.set(key, value);
 }
+
 const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
-// 内存诊断计数器：tokensCache 目前无淘汰，是审计里
-// renderer 最可疑的增长点，先把条数落到日志里。
+const inFlightTokenizeKeys = new Set<string>();
+let singletonHighlighterPromise: Promise<HighlighterCore> | null = null;
+const loadedLanguages = new Set<BundledLanguage>();
+const loadedThemes = new Set<BundledTheme>();
+const inFlightLanguageLoads = new Map<BundledLanguage, Promise<void>>();
+const inFlightThemeLoads = new Map<BundledTheme, Promise<void>>();
+
+// 内存诊断计数器：全局仅保留单个 HighlighterCore + 单个 Oniguruma WASM 实例，
+// 避免多语言/亮暗切换时每组 `(theme, language)` 重复实例化 WASM 线性内存。
 uiMemoryDiagnosticsRegistry.register("shiki", () => ({
   tokensCache: tokensCache.size,
-  highlighters: highlighterCache.size,
+  highlighters: singletonHighlighterPromise ? 1 : 0,
+  loadedLanguages: loadedLanguages.size,
+  loadedThemes: loadedThemes.size,
 }));
 
 const getResolvedCodeTheme = (theme?: BundledTheme): BundledTheme => {
@@ -140,41 +149,87 @@ const loadShikiCoreModules = (): Promise<ShikiCoreModules> => {
   return shikiCoreModulesPromise;
 };
 
-const getHighlighter = (
+const getSingletonHighlighter = (): Promise<HighlighterCore> => {
+  if (!singletonHighlighterPromise) {
+    singletonHighlighterPromise = loadShikiCoreModules()
+      .then(({ createHighlighterCore, createOnigurumaEngine }) =>
+        createHighlighterCore({
+          langs: [],
+          themes: [],
+          engine: createOnigurumaEngine(import("shiki/wasm")),
+        }),
+      )
+      .catch((error: unknown) => {
+        singletonHighlighterPromise = null;
+        throw error;
+      });
+  }
+  return singletonHighlighterPromise;
+};
+
+const ensureLanguageLoaded = async (
+  highlighter: HighlighterCore,
+  language: BundledLanguage,
+): Promise<void> => {
+  if (loadedLanguages.has(language)) return;
+  const inflight = inFlightLanguageLoads.get(language);
+  if (inflight) {
+    await inflight;
+    return;
+  }
+  const loader = bundledLanguages[language];
+  if (!loader) {
+    throw new Error(`Unsupported Shiki language: ${language}`);
+  }
+  const task = highlighter
+    .loadLanguage(loader)
+    .then(() => {
+      loadedLanguages.add(language);
+    })
+    .finally(() => {
+      inFlightLanguageLoads.delete(language);
+    });
+  inFlightLanguageLoads.set(language, task);
+  await task;
+};
+
+const ensureThemeLoaded = async (
+  highlighter: HighlighterCore,
+  theme: BundledTheme,
+): Promise<void> => {
+  if (loadedThemes.has(theme)) return;
+  const inflight = inFlightThemeLoads.get(theme);
+  if (inflight) {
+    await inflight;
+    return;
+  }
+  const { bundledThemes } = await loadShikiCoreModules();
+  const loader = bundledThemes[theme];
+  if (!loader) {
+    throw new Error(`Unsupported Shiki theme: ${theme}`);
+  }
+  const task = highlighter
+    .loadTheme(loader)
+    .then(() => {
+      loadedThemes.add(theme);
+    })
+    .finally(() => {
+      inFlightThemeLoads.delete(theme);
+    });
+  inFlightThemeLoads.set(theme, task);
+  await task;
+};
+
+const getHighlighter = async (
   language: BundledLanguage,
   theme: BundledTheme,
 ): Promise<HighlighterCore> => {
-  const cacheKey = `${theme}:${language}`;
-  const cached = highlighterCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  const highlighterPromise = loadShikiCoreModules().then(
-    ({ createHighlighterCore, createOnigurumaEngine, bundledThemes }) => {
-      const languageLoader = bundledLanguages[language];
-      const themeLoader = bundledThemes[theme];
-      if (!languageLoader || !themeLoader) {
-        throw new Error(`Unsupported Shiki language/theme: ${language}/${theme}`);
-      }
-
-      return createHighlighterCore({
-        langs: [languageLoader],
-        themes: [themeLoader],
-        engine: createOnigurumaEngine(import("shiki/wasm")),
-      });
-    },
-  );
-
-  highlighterCache.set(cacheKey, highlighterPromise);
-  // 单个语言/主题 chunk 的失败不常驻缓存，下一次代码块可以重新尝试；
-  // 不改变调用方行为：本次仍然走 .catch 保持纯文本回退。
-  void highlighterPromise.catch(() => {
-    if (highlighterCache.get(cacheKey) === highlighterPromise) {
-      highlighterCache.delete(cacheKey);
-    }
-  });
-  return highlighterPromise;
+  const highlighter = await getSingletonHighlighter();
+  await Promise.all([
+    ensureLanguageLoaded(highlighter, language),
+    ensureThemeLoaded(highlighter, theme),
+  ]);
+  return highlighter;
 };
 
 export const createRawCodeTokens = (code: string): TokenizedCode => ({
@@ -229,6 +284,11 @@ export const highlightCode = (
     subscribers.get(tokensCacheKey)?.add(callback);
   }
 
+  if (inFlightTokenizeKeys.has(tokensCacheKey)) {
+    return null;
+  }
+  inFlightTokenizeKeys.add(tokensCacheKey);
+
   getHighlighter(resolvedLanguage, resolvedTheme)
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
     .then((highlighter) => {
@@ -251,12 +311,13 @@ export const highlightCode = (
       setCachedTokens(tokensCacheKey, tokenized);
 
       const subs = subscribers.get(tokensCacheKey);
+      subscribers.delete(tokensCacheKey);
+      inFlightTokenizeKeys.delete(tokensCacheKey);
       if (subs) {
         for (const sub of subs) {
           sub(tokenized);
         }
       }
-      subscribers.delete(tokensCacheKey);
     })
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then), eslint-plugin-promise(prefer-await-to-callbacks)
     .catch((error) => {
@@ -266,7 +327,29 @@ export const highlightCode = (
         error,
       );
       subscribers.delete(tokensCacheKey);
+      inFlightTokenizeKeys.delete(tokensCacheKey);
     });
 
   return null;
+};
+
+/** 取消尚未完成的高亮订阅，防止组件卸载后回调集一直滞留闭包。 */
+export const unsubscribeHighlightCode = (
+  code: string,
+  language: string,
+  theme: BundledTheme | undefined,
+  callback: (result: TokenizedCode) => void,
+): void => {
+  if (!shouldUseSyntaxHighlighting(language)) {
+    return;
+  }
+  const resolvedTheme = getResolvedCodeTheme(theme);
+  const resolvedLanguage = normalizeCodeLanguage(language);
+  const tokensCacheKey = getCodeTokensCacheKey(code, resolvedLanguage, resolvedTheme);
+  const subs = subscribers.get(tokensCacheKey);
+  if (!subs) return;
+  subs.delete(callback);
+  if (subs.size === 0) {
+    subscribers.delete(tokensCacheKey);
+  }
 };

@@ -56,4 +56,27 @@ describe("shikiHighlighter", () => {
     expect(flatTokens.map((token) => token.content).join("")).toContain("answer");
     expect(flatTokens.some((token) => token.color && token.color !== "inherit")).toBe(true);
   }, 30_000);
+
+  it("reuses a single highlighter instance across languages/themes and deduplicates concurrent calls", async () => {
+    const tsCode = "export const value: string = 'hello';";
+    const pyCode = "def greet(name):\n  return f'hi {name}'";
+    const results = await Promise.all([
+      new Promise<TokenizedCode>((resolve) => {
+        const immediate = highlightCode(tsCode, "typescript", "github-dark", resolve);
+        if (immediate) resolve(immediate);
+      }),
+      new Promise<TokenizedCode>((resolve) => {
+        const immediate = highlightCode(tsCode, "typescript", "github-dark", resolve);
+        if (immediate) resolve(immediate);
+      }),
+      new Promise<TokenizedCode>((resolve) => {
+        const immediate = highlightCode(pyCode, "python", "github-light", resolve);
+        if (immediate) resolve(immediate);
+      }),
+    ]);
+
+    expect(results[0].tokens.flat().map((t) => t.content).join("")).toContain("value");
+    expect(results[1]).toBe(results[0]);
+    expect(results[2].tokens.flat().map((t) => t.content).join("")).toContain("greet");
+  }, 30_000);
 });

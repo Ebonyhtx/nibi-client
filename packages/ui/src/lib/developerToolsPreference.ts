@@ -3,6 +3,14 @@ export const DEVELOPER_TOOLS_STORAGE_KEYS = [
   "nibi:token-debug:enabled",
 ] as const;
 
+export const DEVELOPER_TOOLS_PREFERENCE_EVENT = "nibi:developer-tools-preference-changed";
+
+export function notifyDeveloperToolsPreferenceChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(DEVELOPER_TOOLS_PREFERENCE_EVENT));
+  }
+}
+
 const DISABLED_VALUES = new Set(["0", "false", "off", "no"]);
 
 export function isDeveloperToolsStorageValueEnabled(value: string | null): boolean {

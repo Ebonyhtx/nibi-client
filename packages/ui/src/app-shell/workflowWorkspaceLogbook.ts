@@ -127,7 +127,10 @@ export function peekLinesOf(result: unknown, max = 3): PeekLine[] {
   return lines.slice(-max).map((line) => ({ text: line, error: isErrorLine(line) }));
 }
 
-// 展开态按卡记忆（与 ToolLayout 的模块级 map 同一做法）：收起再展开、切 tab 再回来都还在。
+import { setLruMapEntry } from "@/lib/memoryDiagnostics.js";
+
+// 展开态按卡记忆（与 ToolLayout 的模块级 map 同一做法）：收起再展开、切 tab 再回来都还在，带 LRU 上限。
+const MAX_WORKFLOW_LOGBOOK_OPEN_STATES = 1_000;
 const openState = new Map<string, boolean>();
 
 export function rememberedOpen(key: string): boolean {
@@ -135,7 +138,7 @@ export function rememberedOpen(key: string): boolean {
 }
 
 export function setRememberedOpen(key: string, open: boolean): void {
-  openState.set(key, open);
+  setLruMapEntry(openState, key, open, MAX_WORKFLOW_LOGBOOK_OPEN_STATES);
 }
 
 /** 测试用：清空展开态记忆。 */

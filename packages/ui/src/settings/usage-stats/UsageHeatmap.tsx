@@ -340,7 +340,7 @@ export function UsageHeatmap({
     <div className="space-y-4">
       <div className="rounded-xl border border-card-border bg-card px-4 py-3.5 shadow-[var(--nibi-shadow-card)]">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="min-w-0 truncate text-ui-base font-medium text-foreground">
+          <h3 className="min-w-0 truncate font-display text-ui-base font-semibold text-foreground">
             {intl.formatMessage({ id: "settings.usage.heatmapTitle" })}
           </h3>
           <Tabs

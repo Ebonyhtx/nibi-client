@@ -83,6 +83,99 @@ interface TaskQueryCacheState {
 
 type CachedTaskListItem = NibiTaskListItem & { searchSnippets?: string[] };
 
+const MAX_TASK_QUERY_CACHE_ENTRIES = 24;
+const queryKeyTouchOrder = new Map<TaskListCacheKey, true>();
+
+function touchTaskQueryKey(queryKey: TaskListCacheKey): void {
+  queryKeyTouchOrder.delete(queryKey);
+  queryKeyTouchOrder.set(queryKey, true);
+}
+
+/** 淘汰超出上限的历史查询键（优先清理搜索与 stale 键），并在发生淘汰时回收孤立任务元数据。 */
+function pruneTaskQueryCacheEntries(params: {
+  resultsByQueryKey: Record<TaskListCacheKey, CachedTaskListResult>;
+  taskMetaByEntityKey: Record<TaskEntityKey, CachedTaskListItem>;
+  taskUnreadOverlayByEntityKey: Record<TaskEntityKey, number | null>;
+  pinnedQueryKeys: ReadonlySet<TaskListCacheKey>;
+}): {
+  resultsByQueryKey: Record<TaskListCacheKey, CachedTaskListResult>;
+  taskMetaByEntityKey: Record<TaskEntityKey, CachedTaskListItem>;
+} {
+  const keys = Object.keys(params.resultsByQueryKey);
+  if (keys.length <= MAX_TASK_QUERY_CACHE_ENTRIES) {
+    return {
+      resultsByQueryKey: params.resultsByQueryKey,
+      taskMetaByEntityKey: params.taskMetaByEntityKey,
+    };
+  }
+
+  for (const key of keys) {
+    if (!queryKeyTouchOrder.has(key)) {
+      queryKeyTouchOrder.set(key, true);
+    }
+  }
+  for (const tracked of Array.from(queryKeyTouchOrder.keys())) {
+    if (!Object.prototype.hasOwnProperty.call(params.resultsByQueryKey, tracked)) {
+      queryKeyTouchOrder.delete(tracked);
+    }
+  }
+
+  const nextResultsByQueryKey = { ...params.resultsByQueryKey };
+  let remainingCount = keys.length;
+  const orderedKeys = Array.from(queryKeyTouchOrder.keys());
+  const candidates = [
+    ...orderedKeys.filter(
+      (k) =>
+        !params.pinnedQueryKeys.has(k) &&
+        (Boolean(nextResultsByQueryKey[k]?.descriptor.search) ||
+          Boolean(nextResultsByQueryKey[k]?.stale)),
+    ),
+    ...orderedKeys.filter(
+      (k) =>
+        !params.pinnedQueryKeys.has(k) &&
+        !nextResultsByQueryKey[k]?.descriptor.search &&
+        !nextResultsByQueryKey[k]?.stale,
+    ),
+  ];
+
+  let evicted = false;
+  for (const candidateKey of candidates) {
+    if (remainingCount <= MAX_TASK_QUERY_CACHE_ENTRIES) break;
+    if (!Object.prototype.hasOwnProperty.call(nextResultsByQueryKey, candidateKey)) continue;
+    delete nextResultsByQueryKey[candidateKey];
+    queryKeyTouchOrder.delete(candidateKey);
+    remainingCount -= 1;
+    evicted = true;
+  }
+
+  if (!evicted) {
+    return {
+      resultsByQueryKey: nextResultsByQueryKey,
+      taskMetaByEntityKey: params.taskMetaByEntityKey,
+    };
+  }
+
+  const referencedEntities = new Set<TaskEntityKey>(
+    Object.keys(params.taskUnreadOverlayByEntityKey),
+  );
+  for (const result of Object.values(nextResultsByQueryKey)) {
+    for (const entityKey of result.taskKeys) {
+      referencedEntities.add(entityKey);
+    }
+  }
+  const nextTaskMetaByEntityKey: Record<TaskEntityKey, CachedTaskListItem> = {};
+  for (const [entityKey, item] of Object.entries(params.taskMetaByEntityKey)) {
+    if (referencedEntities.has(entityKey)) {
+      nextTaskMetaByEntityKey[entityKey] = item;
+    }
+  }
+
+  return {
+    resultsByQueryKey: nextResultsByQueryKey,
+    taskMetaByEntityKey: nextTaskMetaByEntityKey,
+  };
+}
+
 function buildCachedTaskListResult(params: {
   descriptor: TaskListCacheDescriptor;
   taskKeys: TaskEntityKey[];
@@ -459,12 +552,22 @@ export const useTaskQueryCacheStore = create<TaskQueryCacheState>()((set) => ({
         return state;
       }
 
-      return {
+      touchTaskQueryKey(queryKey);
+      const pruned = pruneTaskQueryCacheEntries({
         resultsByQueryKey: {
           ...state.resultsByQueryKey,
           [queryKey]: buildCachedTaskListResult(resultParams),
         },
         taskMetaByEntityKey: taskMetaChanged ? nextTaskMetaByEntityKey : state.taskMetaByEntityKey,
+        taskUnreadOverlayByEntityKey: taskUnreadOverlayChanged
+          ? nextTaskUnreadOverlayByEntityKey
+          : state.taskUnreadOverlayByEntityKey,
+        pinnedQueryKeys: new Set([queryKey]),
+      });
+
+      return {
+        resultsByQueryKey: pruned.resultsByQueryKey,
+        taskMetaByEntityKey: pruned.taskMetaByEntityKey,
         taskUnreadOverlayByEntityKey: taskUnreadOverlayChanged
           ? nextTaskUnreadOverlayByEntityKey
           : state.taskUnreadOverlayByEntityKey,
@@ -590,9 +693,33 @@ export const useTaskQueryCacheStore = create<TaskQueryCacheState>()((set) => ({
         return state;
       }
 
+      const pinnedQueryKeys = new Set(entries.map((entry) => entry.queryKey));
+      for (const pinnedKey of pinnedQueryKeys) {
+        if (nextResultsByQueryKey[pinnedKey]) {
+          touchTaskQueryKey(pinnedKey);
+        }
+      }
+      const pruned = resultsChanged
+        ? pruneTaskQueryCacheEntries({
+            resultsByQueryKey: nextResultsByQueryKey,
+            taskMetaByEntityKey: taskMetaChanged
+              ? nextTaskMetaByEntityKey
+              : state.taskMetaByEntityKey,
+            taskUnreadOverlayByEntityKey: taskUnreadOverlayChanged
+              ? nextTaskUnreadOverlayByEntityKey
+              : state.taskUnreadOverlayByEntityKey,
+            pinnedQueryKeys,
+          })
+        : {
+            resultsByQueryKey: state.resultsByQueryKey,
+            taskMetaByEntityKey: taskMetaChanged
+              ? nextTaskMetaByEntityKey
+              : state.taskMetaByEntityKey,
+          };
+
       return {
-        resultsByQueryKey: resultsChanged ? nextResultsByQueryKey : state.resultsByQueryKey,
-        taskMetaByEntityKey: taskMetaChanged ? nextTaskMetaByEntityKey : state.taskMetaByEntityKey,
+        resultsByQueryKey: pruned.resultsByQueryKey,
+        taskMetaByEntityKey: pruned.taskMetaByEntityKey,
         taskUnreadOverlayByEntityKey: taskUnreadOverlayChanged
           ? nextTaskUnreadOverlayByEntityKey
           : state.taskUnreadOverlayByEntityKey,
@@ -923,13 +1050,16 @@ export const useTaskQueryCacheStore = create<TaskQueryCacheState>()((set) => ({
       };
     }),
   clearAll: () =>
-    set(() => ({
-      // clearAll 是 Zustand action，必须通过 set 写回 store。
-      // 之前只返回对象，测试和开发态清理 query cache 时旧 task meta 会继续残留。
-      resultsByQueryKey: {},
-      taskMetaByEntityKey: {},
-      taskUnreadOverlayByEntityKey: {},
-    })),
+    set(() => {
+      queryKeyTouchOrder.clear();
+      return {
+        // clearAll 是 Zustand action，必须通过 set 写回 store。
+        // 之前只返回对象，测试和开发态清理 query cache 时旧 task meta 会继续残留。
+        resultsByQueryKey: {},
+        taskMetaByEntityKey: {},
+        taskUnreadOverlayByEntityKey: {},
+      };
+    }),
 }));
 
 export function selectTaskListCacheResult(queryKey: TaskListCacheKey) {

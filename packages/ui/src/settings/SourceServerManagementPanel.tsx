@@ -23,6 +23,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
+import { useMinuteClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import {
   ArrowUpRight,
   ChevronDown,
@@ -314,14 +315,8 @@ export function SourceServerManagementPanel({
       mountedRef.current = false;
     };
   }, []);
-  // 相对时间必须随时钟更新，不能依赖连接事件才重绘。
-  const [, setClockTick] = useState(0);
-  useEffect(() => {
-    // 隐藏分区不跑计时器；重新可见时由快照刷新恢复相对时间。
-    if (!active) return undefined;
-    const timer = setInterval(() => setClockTick((tick) => tick + 1), 60_000);
-    return () => clearInterval(timer);
-  }, [active]);
+  // 相对时间随共享分钟级时钟刷新（隐藏分区且不可见时自动零订阅停止）。
+  useMinuteClock(Boolean(active));
   const [error, setError] = useState<string | null>(null);
   const [migrationReports, setMigrationReports] = useState<
     Record<string, SourceServerMigrationReport | undefined>

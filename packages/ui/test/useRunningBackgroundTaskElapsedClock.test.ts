@@ -1,7 +1,11 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useRunningBackgroundTaskElapsedClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
+import {
+  useHalfMinuteClock,
+  useMinuteClock,
+  useRunningBackgroundTaskElapsedClock,
+} from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 
 function createMinimalElement(ownerDocument: Document, tagName = "div") {
   const element = {
@@ -102,6 +106,49 @@ describe("useRunningBackgroundTaskElapsedClock", () => {
     });
 
     expect(latestNow).toBe(101_000);
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("shares 30s and 60s clocks and pauses while document.hidden is true", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(200_000);
+    const root: Root = createRoot(installMinimalDom());
+    let halfMinuteNow = 0;
+    let minuteNow = 0;
+
+    function ClockHarness() {
+      halfMinuteNow = useHalfMinuteClock(true);
+      minuteNow = useMinuteClock(true);
+      return null;
+    }
+
+    act(() => {
+      root.render(createElement(ClockHarness));
+    });
+    expect(halfMinuteNow).toBe(200_000);
+    expect(minuteNow).toBe(200_000);
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(halfMinuteNow).toBe(200_000);
+    expect(minuteNow).toBe(200_000);
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(halfMinuteNow).toBe(290_000);
+    expect(minuteNow).toBe(200_000);
+
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(minuteNow).toBe(320_000);
 
     act(() => {
       root.unmount();

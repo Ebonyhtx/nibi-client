@@ -51,13 +51,22 @@ export interface SidePaneTerminalSessionEntry {
   dispose: () => void;
 }
 
-// 模块级状态：跨 workspace、跨 React 组件树常驻。
+// 模块级状态：跨 workspace、跨 React 组件树常驻，超出上限优先回收已离屏的 LRU 终端。
+const MAX_RESIDENT_SIDE_PANE_TERMINALS = 12;
 const sessions = new Map<string, SidePaneTerminalSessionEntry>();
-// 内存诊断计数器：常驻 xterm 实例数无上限，先落日志。
+// 内存诊断计数器：常驻 xterm 实例数受 MAX_RESIDENT_SIDE_PANE_TERMINALS 约束。
 uiMemoryDiagnosticsRegistry.register("xterm", () => ({ sessions: sessions.size }));
 
 // 隐藏暂存容器：存放 detached 的 hostEl，避免被 React 卸载渲染容器时连带销毁 xterm DOM。
 let stashDiv: HTMLDivElement | null = null;
+
+function touchSessionEntry(key: string): SidePaneTerminalSessionEntry | undefined {
+  const entry = sessions.get(key);
+  if (!entry) return undefined;
+  sessions.delete(key);
+  sessions.set(key, entry);
+  return entry;
+}
 
 function getStashDiv(): HTMLDivElement | null {
   // 兼容：SSR/web 测试环境可能没有 document。
@@ -89,6 +98,20 @@ function releaseEntry(key: string): void {
   entry.hostEl.remove();
 }
 
+function pruneIdleDetachedTerminals(activeKey: string): void {
+  if (sessions.size <= MAX_RESIDENT_SIDE_PANE_TERMINALS) return;
+  for (const [key, entry] of Array.from(sessions.entries())) {
+    if (sessions.size <= MAX_RESIDENT_SIDE_PANE_TERMINALS) break;
+    if (key === activeKey) continue;
+    const isDetached =
+      (stashDiv !== null && entry.hostEl.parentElement === stashDiv) ||
+      !entry.hostEl.isConnected;
+    if (isDetached) {
+      releaseEntry(key);
+    }
+  }
+}
+
 /**
  * side pane terminal session 模块级单例。
  *
@@ -101,12 +124,14 @@ export const sidePaneTerminalSessionRegistry = {
   },
 
   get(key: string): SidePaneTerminalSessionEntry | undefined {
-    return sessions.get(key);
+    return touchSessionEntry(key);
   },
 
   /** TerminalSession persistentKey 路径首次创建资源后，把 entry 存入 registry 常驻。 */
   register(key: string, entry: SidePaneTerminalSessionEntry): void {
+    sessions.delete(key);
     sessions.set(key, entry);
+    pruneIdleDetachedTerminals(key);
   },
 
   /**
@@ -114,7 +139,7 @@ export const sidePaneTerminalSessionRegistry = {
    * xterm 的 .xterm DOM 子树随 hostEl 一起移动，term 实例不变；移动后调用方负责 fitAddon.fit() 恢复尺寸。
    */
   attachDom(key: string, host: HTMLElement): void {
-    const entry = sessions.get(key);
+    const entry = touchSessionEntry(key);
     if (!entry) return;
     if (entry.hostEl.parentElement === host) return;
     host.appendChild(entry.hostEl);

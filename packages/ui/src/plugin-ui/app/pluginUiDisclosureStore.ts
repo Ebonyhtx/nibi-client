@@ -1,8 +1,11 @@
+import { setLruMapEntry } from "@/lib/memoryDiagnostics.js";
+
 /**
  * 用户对插件卡片的手动固定 / 收起（renderer 视图态，不持久化）。
  * 键为 sessionKey + toolCallId；true = 固定常驻（不进折叠区），false = 收起（进折叠区），未记录按默认规则
  * （强制常驻 / 最近三回合自动展开）。资源级 `showInline` 在句柄到达时也写成 true（只在没有手动记录时）。
  */
+const MAX_PLUGIN_UI_DISCLOSURE_PINS = 500;
 const pins = new Map<string, boolean>();
 const listeners = new Set<() => void>();
 let version = 0;
@@ -21,7 +24,7 @@ export function setPluginUiManualPin(
   const key = keyOf(sessionKey, toolCallId);
   if (pins.get(key) === pinned) return;
   if (pinned === undefined) pins.delete(key);
-  else pins.set(key, pinned);
+  else setLruMapEntry(pins, key, pinned, MAX_PLUGIN_UI_DISCLOSURE_PINS);
   version += 1;
   for (const listener of listeners) listener();
 }

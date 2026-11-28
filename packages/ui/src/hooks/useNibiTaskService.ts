@@ -8,6 +8,12 @@ type GetTaskSnapshotParams = Parameters<INibiTaskService["getTaskSnapshot"]>[0];
 type GetTaskSnapshotResult = Promise<NibiTaskSnapshot | null>;
 type GetTaskSnapshotWithEtagParams = Parameters<INibiTaskService["getTaskSnapshotWithEtag"]>[0];
 
+type MemorySnapshotCacheEntry = {
+  etag: string;
+  snapshot: NibiTaskSnapshot;
+  sizeBytes: number;
+};
+
 const nibiTaskServiceProxyCache = new WeakMap<INibiTaskService, INibiTaskService>();
 const snapshotInflightRequestsByService = new WeakMap<
   INibiTaskService,
@@ -15,8 +21,10 @@ const snapshotInflightRequestsByService = new WeakMap<
 >();
 const snapshotCacheByService = new WeakMap<
   INibiTaskService,
-  Map<string, { etag: string; snapshot: NibiTaskSnapshot }>
+  Map<string, MemorySnapshotCacheEntry>
 >();
+const MEMORY_SNAPSHOT_CACHE_MAX_ENTRIES = 16;
+const MEMORY_SNAPSHOT_CACHE_MAX_TOTAL_BYTES = 4 * 1024 * 1024;
 const SNAPSHOT_CACHE_STORAGE_KEY = "nibi-task-snapshot-cache:v1";
 const SNAPSHOT_CACHE_MAX_ENTRY_BYTES = 256 * 1024;
 const SNAPSHOT_CACHE_MAX_TOTAL_BYTES = 2 * 1024 * 1024;
@@ -30,11 +38,10 @@ type PersistedSnapshotCacheEntry = {
 };
 let persistedSnapshotCacheLoaded = false;
 const persistedSnapshotCache = new Map<string, PersistedSnapshotCacheEntry>();
-// 内存诊断计数器：WeakMap 无法枚举，记住最近一个
-// service 的内存缓存（renderer 内实际只有一个 task service 实例）。
-let latestSnapshotCache: Map<string, { etag: string; snapshot: NibiTaskSnapshot }> | undefined;
+// WeakRef 诊断引用：不阻碍已释放 service 实例的快照缓存被 GC 回收。
+let latestSnapshotCacheRef: WeakRef<Map<string, MemorySnapshotCacheEntry>> | undefined;
 uiMemoryDiagnosticsRegistry.register("taskSnapshotCache", () => ({
-  entries: latestSnapshotCache?.size ?? 0,
+  entries: latestSnapshotCacheRef?.deref()?.size ?? 0,
   persisted: persistedSnapshotCache.size,
 }));
 
@@ -76,20 +83,65 @@ function getOrCreateSnapshotInflightMap(
   return created;
 }
 
+function estimateSnapshotBytes(snapshot: NibiTaskSnapshot): number {
+  try {
+    return JSON.stringify(snapshot).length * 2;
+  } catch {
+    return 1024;
+  }
+}
+
+function touchMemorySnapshotCache(
+  cache: Map<string, MemorySnapshotCacheEntry>,
+  key: string,
+): { etag: string; snapshot: NibiTaskSnapshot } | undefined {
+  const entry = cache.get(key);
+  if (!entry) return undefined;
+  cache.delete(key);
+  cache.set(key, entry);
+  return entry;
+}
+
+function writeMemorySnapshotCache(
+  cache: Map<string, MemorySnapshotCacheEntry>,
+  key: string,
+  etag: string,
+  snapshot: NibiTaskSnapshot,
+): void {
+  const sizeBytes = estimateSnapshotBytes(snapshot);
+  cache.delete(key);
+  cache.set(key, { etag, snapshot, sizeBytes });
+
+  let totalBytes = 0;
+  for (const item of cache.values()) {
+    totalBytes += item.sizeBytes;
+  }
+  while (
+    cache.size > 1 &&
+    (cache.size > MEMORY_SNAPSHOT_CACHE_MAX_ENTRIES ||
+      totalBytes > MEMORY_SNAPSHOT_CACHE_MAX_TOTAL_BYTES)
+  ) {
+    const oldest = cache.entries().next();
+    if (oldest.done || oldest.value[0] === key) break;
+    totalBytes -= oldest.value[1].sizeBytes;
+    cache.delete(oldest.value[0]);
+  }
+}
+
 function getOrCreateSnapshotCacheMap(
   service: INibiTaskService,
-): Map<string, { etag: string; snapshot: NibiTaskSnapshot }> {
+): Map<string, MemorySnapshotCacheEntry> {
   if (!service || typeof service !== "object") {
     return new Map();
   }
   const existing = snapshotCacheByService.get(service);
   if (existing) {
-    latestSnapshotCache = existing;
+    latestSnapshotCacheRef = new WeakRef(existing);
     return existing;
   }
-  const created = new Map<string, { etag: string; snapshot: NibiTaskSnapshot }>();
+  const created = new Map<string, MemorySnapshotCacheEntry>();
   snapshotCacheByService.set(service, created);
-  latestSnapshotCache = created;
+  latestSnapshotCacheRef = new WeakRef(created);
   return created;
 }
 
@@ -233,9 +285,15 @@ function createNibiTaskServiceProxy(service: INibiTaskService): INibiTaskService
           return existing;
         }
         const cachedSnapshotEntry =
-          snapshotCache.get(requestKey) ?? readPersistedSnapshotEntry(requestKey);
+          touchMemorySnapshotCache(snapshotCache, requestKey) ??
+          readPersistedSnapshotEntry(requestKey);
         if (cachedSnapshotEntry && !snapshotCache.has(requestKey)) {
-          snapshotCache.set(requestKey, cachedSnapshotEntry);
+          writeMemorySnapshotCache(
+            snapshotCache,
+            requestKey,
+            cachedSnapshotEntry.etag,
+            cachedSnapshotEntry.snapshot,
+          );
         }
 
         // 远控首屏恢复时，多个 hook 会并发请求同一 task snapshot，
@@ -258,11 +316,12 @@ function createNibiTaskServiceProxy(service: INibiTaskService): INibiTaskService
               params as GetTaskSnapshotWithEtagParams,
             );
             if (fallbackResult.snapshot && fallbackResult.etag) {
-              const nextEntry = {
-                etag: fallbackResult.etag,
-                snapshot: fallbackResult.snapshot,
-              };
-              snapshotCache.set(requestKey, nextEntry);
+              writeMemorySnapshotCache(
+                snapshotCache,
+                requestKey,
+                fallbackResult.etag,
+                fallbackResult.snapshot,
+              );
               writePersistedSnapshotEntry(
                 requestKey,
                 fallbackResult.etag,
@@ -272,11 +331,12 @@ function createNibiTaskServiceProxy(service: INibiTaskService): INibiTaskService
             return fallbackResult.snapshot;
           }
           if (firstResult.snapshot && firstResult.etag) {
-            const nextEntry = {
-              etag: firstResult.etag,
-              snapshot: firstResult.snapshot,
-            };
-            snapshotCache.set(requestKey, nextEntry);
+            writeMemorySnapshotCache(
+              snapshotCache,
+              requestKey,
+              firstResult.etag,
+              firstResult.snapshot,
+            );
             writePersistedSnapshotEntry(
               requestKey,
               firstResult.etag,

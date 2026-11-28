@@ -114,3 +114,45 @@ export function startMemoryDiagnosticsLogger(
     },
   };
 }
+
+/** 按 LRU 顺序写入 Map，超出上限时淘汰最早条目。 */
+export function setLruMapEntry<K, V>(
+  map: Map<K, V>,
+  key: K,
+  value: V,
+  maxEntries: number,
+): void {
+  if (map.has(key)) {
+    map.delete(key);
+  }
+  while (map.size >= maxEntries) {
+    const oldest = map.keys().next();
+    if (oldest.done) break;
+    map.delete(oldest.value);
+  }
+  map.set(key, value);
+}
+
+/** 命中时刷新 Map 的 LRU 顺序并返回对应值。 */
+export function getLruMapEntry<K, V>(map: Map<K, V>, key: K): V | undefined {
+  const value = map.get(key);
+  if (value === undefined && !map.has(key)) {
+    return undefined;
+  }
+  map.delete(key);
+  map.set(key, value as V);
+  return value;
+}
+
+/** 向 Set 追加元素并保持上限，超出上限时淘汰最早插入的元素。 */
+export function addBoundedSetEntry<T>(set: Set<T>, value: T, maxEntries: number): void {
+  if (set.has(value)) {
+    set.delete(value);
+  }
+  while (set.size >= maxEntries) {
+    const oldest = set.values().next();
+    if (oldest.done) break;
+    set.delete(oldest.value);
+  }
+  set.add(value);
+}

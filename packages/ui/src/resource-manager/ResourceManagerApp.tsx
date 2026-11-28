@@ -100,11 +100,30 @@ export function ResourceManagerApp({
       }
     }
 
-    void refresh();
-    const interval = window.setInterval(() => void refresh(), refreshIntervalMs);
+    const syncSamplingForVisibility = () => {
+      const visible = typeof document === "undefined" || !document.hidden;
+      setSamplingActive?.(visible);
+      if (visible) {
+        void refresh();
+      }
+    };
+
+    syncSamplingForVisibility();
+    const interval = window.setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
+      void refresh();
+    }, refreshIntervalMs);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", syncSamplingForVisibility);
+    }
     return () => {
       disposed = true;
       window.clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", syncSamplingForVisibility);
+      }
       // 停止 renderer 定时器还不够，Host 在途采样也必须随页面生命周期取消。
       setSamplingActive?.(false);
     };

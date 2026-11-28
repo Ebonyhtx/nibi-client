@@ -3,11 +3,13 @@ import {
   type PluginUiInstanceDerivation,
   type PluginUiRowDisposition,
 } from "../domain/pluginUiInstancePolicy.js";
+import { setLruMapEntry } from "@/lib/memoryDiagnostics.js";
 
 /**
  * 每个会话最近一次由时间线推导出的逻辑 UI 裁决（renderer 内存）。时间线在 effect 里写入，
  * 工具卡片按 (sessionKey, toolCallId) 读自己的裁决（是否被替代、是否强制常驻）；不持有任何沙箱状态。
  */
+const MAX_PLUGIN_UI_INSTANCE_DERIVATIONS = 64;
 const derivations = new Map<string, PluginUiInstanceDerivation>();
 const listeners = new Set<() => void>();
 
@@ -16,7 +18,12 @@ export function setPluginUiInstanceDerivation(
   derivation: PluginUiInstanceDerivation,
 ): void {
   if (derivations.get(sessionKey) === derivation) return;
-  derivations.set(sessionKey, derivation);
+  setLruMapEntry(derivations, sessionKey, derivation, MAX_PLUGIN_UI_INSTANCE_DERIVATIONS);
+  for (const listener of listeners) listener();
+}
+
+export function deletePluginUiInstanceDerivation(sessionKey: string): void {
+  if (!derivations.delete(sessionKey)) return;
   for (const listener of listeners) listener();
 }
 

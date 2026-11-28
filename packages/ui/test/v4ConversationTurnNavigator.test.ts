@@ -120,6 +120,18 @@ describe("conversation turn navigator helpers", () => {
     expect(
       shouldHydrateConversationTurnNavigatorDirectory({
         ...base,
+        totalRowCount: 400,
+      }),
+    ).toBe(true);
+    expect(
+      shouldHydrateConversationTurnNavigatorDirectory({
+        ...base,
+        totalRowCount: 401,
+      }),
+    ).toBe(false);
+    expect(
+      shouldHydrateConversationTurnNavigatorDirectory({
+        ...base,
       }),
     ).toBe(true);
   });

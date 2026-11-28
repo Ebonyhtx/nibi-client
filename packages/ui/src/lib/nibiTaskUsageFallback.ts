@@ -1,5 +1,6 @@
 import type { NibiUsage } from "@nibi/shared";
 import type { TaskUsageState } from "@/store/nibiSessionStoreTypes.js";
+import { addBoundedSetEntry } from "@/lib/memoryDiagnostics.js";
 
 interface TaskUsageKeyParams {
   workspacePath: string;
@@ -18,6 +19,7 @@ interface BuildTaskContextUsageUpdateParams {
   latestUserPrompt?: string | null;
 }
 
+const MAX_TASK_CONTEXT_USAGE_UPDATE_KEYS = 500;
 const taskContextUsageUpdateKeys = new Set<string>();
 
 function buildTaskUsageKey(params: TaskUsageKeyParams): string {
@@ -32,7 +34,11 @@ export function recordTaskContextUsageUpdate(params: TaskContextUsageUpdateParam
   if (!Number.isFinite(params.size) || params.size <= 0) {
     return;
   }
-  taskContextUsageUpdateKeys.add(buildTaskUsageKey(params));
+  addBoundedSetEntry(
+    taskContextUsageUpdateKeys,
+    buildTaskUsageKey(params),
+    MAX_TASK_CONTEXT_USAGE_UPDATE_KEYS,
+  );
 }
 
 function isContextCompressionPrompt(prompt: string | null | undefined): boolean {
