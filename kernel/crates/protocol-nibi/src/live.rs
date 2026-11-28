@@ -68,8 +68,9 @@ pub struct Live {
     state: Mutex<State>,
     /// 会话句柄的弱引用：会话列表判断草稿（`is_draft`）用。句柄由会话桥持有，比 Live 活得久。
     handle: Weak<dyn SessionHandle>,
-    /// 辅助对话不进任务列表（Node `isTaskListSessionType` 不含 selection_side_chat）。
-    side_chat: bool,
+    /// 辅助会话不进任务列表：Node 的 `getSessionWorkspaceId` 对 `subagent_child` 与
+    /// `selection_side_chat` 都回 null，sessions-index 因此收不到这两类的行。
+    auxiliary: bool,
     /// 有父会话（分叉 / 辅助对话 / 导入）：执行偏好已在建会话时从父会话继承，不再问 Host 覆盖。
     has_parent: bool,
     /// 自动结束计时任务的唤醒信号（登记、回答、snooze、偏好变化都叫一次）。
@@ -114,7 +115,10 @@ impl Live {
             session: view.meta.id.as_str().to_owned(),
             workspace: view.meta.workspace.root.as_str().to_owned(),
             created_at: view.meta.created_at_ms,
-            side_chat: view.meta.kind == SessionKind::SelectionSideChat,
+            auxiliary: matches!(
+                view.meta.kind,
+                SessionKind::SelectionSideChat | SessionKind::Subagent
+            ),
             has_parent: view.meta.parent.is_some(),
             state: Mutex::new(State {
                 projection,
@@ -642,9 +646,11 @@ impl Live {
             .handle
             .upgrade()
             .is_none_or(|handle| handle.is_draft());
-        // 辅助对话与草稿一样不进会话列表：Node 的 sessions-index 只发布 task-list 类型
-        // （`getSessionWorkspaceId` 对 selection_side_chat 回 null）。
-        let summary = if draft || self.side_chat {
+        // 辅助会话与草稿一样不进会话列表：Node 的 sessions-index 只发布 task-list 类型
+        // （`getSessionWorkspaceId` 对 subagent_child / selection_side_chat 回 null）。
+        // 2026-11-28 修复：此前只挡 selection_side_chat，子代理子会话（Subagent）的实时行
+        // 漏进 sessions-index，Host 任务列表长出一条与父任务并排的子会话行。
+        let summary = if draft || self.auxiliary {
             None
         } else {
             let row = self.summary_of(state);

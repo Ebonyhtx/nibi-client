@@ -598,3 +598,55 @@ async fn a_selection_side_chat_stays_out_of_the_sessions_index() {
         "a side chat must not publish a sessions-index row"
     );
 }
+
+/// 子代理子会话与 selection side chat 同一条闸：Node 的 `getSessionWorkspaceId` 对
+/// `subagent_child` 也回 null。2026-11-28 之前只挡 selection_side_chat，子代理的实时行
+/// 漏进 sessions-index，Host 任务列表长出一条与父任务并排的子会话行。
+#[tokio::test]
+async fn a_subagent_child_stays_out_of_the_sessions_index() {
+    let (server, mut wire, _scope, _writer, _draft) = harness_full(
+        std::collections::HashMap::new(),
+        SessionKind::Subagent,
+    );
+    let index_topic = "sessions-index//w";
+    let conversation_topic = "conversation/sess_1";
+    run(subscribe(
+        &server,
+        &json!({"topic": index_topic, "connectionId": "c1"}),
+    )
+    .await
+    .unwrap())
+    .await;
+    let snapshot = wire.next_frame().await;
+    assert_eq!(snapshot["topic"], index_topic);
+    assert!(
+        snapshot["payload"]["snapshot"]["sessions"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    run(subscribe(
+        &server,
+        &json!({"topic": conversation_topic, "connectionId": "c1"}),
+    )
+    .await
+    .unwrap())
+    .await;
+    let first = wire.next_frame().await;
+    assert_eq!(first["topic"], conversation_topic);
+
+    let live = server.bridge.get(&SessionId::new("sess_1")).unwrap();
+    live.sink
+        .set_hook_admission(Some(json!({"pendingCount": 1, "bundleDigest": "b"})))
+        .await;
+    let frames = wire.frames_within(200).await;
+    assert!(
+        frames.iter().any(|frame| frame["topic"] == conversation_topic),
+        "the subagent child still gets its own conversation deltas"
+    );
+    assert!(
+        frames.iter().all(|frame| frame["topic"] != index_topic),
+        "a subagent child must not publish a sessions-index row"
+    );
+}
