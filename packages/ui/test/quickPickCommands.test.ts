@@ -278,4 +278,53 @@ describe("createQuickPickCommands", () => {
     });
     expect(commands.some((command) => command.id === "community")).toBe(false);
   });
+
+  it("includes chat reload, settings section jumps, and 4 theme options when optional handlers are provided", () => {
+    const baseHandlers = createHandlers();
+    const selectTheme = vi.fn();
+    const reloadSession = vi.fn();
+    const openAppearanceSettings = vi.fn();
+    const openModelsSettings = vi.fn();
+    const openShortcutsSettings = vi.fn();
+
+    const commands = createQuickPickCommands({
+      allowOpenWorkspace: true,
+      canOpenCommunity: true,
+      isSidebarVisible: true,
+      isLoggedIn: true,
+      themeTarget: "dark",
+      shortcuts,
+      handlers: {
+        ...baseHandlers,
+        openAppearanceSettings,
+        openModelsSettings,
+        openShortcutsSettings,
+        selectTheme,
+        reloadSession,
+      },
+    });
+
+    const ids = commands.map((command) => command.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "reload-session",
+        "appearance-settings",
+        "models-settings",
+        "shortcuts-settings",
+        "theme-nibi-light",
+        "theme-nibi-mist",
+        "theme-nibi-dark",
+        "theme-nibi-obsidian",
+      ]),
+    );
+    expect(commands.find((command) => command.id === "reload-session")?.sectionId).toBe("chat");
+
+    void commands.find((command) => command.id === "theme-nibi-obsidian")?.run();
+    expect(selectTheme).toHaveBeenCalledWith("nibi-obsidian");
+
+    for (const command of commands) {
+      expect(zhCN[command.titleId], `zh-CN missing ${command.titleId}`).toBeTruthy();
+      expect(enUS[command.titleId], `en-US missing ${command.titleId}`).toBeTruthy();
+    }
+  });
 });

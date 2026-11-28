@@ -291,7 +291,7 @@ export function TaskFindDialog({
           ? `${activeFindState.currentIndex + 1}/${activeFindState.total}`
           : "0/0"}
       </div>
-      <div className="flex shrink-0 items-center gap-0.5 border-l border-border pl-1.5">
+      <div className="flex shrink-0 items-center gap-0.5 border-l border-border/60 pl-1.5">
         {renderFindIconButton({
           label: previousLabel,
           disabled: activeFindState.total === 0,
@@ -312,7 +312,7 @@ export function TaskFindDialog({
             children: <ScopeIcon className="size-3.5" />,
           })}
       </div>
-      <div className="ml-0.5 flex shrink-0 border-l border-border pl-1.5">
+      <div className="ml-0.5 flex shrink-0 border-l border-border/60 pl-1.5">
         {renderFindIconButton({
           label: closeLabel,
           onClick: () => onOpenChange(false),
@@ -348,7 +348,7 @@ export function TaskFindDialog({
         aria-modal="false"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="absolute top-3 left-1/2 z-30 w-[min(360px,calc(100%-1rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-popover-border bg-popover p-0 text-ui-base/relaxed text-foreground shadow-md outline-none [app-region:no-drag] max-md:top-2"
+        className="absolute top-3 left-1/2 z-30 w-[min(360px,calc(100%-1rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-popover-border/90 bg-popover/96 p-0 text-ui-base/relaxed text-foreground shadow-[var(--nibi-shadow-popover)] outline-none supports-[backdrop-filter]:backdrop-blur-md [app-region:no-drag] max-md:top-2"
       >
         <div className="sr-only">
           <h2 id={titleId}>{intl.formatMessage({ id: "quickPick.find.title" })}</h2>
@@ -379,7 +379,7 @@ export function TaskFindDialog({
           // Cmd/Ctrl+F 浮层不能固定在右上角：Desktop 端会和标题区控件重叠。
           // 这里按平台预留安全区：统一下移到标题区下方，并在 Windows 额外右移，避开右上角原生窗口按钮。
           contentPositionClassName,
-          "overflow-hidden border-popover-border bg-popover p-0 shadow-md",
+          "overflow-hidden border-popover-border/90 bg-popover/96 p-0 shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-md",
         )}
       >
         {findContent}

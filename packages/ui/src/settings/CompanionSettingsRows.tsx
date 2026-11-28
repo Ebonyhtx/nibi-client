@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card.js";
 import {
   Select,
   SelectContent,
@@ -7,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.js";
 import { Switch } from "@/components/ui/switch.js";
-import { SettingsRow } from "@/settings/SettingsPageParts.js";
+import { SettingsGroupCard, SettingsRow } from "@/settings/SettingsPageParts.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   setCompanionPreference,
@@ -24,17 +23,10 @@ export function CompanionSettingsRows() {
   const preferences = useCompanionPreferences();
 
   return (
-    <div className="min-w-0 space-y-3">
-      <div>
-        <h3 className="text-ui-lg font-semibold text-foreground">
-          {intl.formatMessage({ id: "settings.companion.title" })}
-        </h3>
-        <p className="mt-1 text-ui-base leading-6 text-foreground-subtle">
-          {intl.formatMessage({ id: "settings.companion.description" })}
-        </p>
-      </div>
-      <Card className="border border-border bg-card py-0 shadow-none">
-        <CardContent className="space-y-0 px-0">
+    <SettingsGroupCard
+      title={intl.formatMessage({ id: "settings.companion.title" })}
+      description={intl.formatMessage({ id: "settings.companion.description" })}
+    >
           <SettingsRow
             searchTarget="appearance.companionVisible"
             label={intl.formatMessage({ id: "settings.companion.visible" })}
@@ -130,8 +122,6 @@ export function CompanionSettingsRows() {
               </Select>
             }
           />
-        </CardContent>
-      </Card>
-    </div>
+    </SettingsGroupCard>
   );
 }

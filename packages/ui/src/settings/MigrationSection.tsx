@@ -80,8 +80,8 @@ export function MigrationSection({
 
   return (
     <div className="space-y-6">
-      <Card className="border border-border bg-card py-0 shadow-none">
-        <CardHeader className="border-b border-border">
+      <Card className="rounded-xl border border-card-border bg-card py-0 shadow-[var(--nibi-shadow-card)]">
+        <CardHeader className="border-b border-border/60">
           <CardAction>
             <Button
               type="button"
@@ -101,7 +101,9 @@ export function MigrationSection({
             </Button>
           </CardAction>
           <div className="space-y-1">
-            <CardTitle>{intl.formatMessage({ id: "settings.migration.filtersTitle" })}</CardTitle>
+            <CardTitle className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em]">
+              {intl.formatMessage({ id: "settings.migration.filtersTitle" })}
+            </CardTitle>
             <CardDescription>
               {intl.formatMessage({ id: "settings.migration.filtersDescription" })}
             </CardDescription>

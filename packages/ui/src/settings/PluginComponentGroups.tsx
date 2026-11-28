@@ -19,8 +19,8 @@ export interface PluginComponentDisplayGroup {
 
 /** 组件分组徽标配色：复用主题里已有的 Tailwind 调色板做轻量底色，深浅主题均正确。 */
 const COMPONENT_BADGE_STYLES: Record<NibiPluginComponentKind, string> = {
-  agent: "bg-violet-500/15 text-violet-500 dark:text-violet-300",
-  command: "bg-sky-500/15 text-sky-600 dark:text-sky-300",
+  agent: "bg-subagent-node text-subagent-node-foreground",
+  command: "bg-command-node text-command-node-foreground",
   skill: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
   hook: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
   mcp: "border border-border/60 bg-surface text-foreground-subtle",

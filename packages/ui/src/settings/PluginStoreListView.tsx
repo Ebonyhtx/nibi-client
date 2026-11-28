@@ -178,7 +178,7 @@ export function PluginStoreListView({
   };
 
   return (
-    <div className="space-y-6" data-testid="plugin-store-list">
+    <div className="space-y-8" data-testid="plugin-store-list">
       {/* 会员入口移到左下角账户菜单（与上游一致）；市场顶部不再常驻促销横幅。 */}
       {/* 对齐原型：来源分段在左、搜索右对齐同一行；搜索及专区均限定当前来源。 */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -221,12 +221,12 @@ export function PluginStoreListView({
       {!keyword && uiItems.length > 0 ? (
         <section data-testid="plugin-store-ui-section">
           <div className="pb-2">
-            <h2 className="text-ui-lg font-semibold">
+            <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
               {intl.formatMessage({ id: "settings.plugins.store.ui.title" })}
             </h2>
           </div>
-          <div aria-hidden="true" className="h-px bg-border/65" />
-          <div className="mt-2">
+          <div aria-hidden="true" className="h-px bg-border/55" />
+          <div className="mt-3.5">
             {/* 独立“查看全部”页让返回入口难以识别；复用分组展开并按来源保留选择。 */}
             <CollapsibleCardGroup
               groupKey={`ui:${segment}`}
@@ -268,7 +268,7 @@ export function PluginStoreListView({
           )}
         >
           {searchResults.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border px-4 py-3 text-ui-base text-foreground-subtle">
+            <p className="rounded-xl border border-dashed border-border/75 bg-surface/35 px-4 py-4 text-ui-base text-foreground-subtle">
               {intl.formatMessage({ id: "settings.plugins.store.searchEmpty" })}
             </p>
           ) : (
@@ -356,10 +356,10 @@ function StoreSection({
   return (
     <section className={className}>
       <div className="pb-2">
-        <h2 className="text-ui-lg font-semibold text-foreground">{title}</h2>
+        <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">{title}</h2>
       </div>
-      <div aria-hidden="true" className="h-px bg-border/65" />
-      <div className="mt-2">{children}</div>
+      <div aria-hidden="true" className="h-px bg-border/55" />
+      <div className="mt-3.5">{children}</div>
     </section>
   );
 }

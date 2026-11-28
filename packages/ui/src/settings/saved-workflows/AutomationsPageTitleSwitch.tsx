@@ -27,7 +27,7 @@ export function AutomationsPageTitle({
   if (!workflowTabEnabled) {
     // 字号与切换态同源：30/34 页面标题层级，切换在不在场不该改变标题的视觉层级。
     return (
-      <h1 className="text-[30px] font-medium leading-[34px] tracking-[0.114px] text-foreground">
+      <h1 className="font-display text-[30px] font-semibold leading-[1.3] tracking-[-0.015em] text-foreground">
         {intl.formatMessage({ id: "settings.automations.title" })}
       </h1>
     );
@@ -82,7 +82,7 @@ export function AutomationsPageTitleSwitch({
             data-testid={testId(TID_AUTOMATIONS_PAGE_TAB, tab)}
             onClick={() => onValueChange(tab)}
             className={cn(
-              "rounded-md text-[30px] font-medium leading-[34px] tracking-[0.114px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
+              "rounded-md font-display text-[30px] font-semibold leading-[1.3] tracking-[-0.015em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
               active ? "text-foreground" : "text-foreground-subtle hover:text-foreground",
             )}
           >

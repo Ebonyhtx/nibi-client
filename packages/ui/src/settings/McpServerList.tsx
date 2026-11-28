@@ -176,7 +176,7 @@ function McpServerItem({
           <Button
             variant="link"
             size="sm"
-            className="text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300"
+            className="text-primary hover:text-primary/80"
             aria-label={openAuthorizationLabel}
             data-testid={testId(TID_MCP_OPEN_AUTHORIZATION_BUTTON, server.name)}
             title={openAuthorizationLabel}

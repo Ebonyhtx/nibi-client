@@ -98,12 +98,12 @@ export function MigrationCandidatesCard({
   const { intl } = useNibiIntl();
 
   return (
-    <Card className="border border-border bg-card py-0 shadow-none">
-      <CardHeader className="border-b border-border">
+    <Card className="rounded-xl border border-card-border bg-card py-0 shadow-[var(--nibi-shadow-card)]">
+      <CardHeader className="border-b border-border/60">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <CardTitle>
+              <CardTitle className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em]">
                 {intl.formatMessage({ id: "settings.migration.candidatesTitle" })}
               </CardTitle>
               <Badge variant="outline">

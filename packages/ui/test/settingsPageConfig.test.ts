@@ -39,27 +39,29 @@ describe("settingsPageConfig", () => {
     ).toEqual([
       {
         id: "basics",
-        sections: ["general", "appearance", "modelProvider", "browser", "remoteDevices", "shortcuts"],
+        sections: ["general", "appearance", "shortcuts"],
       },
       {
         id: "agentCapabilities",
-        sections: [
-          "personalization",
-          "agentBehavior",
-          "memory",
-          "subagents",
-          "plugin",
-          "mcp",
-          "skill",
-          "commands",
-          "hooks",
-        ],
+        sections: ["modelProvider", "personalization", "agentBehavior", "memory", "subagents"],
       },
-      { id: "dataAndStats", sections: ["dataSync", "usage", "projects", "archives"] },
+      {
+        id: "extensions",
+        sections: ["plugin", "mcp", "skill", "commands", "hooks"],
+      },
+      {
+        id: "environment",
+        sections: ["browser", "remoteDevices"],
+      },
+      {
+        id: "dataAndStats",
+        sections: ["usage", "projects", "archives", "dataSync"],
+      },
     ]);
     expect(settingsSections.map((section) => section.id)).toEqual([
       "general",
       "appearance",
+      "shortcuts",
       "modelProvider",
       "personalization",
       "agentBehavior",
@@ -72,11 +74,10 @@ describe("settingsPageConfig", () => {
       "hooks",
       "browser",
       "remoteDevices",
-      "dataSync",
-      "shortcuts",
       "usage",
       "projects",
       "archives",
+      "dataSync",
     ]);
   });
 
@@ -98,19 +99,15 @@ describe("settingsPageConfig", () => {
     expect(settingsSections.some((section) => section.id === "computerUse")).toBe(expected);
   });
 
-  it("桌面平台的电脑控制排在基础设置的浏览器之后", async () => {
+  it("桌面平台的电脑控制排在环境与设备组的浏览器之后", async () => {
     const { createSettingsPageConfig } = await loadSettingsPageConfig("test");
     const { settingsSectionGroups } = createSettingsPageConfig({ isMacDesktop: true });
-    const basics = settingsSectionGroups.find((group) => group.id === "basics");
+    const environment = settingsSectionGroups.find((group) => group.id === "environment");
 
-    expect(basics?.sections.map((section) => section.id)).toEqual([
-      "general",
-      "appearance",
-      "modelProvider",
+    expect(environment?.sections.map((section) => section.id)).toEqual([
       "browser",
-      "remoteDevices",
       "computerUse",
-      "shortcuts",
+      "remoteDevices",
     ]);
     expect(
       settingsSectionGroups

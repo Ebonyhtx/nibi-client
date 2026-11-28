@@ -1907,7 +1907,7 @@ export function AutomationEditView({
         <div className="space-y-1.5">
           <h1
             data-testid="automation-edit-title"
-            className="text-ui-xl font-semibold text-foreground"
+            className="font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.015em] text-foreground"
           >
             {intl.formatMessage({
               id: editing ? "automations.form.editTitle" : "automations.form.createTitle",

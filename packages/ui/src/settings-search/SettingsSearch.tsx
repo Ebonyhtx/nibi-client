@@ -156,7 +156,7 @@ export function SettingsSearch({
             role="listbox"
             aria-label={intl.formatMessage({ id: "settings.search.resultsLabel" })}
             data-testid="settings-search-results"
-            className="absolute inset-x-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-lg"
+            className="absolute inset-x-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-xl border border-popover-border bg-menu/96 p-1 shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-lg"
           >
             {results.length === 0 ? (
               <p

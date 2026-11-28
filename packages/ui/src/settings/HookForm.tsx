@@ -176,7 +176,7 @@ export function HookForm({
   return (
     <div className="space-y-4" data-testid="hooks-form">
       <div className="space-y-1">
-        <h3 className="text-ui-xl font-semibold text-foreground">
+        <h3 className="font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
           {intl.formatMessage({
             id: isEditing ? "settings.hooks.edit" : "settings.hooks.add",
           })}

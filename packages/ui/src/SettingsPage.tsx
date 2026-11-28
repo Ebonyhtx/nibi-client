@@ -117,7 +117,6 @@ import {
   createSettingsPageConfig,
   AgentBehaviorSectionContent,
   GeneralSectionContent,
-  GeneralSectionHeader,
   TaskAutoArchiveSettings,
   isSettingsSectionAvailable,
   resolveSettingsSectionForPlatform,
@@ -177,15 +176,21 @@ function SettingsSidebarButton({
         type={buttonProps.type ?? "button"}
         aria-label={label}
         className={cn(
-          "flex h-8 w-full items-center gap-2 rounded-xl px-2.5 text-left transition-colors",
+          "relative flex h-8 w-full items-center gap-2 rounded-xl pl-3.5 pr-2.5 text-left transition-colors",
           "max-lg:mx-auto max-lg:size-10 max-lg:justify-center max-lg:px-0",
           "compact-web:mx-0 compact-web:h-8 compact-web:w-auto compact-web:shrink-0 compact-web:px-2.5",
           active
             ? "bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25"
-            : "text-remote-foreground-muted hover:bg-hover/75 hover:text-foreground",
+            : "text-remote-foreground-muted hover:bg-card/55 hover:text-foreground",
           className,
         )}
       >
+        {active ? (
+          <span
+            aria-hidden="true"
+            className="absolute left-1.5 top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-primary max-lg:hidden compact-web:hidden"
+          />
+        ) : null}
         <span className="flex size-4 shrink-0 items-center justify-center text-current">
           <Icon className={cn("size-4", active ? "text-primary" : "text-current")} />
         </span>
@@ -1206,6 +1211,8 @@ export function SettingsPage({
         value === "dark" ||
         value === "nibi-light" ||
         value === "nibi-dark" ||
+        value === "nibi-obsidian" ||
+        value === "nibi-mist" ||
         value === "system"
       ) {
         runUserAction({
@@ -1750,7 +1757,7 @@ export function SettingsPage({
                       aria-label={intl.formatMessage({
                         id: "workspace.backToWorkspace",
                       })}
-                      className="m-1 w-[calc(100%-0.5rem)] justify-start gap-2 rounded-xl border border-border/60 bg-card/80 px-2 text-remote-foreground-muted shadow-2xs hover:bg-card hover:text-foreground max-lg:m-1 max-lg:size-10 max-lg:justify-center max-lg:px-0"
+                      className="mx-1 my-0.5 w-[calc(100%-0.5rem)] justify-start gap-2 rounded-xl border border-transparent bg-transparent px-2.5 text-remote-foreground-muted hover:border-border/55 hover:bg-card/75 hover:text-foreground max-lg:m-1 max-lg:size-10 max-lg:justify-center max-lg:px-0"
                       onClick={() => {
                         runUserAction({
                           input: {
@@ -1811,12 +1818,12 @@ export function SettingsPage({
                         className={cn(
                           "space-y-1 compact-web:flex compact-web:shrink-0 compact-web:items-center compact-web:gap-1 compact-web:space-y-0",
                           groupIndex > 0 &&
-                            "max-lg:border-t max-lg:border-border max-lg:pt-3 compact-web:border-t-0 compact-web:border-l compact-web:pt-0 compact-web:pl-2",
+                            "border-t border-border/45 pt-3 max-lg:border-t max-lg:border-border max-lg:pt-3 compact-web:border-t-0 compact-web:border-l compact-web:pt-0 compact-web:pl-2",
                         )}
                       >
                         <div
                           id={groupLabelId}
-                          className="px-2.5 pb-1 text-ui-sm font-medium text-remote-foreground-muted max-lg:sr-only"
+                          className="px-2.5 pb-1 text-ui-xs font-semibold tracking-wider text-remote-foreground-muted max-lg:sr-only"
                         >
                           {groupLabel}
                         </div>
@@ -1959,11 +1966,14 @@ export function SettingsPage({
                         )}
                       >
                         {/* 归档设置迁入后也需要公共页头，不能再因列表自带标题而隐藏页面标题。 */}
-                        <div data-settings-search-target={`section:${activeSection}`}>
+                        <div
+                          className="border-b border-border/55 pb-5"
+                          data-settings-search-target={`section:${activeSection}`}
+                        >
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="flex min-w-0 flex-wrap items-center gap-3">
                               {showActiveSectionTitle ? (
-                                <h2 className="text-ui-settings-title font-semibold tracking-tight text-foreground lg:text-ui-settings-title-lg">
+                                <h2 className="font-display text-ui-settings-title font-semibold tracking-tight text-foreground lg:text-ui-settings-title-lg">
                                   {activeSectionLabel}
                                 </h2>
                               ) : null}
@@ -1990,9 +2000,6 @@ export function SettingsPage({
                               </Button>
                             ) : null}
                           </div>
-                          {activeSection === "general" ? (
-                            <GeneralSectionHeader localePreference={localePreference} />
-                          ) : null}
                           {activeSection === "dataSync" ? (
                             <div className="mt-2 flex items-center gap-1.5 text-ui-base text-foreground-subtle">
                               <span>

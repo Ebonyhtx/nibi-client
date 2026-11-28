@@ -983,7 +983,7 @@ export function AutomationsSection({
               {automations.length > 0 ? (
                 <section className="flex w-full flex-col gap-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-ui-base font-medium leading-5 text-foreground-subtle">
+                    <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
                       {intl.formatMessage({ id: "automations.createdLabel" })}
                     </h2>
                   </div>
@@ -1046,10 +1046,11 @@ export function AutomationsSection({
                               }
                             }}
                             className={cn(
-                              // 任务卡与模板卡曾分别使用 surface/border，跨主题下描边深浅不一致。
-                              "group relative flex h-full min-h-0 cursor-pointer gap-3 overflow-hidden rounded-xl border border-card-border bg-background p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
-                              // 已完成任务保持静态弱化，不在 hover 时恢复透明度或改变背景。
-                              status === "completed" ? "opacity-60" : "hover:bg-hover",
+                              // 任务卡与模板卡统一走宣纸卡片厚度，已完成任务保留静态弱化与零悬浮位移。
+                              "group relative flex h-full min-h-0 cursor-pointer gap-3 overflow-hidden rounded-xl border border-card-border bg-card p-3 text-left shadow-[var(--nibi-shadow-card)] transition-[background-color,border-color,box-shadow,translate] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
+                              status === "completed"
+                                ? "opacity-60"
+                                : "hover:-translate-y-0.5 hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0",
                             )}
                           >
                             <div className="flex h-full min-w-0 flex-1 flex-col gap-3">
@@ -1221,7 +1222,7 @@ export function AutomationsSection({
             aria-busy={automationTemplates.loading}
             className="flex w-full flex-col gap-4"
           >
-            <h2 className="text-ui-base font-medium leading-5 text-foreground-subtle">
+            <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
               {intl.formatMessage({ id: "automations.moreIdeas" })}
             </h2>
             {automationTemplates.loading ? (
@@ -1231,7 +1232,7 @@ export function AutomationsSection({
             ) : automationTemplates.scheduled.length === 0 ? (
               <div
                 data-automation-template-empty-state
-                className="flex min-h-[114px] w-full items-center justify-center rounded-xl border border-card-border bg-background p-3 text-center text-ui-base font-normal text-foreground-subtlest"
+                className="flex min-h-[114px] w-full items-center justify-center rounded-xl border border-dashed border-border/75 bg-surface/35 p-3 text-center text-ui-base font-normal text-foreground-subtlest"
               >
                 {intl.formatMessage({ id: "automations.templates.unavailable" })}
               </div>
@@ -1243,7 +1244,7 @@ export function AutomationsSection({
                       key={template.id}
                       type="button"
                       onClick={() => handleUseTemplate(template)}
-                      className="group flex min-h-[114px] flex-col gap-2 overflow-hidden rounded-xl border border-card-border bg-background p-3 text-left transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+                      className="group flex min-h-[114px] flex-col gap-2 overflow-hidden rounded-xl border border-card-border bg-card p-3 text-left shadow-[var(--nibi-shadow-card)] transition-[background-color,border-color,box-shadow,translate] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
                     >
                       <div className="flex min-w-0 items-center gap-1 text-foreground">
                         <span className="flex size-5 shrink-0 items-center justify-center">

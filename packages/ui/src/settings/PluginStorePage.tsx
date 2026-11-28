@@ -745,7 +745,7 @@ export function PluginStorePage({
             ) : null}
             <h1
               data-testid="plugin-store-title"
-              className="text-ui-xl font-semibold tracking-tight text-foreground"
+              className="font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.015em] text-foreground"
             >
               {intl.formatMessage({ id: "workspace.openPluginsSettings" })}
             </h1>
@@ -829,7 +829,7 @@ export function PluginStorePage({
       {view === "manage" ? (
         <div data-testid="plugin-store-manage" className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-ui-xl font-semibold">
+            <h1 className="font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.015em] text-foreground">
               {intl.formatMessage({ id: "settings.plugins.store.manageInstalled" })}
             </h1>
             <Button variant="outline" data-testid="plugin-store-browse-all" onClick={backToStore}>

@@ -5,10 +5,13 @@ export type QuickPickCommandIcon =
   | "diff"
   | "feedback"
   | "folder"
+  | "keyboard"
   | "login"
   | "logout"
   | "message"
   | "mcp"
+  | "palette"
+  | "reload"
   | "settings"
   | "sidebarClose"
   | "sidebarOpen"
@@ -63,6 +66,11 @@ interface QuickPickCommandHandlers {
   openTerminalTab: () => void;
   openBrowserTab: () => void;
   openReviewTab: () => void;
+  openAppearanceSettings?: () => void;
+  openModelsSettings?: () => void;
+  openShortcutsSettings?: () => void;
+  selectTheme?: (theme: "nibi-light" | "nibi-mist" | "nibi-dark" | "nibi-obsidian") => void;
+  reloadSession?: () => void;
 }
 
 interface CreateQuickPickCommandsOptions {
@@ -73,6 +81,7 @@ interface CreateQuickPickCommandsOptions {
   supportsEmbeddedBrowser?: boolean;
   supportsTerminal?: boolean;
   supportsReview?: boolean;
+  reloadSessionDisabled?: boolean;
   themeTarget: "dark" | "light";
   shortcuts: {
     newTask: string;
@@ -91,6 +100,7 @@ export function createQuickPickCommands({
   supportsEmbeddedBrowser = true,
   supportsTerminal = true,
   supportsReview = true,
+  reloadSessionDisabled = false,
   themeTarget,
   shortcuts,
   handlers,
@@ -228,6 +238,89 @@ export function createQuickPickCommands({
       run: handlers.openMcpSettings,
     },
   ];
+
+  if (handlers.reloadSession) {
+    commands.push({
+      id: "reload-session",
+      sectionId: "chat",
+      titleId: "quickPick.command.reloadSession",
+      icon: "reload",
+      keywords: ["reload", "refresh", "session", "chat", "刷新", "重新加载", "会话"],
+      disabled: reloadSessionDisabled,
+      run: handlers.reloadSession,
+    });
+  }
+
+  if (handlers.openAppearanceSettings) {
+    commands.push({
+      id: "appearance-settings",
+      sectionId: "configure",
+      titleId: "quickPick.command.appearanceSettings",
+      icon: "palette",
+      keywords: ["appearance", "theme", "font", "外观", "主题", "字体"],
+      run: handlers.openAppearanceSettings,
+    });
+  }
+
+  if (handlers.openModelsSettings) {
+    commands.push({
+      id: "models-settings",
+      sectionId: "configure",
+      titleId: "quickPick.command.modelsSettings",
+      icon: "settings",
+      keywords: ["models", "provider", "api", "模型", "供应商"],
+      run: handlers.openModelsSettings,
+    });
+  }
+
+  if (handlers.openShortcutsSettings) {
+    commands.push({
+      id: "shortcuts-settings",
+      sectionId: "configure",
+      titleId: "quickPick.command.shortcutsSettings",
+      icon: "keyboard",
+      keywords: ["shortcuts", "keybindings", "hotkey", "快捷键", "热键"],
+      run: handlers.openShortcutsSettings,
+    });
+  }
+
+  if (handlers.selectTheme) {
+    const selectTheme = handlers.selectTheme;
+    commands.push(
+      {
+        id: "theme-nibi-light",
+        sectionId: "configure",
+        titleId: "quickPick.command.themeNibiLight",
+        icon: "themeLight",
+        keywords: ["theme", "light", "paper", "宣纸", "暖白", "浅色"],
+        run: () => selectTheme("nibi-light"),
+      },
+      {
+        id: "theme-nibi-mist",
+        sectionId: "configure",
+        titleId: "quickPick.command.themeNibiMist",
+        icon: "themeLight",
+        keywords: ["theme", "mist", "morning", "雾青", "浅色"],
+        run: () => selectTheme("nibi-mist"),
+      },
+      {
+        id: "theme-nibi-dark",
+        sectionId: "configure",
+        titleId: "quickPick.command.themeNibiDark",
+        icon: "themeDark",
+        keywords: ["theme", "dark", "dusk", "ink", "暗墨", "深色"],
+        run: () => selectTheme("nibi-dark"),
+      },
+      {
+        id: "theme-nibi-obsidian",
+        sectionId: "configure",
+        titleId: "quickPick.command.themeNibiObsidian",
+        icon: "themeDark",
+        keywords: ["theme", "obsidian", "jade", "曜石", "黑曜石", "深色"],
+        run: () => selectTheme("nibi-obsidian"),
+      },
+    );
+  }
 
   commands.push({
     id: "feedback",

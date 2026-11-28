@@ -254,9 +254,9 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label={intl.formatMessage({ id: "settings.plugins.membership.title" })}
-        className="flex h-[min(760px,88vh)] w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl border border-popover-border bg-popover shadow-[var(--nibi-shadow-popover)]"
+        className="flex h-[min(760px,88vh)] w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl border border-popover-border/90 bg-popover shadow-[var(--nibi-shadow-popover)] overscroll-contain"
       >
-        <header className="flex items-start gap-3 border-b border-border bg-header/80 px-5 py-4">
+        <header className="flex items-start gap-3 border-b border-border/55 bg-header/80 px-5 py-4">
           <img
             src={nibiIcon}
             alt=""
@@ -264,7 +264,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
             className="size-9 rounded-xl object-contain"
           />
           <div className="min-w-0 flex-1">
-            <h2 className="text-ui-lg font-semibold text-foreground">
+            <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
               {intl.formatMessage({ id: "settings.plugins.membership.title" })}
             </h2>
             <p className="text-ui-sm text-foreground-subtle">
@@ -311,7 +311,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
                 className="size-14 rounded-2xl object-contain"
               />
               <div className="max-w-md space-y-1.5">
-                <p className="text-ui-base font-semibold text-foreground">
+                <p className="font-display text-ui-lg font-semibold text-foreground">
                   {intl.formatMessage({ id: "nibi.membership.dialog.loginRequired" })}
                 </p>
                 <p className="text-ui-sm text-foreground-subtle">
@@ -347,7 +347,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
                 aria-hidden="true"
                 className="size-14 rounded-2xl object-contain"
               />
-              <p className="text-ui-base font-semibold text-foreground">
+              <p className="font-display text-ui-lg font-semibold text-foreground">
                 {intl.formatMessage({ id: "nibi.membership.dialog.bannedTitle" })}
               </p>
               <p className="max-w-md text-balance text-ui-sm text-foreground-subtle">
@@ -371,7 +371,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
 
           {phase === "error" ? (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <p className="text-ui-base font-medium text-foreground">
+              <p className="font-display text-ui-lg font-semibold text-foreground">
                 {intl.formatMessage({ id: "nibi.membership.dialog.loadError" })}
               </p>
               <p className="text-ui-sm text-foreground-subtle">{error}</p>
@@ -393,7 +393,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
             <>
               {purchaseComplete ? (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/95 p-8 text-center">
-                  <p className="text-ui-base font-semibold text-foreground">
+                  <p className="font-display text-ui-lg font-semibold text-foreground">
                     {intl.formatMessage({ id: "nibi.membership.dialog.purchaseComplete" })}
                   </p>
                   {purchaseSync === "syncing" ? (
@@ -428,7 +428,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
               ) : null}
               {loadError ? (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                  <p className="text-ui-base font-medium text-foreground">
+                  <p className="font-display text-ui-lg font-semibold text-foreground">
                     {intl.formatMessage({ id: "nibi.membership.dialog.loadError" })}
                   </p>
                   <p className="text-ui-sm text-foreground-subtle">{loadError}</p>

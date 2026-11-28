@@ -11,7 +11,7 @@ export const SOURCE_META: Record<
   nibiagentmcp: {
     label: "NIBI Agent",
     section: "NIBI Agent",
-    badgeClass: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
+    badgeClass: "bg-primary/12 text-primary",
   },
 };
 export type ConfigStorageLevel = "user" | "workspace";

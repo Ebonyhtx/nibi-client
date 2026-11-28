@@ -1756,7 +1756,7 @@ export function SubagentsSection({
           />
           <div className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-ui-xl font-semibold text-foreground">
+              <h3 className="font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
                 {editingAgent
                   ? intl.formatMessage({ id: "settings.subagents.edit" })
                   : intl.formatMessage({ id: "settings.subagents.addNew" })}

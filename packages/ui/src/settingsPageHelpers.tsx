@@ -350,8 +350,11 @@ export function GeneralSectionContent({
   }, [normalizedHttpProxyCaCertPath, onHttpProxyCaCertPathChange]);
 
   return (
-    <div className="space-y-4">
-      <SettingsGroupCard>
+    <div className="space-y-8">
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.general.group.workspace" })}
+        description={intl.formatMessage({ id: "settings.general.group.workspaceDesc" })}
+      >
         <SettingsRow
           searchTarget="general.locale"
           label={intl.formatMessage({ id: "settings.locale" })}
@@ -390,9 +393,6 @@ export function GeneralSectionContent({
             </Select>
           }
         />
-      </SettingsGroupCard>
-
-      <SettingsGroupCard>
         <SettingsRow
           controlLayout="wide"
           searchTarget="general.interfaceMode"
@@ -424,7 +424,175 @@ export function GeneralSectionContent({
         {hasServices ? <ProactiveSuggestionsSetting /> : null}
       </SettingsGroupCard>
 
-      <SettingsGroupCard>
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.general.group.notificationsAndRuntime" })}
+        description={intl.formatMessage({
+          id: "settings.general.group.notificationsAndRuntimeDesc",
+        })}
+      >
+        <SettingsRow
+          searchTarget="general.notification"
+          label={intl.formatMessage({ id: "settings.notification" })}
+          description={intl.formatMessage({
+            id: "settings.notificationDescription",
+          })}
+          control={
+            <Switch checked={notificationEnabled} onCheckedChange={setNotificationEnabled} />
+          }
+        />
+        <SettingsRow
+          searchTarget="general.notificationSound"
+          label={intl.formatMessage({ id: "settings.notificationSound" })}
+          description={intl.formatMessage({
+            id: "settings.notificationSoundDescription",
+          })}
+          control={
+            <Switch
+              checked={notificationSoundEnabled}
+              disabled={!notificationEnabled}
+              onCheckedChange={setNotificationSoundEnabled}
+            />
+          }
+        />
+        {isWindowsDesktop || isLinuxDesktop ? (
+          <SettingsRow
+            searchTarget="general.closeToTray"
+            label={intl.formatMessage({ id: "settings.closeToTrayOnWindows" })}
+            description={
+              linuxCloseToTray?.unavailable
+                ? linuxCloseToTray.gnomeLikeHint
+                  ? `${intl.formatMessage({ id: "settings.closeToTrayUnavailable" })} ${intl.formatMessage({ id: "settings.closeToTrayGnomeHint" })}`
+                  : intl.formatMessage({ id: "settings.closeToTrayUnavailable" })
+                : intl.formatMessage({
+                    id: "settings.closeToTrayOnWindowsDescription",
+                  })
+            }
+            control={
+              <Switch
+                checked={closeToTrayOnWindows}
+                // Linux 上托盘能力未知（探测中）或确认不可用时都锁定，防止误开导致关窗失联
+                //（spec：docs/desktop/linux-close-to-tray.md）。
+                disabled={Boolean(linuxCloseToTray?.disabled)}
+                onCheckedChange={(checked) => {
+                  void onCloseToTrayOnWindowsChange(checked);
+                }}
+              />
+            }
+          />
+        ) : null}
+        {isDesktop ? (
+          <SettingsRow
+            searchTarget="general.keepAwake"
+            label={intl.formatMessage({ id: "settings.keepAwakeWhileRunning" })}
+            description={intl.formatMessage({
+              id: "settings.keepAwakeWhileRunningDescription",
+            })}
+            control={
+              <Switch
+                aria-label={intl.formatMessage({
+                  id: "settings.keepAwakeWhileRunning",
+                })}
+                checked={keepAwakeWhileRunning}
+                onCheckedChange={(checked) => {
+                  void onKeepAwakeWhileRunningChange(checked);
+                }}
+              />
+            }
+          />
+        ) : null}
+      </SettingsGroupCard>
+
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.general.group.conversationDisplay" })}
+        description={intl.formatMessage({
+          id: "settings.general.group.conversationDisplayDesc",
+        })}
+      >
+        <SettingsRow
+          searchTarget="general.toolGroupingExplore"
+          label={intl.formatMessage({ id: "settings.toolGroupingExplore" })}
+          description={intl.formatMessage({
+            id: "settings.toolGroupingExploreDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.toolGroupingExplore" })}
+              checked={toolGroupingExploreEnabled}
+              onCheckedChange={(checked) => {
+                void onToolGroupingExploreEnabledChange(checked);
+              }}
+            />
+          }
+        />
+        <SettingsRow
+          searchTarget="general.toolGroupingTerminal"
+          label={intl.formatMessage({ id: "settings.toolGroupingTerminal" })}
+          description={intl.formatMessage({
+            id: "settings.toolGroupingTerminalDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.toolGroupingTerminal" })}
+              checked={toolGroupingTerminalEnabled}
+              onCheckedChange={(checked) => {
+                void onToolGroupingTerminalEnabledChange(checked);
+              }}
+            />
+          }
+        />
+        <SettingsRow
+          searchTarget="general.toolGroupingChanges"
+          label={intl.formatMessage({ id: "settings.toolGroupingChanges" })}
+          description={intl.formatMessage({
+            id: "settings.toolGroupingChangesDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.toolGroupingChanges" })}
+              checked={toolGroupingChangesEnabled}
+              onCheckedChange={(checked) => {
+                void onToolGroupingChangesEnabledChange(checked);
+              }}
+            />
+          }
+        />
+      </SettingsGroupCard>
+
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.general.group.terminal" })}
+        description={intl.formatMessage({ id: "settings.general.group.terminalDesc" })}
+      >
+        {showIntegratedTerminalShell ? (
+          <SettingsRow
+            searchTarget="general.integratedTerminalShell"
+            label={intl.formatMessage({ id: "settings.integratedTerminalShell" })}
+            description={intl.formatMessage({
+              id: "settings.integratedTerminalShellDescription",
+            })}
+            control={
+              <Select
+                value={integratedTerminalShellValue}
+                onValueChange={(value) => {
+                  void handleIntegratedTerminalShellChange(value);
+                }}
+              >
+                <SelectTrigger size="lg" className="w-[260px] min-w-0 justify-between">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">
+                    {intl.formatMessage({ id: "settings.integratedTerminalShell.auto" })}
+                  </SelectItem>
+                  {visibleIntegratedTerminalShellOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+          />
+        ) : null}
         <SettingsRow
           searchTarget="general.terminal"
           label={intl.formatMessage({ id: "settings.terminalProfile" })}
@@ -473,41 +641,10 @@ export function GeneralSectionContent({
         />
       </SettingsGroupCard>
 
-      <SettingsGroupCard>
-        {showIntegratedTerminalShell ? (
-          <SettingsRow
-            searchTarget="general.integratedTerminalShell"
-            label={intl.formatMessage({ id: "settings.integratedTerminalShell" })}
-            description={intl.formatMessage({
-              id: "settings.integratedTerminalShellDescription",
-            })}
-            control={
-              <Select
-                value={integratedTerminalShellValue}
-                onValueChange={(value) => {
-                  void handleIntegratedTerminalShellChange(value);
-                }}
-              >
-                <SelectTrigger size="lg" className="w-[260px] min-w-0 justify-between">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">
-                    {intl.formatMessage({ id: "settings.integratedTerminalShell.auto" })}
-                  </SelectItem>
-                  {visibleIntegratedTerminalShellOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            }
-          />
-        ) : null}
-      </SettingsGroupCard>
-
-      <SettingsGroupCard>
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.general.group.network" })}
+        description={intl.formatMessage({ id: "settings.general.group.networkDesc" })}
+      >
         <SettingsRow
           searchTarget="general.httpProxyFollowSystem"
           label={intl.formatMessage({ id: "settings.httpProxyFollowSystem" })}
@@ -632,29 +769,27 @@ export function GeneralSectionContent({
         />
       </SettingsGroupCard>
 
-      <SettingsGroupCard>
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.general.group.systemAndStorage" })}
+        description={intl.formatMessage({ id: "settings.general.group.systemAndStorageDesc" })}
+      >
+        <SettingsRow
+          searchTarget="general.dataBaseDir"
+          label={intl.formatMessage({ id: "settings.dataBaseDir" })}
+          description={intl.formatMessage({
+            id: "settings.dataBaseDirDescription",
+          })}
+          control={
+            <DataBaseDirControl
+              dataBaseDir={dataBaseDir}
+              defaultHomeDir={defaultHomeDir}
+              onDataBaseDirChange={onDataBaseDirChange}
+              onSelectDataBaseDir={onSelectDataBaseDir}
+            />
+          }
+        />
         {isDesktop ? (
           <>
-            <SettingsRow
-              searchTarget="general.desktopChromiumHardwareAcceleration"
-              label={intl.formatMessage({
-                id: "settings.desktopChromiumHardwareAcceleration",
-              })}
-              description={intl.formatMessage({
-                id: "settings.desktopChromiumHardwareAccelerationDescription",
-              })}
-              control={
-                <Switch
-                  aria-label={intl.formatMessage({
-                    id: "settings.desktopChromiumHardwareAcceleration",
-                  })}
-                  checked={desktopChromiumHardwareAccelerationEnabled}
-                  onCheckedChange={(checked) => {
-                    void onDesktopChromiumHardwareAccelerationChange(checked);
-                  }}
-                />
-              }
-            />
             <SettingsRow
               searchTarget="general.updates"
               label={intl.formatMessage({ id: "settings.receivePreviewUpdates" })}
@@ -691,150 +826,28 @@ export function GeneralSectionContent({
                 />
               }
             />
+            <SettingsRow
+              searchTarget="general.desktopChromiumHardwareAcceleration"
+              label={intl.formatMessage({
+                id: "settings.desktopChromiumHardwareAcceleration",
+              })}
+              description={intl.formatMessage({
+                id: "settings.desktopChromiumHardwareAccelerationDescription",
+              })}
+              control={
+                <Switch
+                  aria-label={intl.formatMessage({
+                    id: "settings.desktopChromiumHardwareAcceleration",
+                  })}
+                  checked={desktopChromiumHardwareAccelerationEnabled}
+                  onCheckedChange={(checked) => {
+                    void onDesktopChromiumHardwareAccelerationChange(checked);
+                  }}
+                />
+              }
+            />
           </>
         ) : null}
-        <SettingsRow
-          searchTarget="general.notification"
-          label={intl.formatMessage({ id: "settings.notification" })}
-          description={intl.formatMessage({
-            id: "settings.notificationDescription",
-          })}
-          control={
-            <Switch checked={notificationEnabled} onCheckedChange={setNotificationEnabled} />
-          }
-        />
-        <SettingsRow
-          searchTarget="general.notificationSound"
-          label={intl.formatMessage({ id: "settings.notificationSound" })}
-          description={intl.formatMessage({
-            id: "settings.notificationSoundDescription",
-          })}
-          control={
-            <Switch
-              checked={notificationSoundEnabled}
-              disabled={!notificationEnabled}
-              onCheckedChange={setNotificationSoundEnabled}
-            />
-          }
-        />
-        {isWindowsDesktop || isLinuxDesktop ? (
-          <SettingsRow
-            searchTarget="general.closeToTray"
-            label={intl.formatMessage({ id: "settings.closeToTrayOnWindows" })}
-            description={
-              linuxCloseToTray?.unavailable
-                ? linuxCloseToTray.gnomeLikeHint
-                  ? `${intl.formatMessage({ id: "settings.closeToTrayUnavailable" })} ${intl.formatMessage({ id: "settings.closeToTrayGnomeHint" })}`
-                  : intl.formatMessage({ id: "settings.closeToTrayUnavailable" })
-                : intl.formatMessage({
-                    id: "settings.closeToTrayOnWindowsDescription",
-                  })
-            }
-            control={
-              <Switch
-                checked={closeToTrayOnWindows}
-                // Linux 上托盘能力未知（探测中）或确认不可用时都锁定，防止误开导致关窗失联
-                //（spec：docs/desktop/linux-close-to-tray.md）。
-                disabled={Boolean(linuxCloseToTray?.disabled)}
-                onCheckedChange={(checked) => {
-                  void onCloseToTrayOnWindowsChange(checked);
-                }}
-              />
-            }
-          />
-        ) : null}
-        {isDesktop ? (
-          <SettingsRow
-            searchTarget="general.keepAwake"
-            label={intl.formatMessage({ id: "settings.keepAwakeWhileRunning" })}
-            description={intl.formatMessage({
-              id: "settings.keepAwakeWhileRunningDescription",
-            })}
-            control={
-              <Switch
-                aria-label={intl.formatMessage({
-                  id: "settings.keepAwakeWhileRunning",
-                })}
-                checked={keepAwakeWhileRunning}
-                onCheckedChange={(checked) => {
-                  void onKeepAwakeWhileRunningChange(checked);
-                }}
-              />
-            }
-          />
-        ) : null}
-      </SettingsGroupCard>
-
-      <SettingsGroupCard>
-        <SettingsRow
-          searchTarget="general.toolGroupingExplore"
-          label={intl.formatMessage({ id: "settings.toolGroupingExplore" })}
-          description={intl.formatMessage({
-            id: "settings.toolGroupingExploreDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.toolGroupingExplore" })}
-              checked={toolGroupingExploreEnabled}
-              onCheckedChange={(checked) => {
-                void onToolGroupingExploreEnabledChange(checked);
-              }}
-            />
-          }
-        />
-        <SettingsRow
-          searchTarget="general.toolGroupingTerminal"
-          label={intl.formatMessage({ id: "settings.toolGroupingTerminal" })}
-          description={intl.formatMessage({
-            id: "settings.toolGroupingTerminalDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.toolGroupingTerminal" })}
-              checked={toolGroupingTerminalEnabled}
-              onCheckedChange={(checked) => {
-                void onToolGroupingTerminalEnabledChange(checked);
-              }}
-            />
-          }
-        />
-        <SettingsRow
-          searchTarget="general.toolGroupingChanges"
-          label={intl.formatMessage({ id: "settings.toolGroupingChanges" })}
-          description={intl.formatMessage({
-            id: "settings.toolGroupingChangesDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.toolGroupingChanges" })}
-              checked={toolGroupingChangesEnabled}
-              onCheckedChange={(checked) => {
-                void onToolGroupingChangesEnabledChange(checked);
-              }}
-            />
-          }
-        />
-      </SettingsGroupCard>
-
-      <SettingsGroupCard>
-        <SettingsRow
-          searchTarget="general.dataBaseDir"
-          label={intl.formatMessage({ id: "settings.dataBaseDir" })}
-          description={intl.formatMessage({
-            id: "settings.dataBaseDirDescription",
-          })}
-          control={
-            <DataBaseDirControl
-              dataBaseDir={dataBaseDir}
-              defaultHomeDir={defaultHomeDir}
-              onDataBaseDirChange={onDataBaseDirChange}
-              onSelectDataBaseDir={onSelectDataBaseDir}
-            />
-          }
-        />
-      </SettingsGroupCard>
-
-      <SettingsGroupCard>
         <SettingsRow
           searchTarget="general.onboarding"
           label={intl.formatMessage({ id: "settings.onboarding" })}
@@ -893,8 +906,11 @@ export function AgentBehaviorSectionContent({
   const hasServices = Boolean(useOptionalServices());
 
   return (
-    <div className="space-y-4">
-      <SettingsGroupCard>
+    <div className="space-y-8">
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.agentBehavior.group.tools" })}
+        description={intl.formatMessage({ id: "settings.agentBehavior.group.toolsDesc" })}
+      >
         <SettingsRow
           searchTarget="agentBehavior.toolSearch"
           label={intl.formatMessage({ id: "settings.toolSearch" })}
@@ -955,7 +971,10 @@ export function AgentBehaviorSectionContent({
         />
       </SettingsGroupCard>
 
-      <SettingsGroupCard>
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.agentBehavior.group.interaction" })}
+        description={intl.formatMessage({ id: "settings.agentBehavior.group.interactionDesc" })}
+      >
         <SettingsRow
           searchTarget="agentBehavior.interaction"
           label={intl.formatMessage({ id: "settings.nibiInteractionBehavior" })}
@@ -1007,22 +1026,12 @@ export function AgentBehaviorSectionContent({
         />
         {/* docs/dynamic-workflow/launch.md「The user's choice」：服务端未提供时整行不渲染。 */}
         {hasServices ? <DynamicWorkflowModeSetting /> : null}
-        <SettingsRow
-          searchTarget="agentBehavior.modelIoFullRetention"
-          label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
-          description={intl.formatMessage({
-            id: "settings.modelIoFullRetentionDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
-              checked={modelIoFullRetentionEnabled}
-              onCheckedChange={(checked) => {
-                void onModelIoFullRetentionEnabledChange(checked);
-              }}
-            />
-          }
-        />
+      </SettingsGroupCard>
+
+      <SettingsGroupCard
+        title={intl.formatMessage({ id: "settings.agentBehavior.group.streamAndLogs" })}
+        description={intl.formatMessage({ id: "settings.agentBehavior.group.streamAndLogsDesc" })}
+      >
         <SettingsRow
           searchTarget="agentBehavior.reasoning"
           label={intl.formatMessage({ id: "settings.messageStreamShowReasoning" })}
@@ -1051,6 +1060,22 @@ export function AgentBehaviorSectionContent({
               checked={messageStreamShowTodos}
               onCheckedChange={(checked) => {
                 void onMessageStreamShowTodosChange(checked);
+              }}
+            />
+          }
+        />
+        <SettingsRow
+          searchTarget="agentBehavior.modelIoFullRetention"
+          label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
+          description={intl.formatMessage({
+            id: "settings.modelIoFullRetentionDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
+              checked={modelIoFullRetentionEnabled}
+              onCheckedChange={(checked) => {
+                void onModelIoFullRetentionEnabledChange(checked);
               }}
             />
           }

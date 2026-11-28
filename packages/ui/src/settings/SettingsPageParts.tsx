@@ -66,16 +66,18 @@ export function ThemePreviewCard({
   const { intl } = useNibiIntl();
   const previewSurfaceClassName = mode === "light" ? "ring-1 ring-black/5" : "ring-1 ring-white/8";
   const previewThemeStyle = {
-    "--color-background": mode === "light" ? "#f9f2e4" : "#171614",
-    "--color-card": mode === "light" ? "#fffdf9" : "#201e1b",
-    "--color-foreground": mode === "light" ? "#1c2f4e" : "#e0dad0",
+    "--color-background": mode === "light" ? "#fcf9f2" : "#181714",
+    "--color-card": mode === "light" ? "#fffefa" : "#211f1b",
+    "--color-foreground": mode === "light" ? "#1c2b42" : "#e8e1d5",
   } as CSSProperties;
 
   return (
     <div className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
       <div className="flex items-center justify-between gap-3 border-b border-border/65 bg-surface/45 px-4 py-3">
         <div>
-          <div className="text-ui-base font-semibold text-foreground">{title}</div>
+          <div className="font-display text-ui-base font-semibold leading-[1.35] text-foreground">
+            {title}
+          </div>
           <div className="text-ui-sm text-foreground-subtle">{themeName}</div>
         </div>
         <span
@@ -126,7 +128,7 @@ export function SettingsRow({
 }) {
   return (
     <div
-      className="border-t border-border/65 px-4 py-3.5 first:border-t-0"
+      className="border-t border-border/65 px-5 py-3.5 transition-colors duration-150 first:border-t-0 hover:bg-surface/35"
       data-settings-search-target={searchTarget}
     >
       {/* 手机窄屏下固定 192px 控件列会把文字压到约 60px 宽。compact-web 下改为可换行 flex：
@@ -166,11 +168,51 @@ export function SettingsRow({
   );
 }
 
-export function SettingsGroupCard({ children }: { children: ReactNode }) {
-  return (
-    <Card className="overflow-hidden rounded-xl border border-card-border bg-card py-0 shadow-[var(--nibi-shadow-card)]">
+export function SettingsGroupCard({
+  children,
+  title,
+  description,
+  badge,
+  cardClassName,
+}: {
+  children: ReactNode;
+  title?: ReactNode;
+  description?: ReactNode;
+  badge?: ReactNode;
+  cardClassName?: string;
+}) {
+  const card = (
+    <Card
+      className={cn(
+        "overflow-hidden rounded-xl border border-card-border bg-card py-0 shadow-[var(--nibi-shadow-card)]",
+        cardClassName,
+      )}
+    >
       <CardContent className="space-y-0 px-0">{children}</CardContent>
     </Card>
+  );
+
+  if (!title && !description && !badge) {
+    return card;
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3 px-1.5">
+        <div className="min-w-0">
+          {title ? (
+            <h3 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
+              {title}
+            </h3>
+          ) : null}
+          {description ? (
+            <p className="mt-1 text-ui-sm leading-5 text-foreground-subtle">{description}</p>
+          ) : null}
+        </div>
+        {badge ? <div className="shrink-0">{badge}</div> : null}
+      </div>
+      {card}
+    </section>
   );
 }
 

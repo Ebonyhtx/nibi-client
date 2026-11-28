@@ -1059,6 +1059,7 @@ export function App({
         // quick pick 命令只关心登录态布尔值。
         // 如果依赖完整 user 对象，auth store 返回等价新引用时会重建整组 command/run 闭包。
         isLoggedIn,
+        reloadSessionDisabled,
         themeTarget,
         shortcuts: {
           newTask: newTaskShortcutLabel,
@@ -1090,6 +1091,11 @@ export function App({
           openTerminalTab: () => runVisibleWorkspaceCommand(handleOpenTerminalTabIfWritable),
           openBrowserTab: () => runVisibleWorkspaceCommand(handleOpenBrowserTab),
           openReviewTab: () => runVisibleWorkspaceCommand(handleOpenGitIfWritable),
+          openAppearanceSettings: () => handleOpenSettingsSection("appearance"),
+          openModelsSettings: () => handleOpenSettingsSection("modelProvider"),
+          openShortcutsSettings: () => handleOpenSettingsSection("shortcuts"),
+          selectTheme: (nextTheme) => setTheme(nextTheme),
+          reloadSession: handleReloadSession,
         },
       }),
     [
@@ -1100,6 +1106,7 @@ export function App({
       handleOpenFeedback,
       handleOpenProductDocs,
       handleOpenSettingsSection,
+      handleReloadSession,
       handleSwitchTheme,
       handleOpenBrowserTab,
       handleOpenGitIfWritable,
@@ -1114,9 +1121,11 @@ export function App({
       onLogin,
       onLogout,
       onOpenWorkspace,
+      reloadSessionDisabled,
       runVisibleWorkspaceCommand,
       openSettingsTab,
       openWorkspaceShortcutLabel,
+      setTheme,
       supportsEmbeddedBrowser,
       toggleSidebarShortcutLabel,
       toggleTerminalShortcutLabel,

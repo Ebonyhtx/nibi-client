@@ -163,7 +163,7 @@ export function PluginStoreDetailView({
           data-testid="plugin-store-title-actions"
         >
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="min-w-0 truncate text-ui-xl font-semibold tracking-tight text-foreground">
+            <h1 className="min-w-0 truncate font-display text-ui-xl font-semibold leading-[1.4] tracking-[-0.015em] text-foreground">
               {displayName}
             </h1>
             <PluginStorePaidPlanBadge item={item} />
@@ -275,7 +275,7 @@ export function PluginStoreDetailView({
 
       {isUiPluginItem(item) ? (
         <section data-testid="plugin-store-ui-capability" className="space-y-2">
-          <h2 className="text-ui-lg font-semibold">
+          <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
             {intl.formatMessage({ id: "settings.plugins.store.ui.capability" })}
           </h2>
           {item.info?.uiSurfaces?.map((surface) => (
@@ -485,7 +485,7 @@ function ComponentSection({ group }: { group: PluginComponentDisplayGroup }) {
   return (
     <section data-testid="plugin-store-component-section" data-component-kind={group.kind}>
       <div className="flex items-baseline gap-2 border-b border-border pb-2">
-        <h2 className="text-ui-lg font-semibold text-foreground">
+        <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
           {intl.formatMessage({ id: SECTION_TITLE_IDS[group.kind] })}
         </h2>
         <span className="text-ui-base text-foreground-subtle">{group.count}</span>
@@ -592,7 +592,7 @@ function InfoSection({
   return (
     <section>
       <div className="border-b border-border pb-2">
-        <h2 className="text-ui-lg font-semibold text-foreground">
+        <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
           {intl.formatMessage({ id: "settings.plugins.store.info.title" })}
         </h2>
       </div>

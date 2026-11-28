@@ -97,7 +97,7 @@ export function ProviderTemplatePicker({
         >
           <ArrowLeftIcon className="size-4" aria-hidden="true" />
         </Button>
-        <h2 className="text-ui-lg font-semibold text-foreground">
+        <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
           {intl.formatMessage({ id: "settings.modelProvider.templatePickerTitle" })}
         </h2>
       </div>

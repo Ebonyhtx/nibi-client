@@ -61,7 +61,7 @@ export function SavedWorkflowDetailHeader({
             链接。面包屑改回两级，归属挪到这里，写成一眼看得出不是控件的小标（与列表组头的
             「当前」小标同一套样式）。 */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h1 className="min-w-0 text-ui-xl font-semibold text-foreground">{name}</h1>
+          <h1 className="min-w-0 font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.015em] text-foreground">{name}</h1>
           <span
             data-testid={TID_WORKFLOW_DETAIL_PROJECT}
             className="max-w-60 truncate rounded-sm border border-border px-1.5 text-ui-xs leading-4 text-foreground-subtlest"

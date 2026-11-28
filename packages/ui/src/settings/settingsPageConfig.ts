@@ -24,6 +24,8 @@ import {
   FileSearch,
   Folders,
   User,
+  Cloud,
+  Sparkles,
 } from "lucide-react";
 import { isSettingsSectionEnabled, type SettingsSectionId } from "@/lib/settingsNavigation.js";
 import type { Theme } from "@/useTheme.js";
@@ -33,11 +35,18 @@ export const THEME_MODES: Array<{
   icon: typeof Sun;
 }> = [
   { mode: "system", icon: Monitor },
-  { mode: "nibi-dark", icon: Moon },
   { mode: "nibi-light", icon: Sun },
+  { mode: "nibi-mist", icon: Cloud },
+  { mode: "nibi-dark", icon: Moon },
+  { mode: "nibi-obsidian", icon: Sparkles },
 ];
 
-export type SettingsSectionGroupId = "basics" | "agentCapabilities" | "dataAndStats";
+export type SettingsSectionGroupId =
+  | "basics"
+  | "agentCapabilities"
+  | "extensions"
+  | "environment"
+  | "dataAndStats";
 
 /**
  * 设置项的运行时可见性。索引只收录当前平台真正会挂载的行，
@@ -86,6 +95,8 @@ const BASE_SETTINGS_SECTION_GROUPS: Array<{
     id: "agentCapabilities",
     titleId: "settings.sidebar.group.agentCapabilities",
   },
+  { id: "extensions", titleId: "settings.sidebar.group.extensions" },
+  { id: "environment", titleId: "settings.sidebar.group.environment" },
   { id: "dataAndStats", titleId: "settings.sidebar.group.dataAndStats" },
 ];
 
@@ -339,14 +350,21 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     ],
   },
   {
+    id: "shortcuts",
+    icon: Keyboard,
+    titleId: "settings.shortcuts.title",
+    groupId: "basics",
+    searchKeywords: ["快捷键", "键盘", "shortcut", "keyboard", "keybinding"],
+  },
+  {
     id: "modelProvider",
     icon: Package,
     titleId: "settings.modelProviderTitle",
-    groupId: "basics",
+    groupId: "agentCapabilities",
     searchKeywords: ["模型", "提供商", "连接", "密钥", "model", "provider", "api key"],
   },
-  // 个性化紧跟基础设置之后：用户级 AGENTS.md 是 Agent 行为的全局输入，
-  // 放在 Agent 能力组最前，和记忆 / 子代理等能力配置形成同一叙事。
+  // 个性化紧跟模型设置之后：用户级 AGENTS.md 是 Agent 行为的全局输入，
+  // 放在模型与智能体组内，和行为、记忆、子智能体形成同一叙事。
   {
     id: "personalization",
     icon: User,
@@ -440,28 +458,28 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     id: "plugin",
     icon: Blocks,
     titleId: "settings.plugins.title",
-    groupId: "agentCapabilities",
+    groupId: "extensions",
     searchKeywords: ["插件", "扩展", "plugin", "extension"],
   },
   {
     id: "mcp",
     icon: Cable,
     titleId: "settings.mcpTitle",
-    groupId: "agentCapabilities",
+    groupId: "extensions",
     searchKeywords: ["服务器", "工具", "mcp", "server", "tool"],
   },
   {
     id: "skill",
     icon: WandSparkles,
     titleId: "settings.skills.title",
-    groupId: "agentCapabilities",
+    groupId: "extensions",
     searchKeywords: ["技能", "skill"],
   },
   {
     id: "commands",
     icon: Terminal,
     titleId: "settings.commands.title",
-    groupId: "agentCapabilities",
+    groupId: "extensions",
     searchKeywords: ["命令", "斜杠", "command", "slash"],
   },
   {
@@ -469,20 +487,20 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     icon: AlarmClock,
     titleId: "settings.automations.title",
     titleBadgeId: "settings.automations.betaBadge",
-    groupId: "agentCapabilities",
+    groupId: "extensions",
   },
   {
     id: "hooks",
     icon: Anchor,
     titleId: "settings.hooks.title",
-    groupId: "agentCapabilities",
+    groupId: "extensions",
     searchKeywords: ["钩子", "脚本", "hook", "script"],
   },
   {
     id: "browser",
     icon: Globe2,
     titleId: "settings.browser.title",
-    groupId: "basics",
+    groupId: "environment",
     searchKeywords: ["浏览器", "网页", "browser", "web"],
     searchItems: [
       {
@@ -543,31 +561,13 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
       },
     ],
   },
-  // 原型导航顺序：浏览器之后才是远程设备；电脑控制继续紧随其后并受灰度门禁。
-  {
-    id: "remoteDevices",
-    icon: HardDrive,
-    titleId: "settings.remoteDevicesTitle",
-    contentTitleId: "settings.remoteDevicesTitle",
-    groupId: "basics",
-    searchKeywords: ["远程", "设备", "连接", "remote", "device", "connection"],
-  },
-  // 数据同步归在「数据与统计」组首位，与上游一致：它管的是用户数据面，不是本机基础行为。
-  {
-    id: "dataSync",
-    icon: RefreshCw,
-    titleId: "settings.dataSync.title",
-    contentTitleId: "settings.dataSync.title",
-    groupId: "dataAndStats",
-    searchKeywords: ["同步", "设备", "sync", "device"],
-  },
   // 电脑控制紧跟「浏览器」：两者都是给 Agent 用的本机操控入口，
-  // 放在基础设置里让用户在同一处理解「控制浏览器 / 控制整台电脑」的关系。
+  // 放在环境与设备组里让用户在同一处理解「控制浏览器 / 控制整台电脑 / 连接远程设备」的关系。
   {
     id: "computerUse",
     icon: Monitor,
     titleId: "settings.computerUse.title",
-    groupId: "basics",
+    groupId: "environment",
     searchKeywords: ["电脑控制", "屏幕", "computer use", "cua", "screen"],
     searchItems: [
       {
@@ -598,20 +598,20 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
       },
     ],
   },
-  // 键盘快捷键紧跟「电脑控制」：同属本机操控/效率配置，收纳在基础设置尾部。
   {
-    id: "shortcuts",
-    icon: Keyboard,
-    titleId: "settings.shortcuts.title",
-    groupId: "basics",
-    searchKeywords: ["快捷键", "键盘", "shortcut", "keyboard", "keybinding"],
+    id: "remoteDevices",
+    icon: HardDrive,
+    titleId: "settings.remoteDevicesTitle",
+    contentTitleId: "settings.remoteDevicesTitle",
+    groupId: "environment",
+    searchKeywords: ["远程", "设备", "连接", "remote", "device", "connection"],
   },
-  // 工作区搜索范围（.nibiignore）：面向所有用户的基础工作区行为配置，收在基础设置末尾。
+  // 工作区搜索范围（.nibiignore）：工作区环境级忽略规则配置，收在环境与设备末尾。
   {
     id: "workspaceFileSearch",
     icon: FileSearch,
     titleId: "settings.workspaceFileSearch.title",
-    groupId: "basics",
+    groupId: "environment",
     searchKeywords: ["工作区", "搜索范围", "忽略", "workspace", "search scope", "ignore"],
   },
   {
@@ -677,6 +677,14 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
         targetId: "archives.taskAutoArchiveDays",
       },
     ],
+  },
+  {
+    id: "dataSync",
+    icon: RefreshCw,
+    titleId: "settings.dataSync.title",
+    contentTitleId: "settings.dataSync.title",
+    groupId: "dataAndStats",
+    searchKeywords: ["同步", "设备", "sync", "device"],
   },
   // 暂时隐藏设置页里的 Migration 入口，只保留页面实现，后续可以直接恢复这一项。
   // {
