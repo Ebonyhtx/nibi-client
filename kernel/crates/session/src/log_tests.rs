@@ -237,3 +237,36 @@ async fn the_revision_counts_state_changes_only() {
     // TurnStarted、两片合成一段的增量、标题、用量。
     assert_eq!(replay, vec![(1, 1), (3, 1), (4, 2), (5, 2)]);
 }
+
+/// 超出保留窗口时裁剪旧条目与文本预算，并在 ToolDone 时清理输出索引表。
+#[tokio::test]
+async fn the_log_caps_entries_and_prunes_outputs_on_tool_done() {
+    let log = EventLog::new();
+    for index in 0..2_600 {
+        log.append(title(&format!("title-{index}")));
+        log.append(delta(0, index, "chunk"));
+    }
+    let retained = log.retained();
+    assert!(retained.entries <= MAX_RETAINED_ENTRIES, "{retained:?}");
+
+    log.append(output("tool_done_1", "partial"));
+    assert!(log.inner.lock().unwrap().outputs.contains_key(&tool("tool_done_1")));
+    log.append(KernelEvent::ToolDone {
+        tool_use: tool("tool_done_1"),
+        output: ToolOutput {
+            content: Vec::new(),
+            is_error: false,
+            display: serde_json::Value::Null,
+        },
+    });
+    assert!(!log.inner.lock().unwrap().outputs.contains_key(&tool("tool_done_1")));
+
+    let last = log.last_seq();
+    let tail: Vec<u64> = log
+        .subscribe(Some(last - 3))
+        .take(3)
+        .map(|event| event.seq)
+        .collect()
+        .await;
+    assert_eq!(tail.len(), 3);
+}

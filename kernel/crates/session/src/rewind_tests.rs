@@ -182,7 +182,13 @@ async fn rewinding_code_and_conversation_restores_the_file_and_cuts_history() {
     assert_eq!(result["removed"], 4);
     assert_eq!(file(&env, "/work/a.txt").as_deref(), Some("old\n"));
     until(&mut events, |e| {
-        matches!(e, KernelEvent::HistoryRewritten { generation: 1 })
+        matches!(
+            e,
+            KernelEvent::HistoryRewritten {
+                generation: 1,
+                truncate_from_entity: Some(entity)
+            } if entity == prompt.as_str()
+        )
     })
     .await;
     let view = built.session.view().await.unwrap();

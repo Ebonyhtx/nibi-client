@@ -498,8 +498,14 @@ pub enum KernelEvent {
         boundary: MessageId,
     },
     /// 历史被改写（rewind、编辑重发）；前端丢弃旧视图后重新取快照。
+    ///
+    /// `truncate_from_entity` 是截断点（rewind 目标消息 id，含）——v4 投影按它做部分
+    /// 截断（`row.removed{fromRowId}`），保留的历史继续留在投影里。None/找不到该行时
+    /// 退回整表清空兜底。旧日志里的历史事件没有这个字段，serde default 兜底。
     HistoryRewritten {
         generation: u64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        truncate_from_entity: Option<String>,
     },
     /// 定时任务触发的界面行（tools-more.md §18.3，L22）：不进模型上下文、不落库，
     /// 紧接着是这次触发开的回合。`at` 是本地时间（`Oct 18 3:04pm`）；`fold` 有值时前端收起上一个 loop tick。

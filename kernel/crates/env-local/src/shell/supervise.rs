@@ -834,6 +834,7 @@ async fn supervise(
         }
     }
     job.running.finished.send_replace(Some(finish));
+    shared.record_finished(job.operation.clone());
     shared.notices.send_modify(|count| *count += 1);
 }
 

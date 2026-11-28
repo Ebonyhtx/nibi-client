@@ -384,3 +384,32 @@ async fn requests_are_not_captured_while_the_capture_is_off() {
     let quiet = tokio::time::timeout(Duration::from_millis(400), reader.read_line(&mut line)).await;
     assert!(quiet.is_err(), "unexpected frame: {line}");
 }
+
+/// 满 100 条时经 flush_now 立即冲批，不必等待整个 250ms 攒批窗口。
+#[tokio::test]
+async fn full_capture_batch_flushes_on_limit() {
+    let (peer, host_side, scope) = channel();
+    let context = Arc::new(Context::new(peer, Arc::new(TestClock)));
+    let capture = Capture::new(context, &scope.spawner());
+    let observer = capture.observer().expect("an observer");
+    capture.start();
+    capture.control(&serde_json::json!({"captureId": "cap-full"}));
+    for _ in 0..nibi_kernel_api::network_capture::CAPTURE_BATCH_LIMIT {
+        observer.request("GET", "https://example.com/item");
+    }
+    let mut reader = BufReader::new(host_side);
+    let mut line = String::new();
+    tokio::time::timeout(Duration::from_secs(2), reader.read_line(&mut line))
+        .await
+        .expect("a batch frame")
+        .expect("a line");
+    let frame: Value = serde_json::from_str(&line).expect("json frame");
+    assert_eq!(frame["method"], "process/networkRequests");
+    assert_eq!(frame["params"]["captureId"], "cap-full");
+    assert_eq!(
+        frame["params"]["records"]
+            .as_array()
+            .map(Vec::len),
+        Some(nibi_kernel_api::network_capture::CAPTURE_BATCH_LIMIT)
+    );
+}

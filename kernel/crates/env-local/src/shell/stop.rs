@@ -155,7 +155,7 @@ impl Shells {
                 Some(BackgroundInfo { status, .. }) => BackgroundStop::NotRunning { status },
             }
         };
-        state.stops.insert(
+        state.record_stop(
             context.operation.clone(),
             (
                 request.clone(),

@@ -646,3 +646,61 @@ async fn a_failed_notification_does_not_change_lifecycle_facts() {
     assert_eq!(state["generation"], 2);
     assert_eq!(state["revision"], 7);
 }
+
+/// Unloaded 或无订阅者的 Faulted 会回收桥接与上下文登记；仍有订阅者的 Faulted 保持驻留以便继续推送。
+#[tokio::test]
+async fn lifecycle_evicts_session_tables_on_unload_or_unsubscribed_fault() {
+    let (seen, server, mut wire, _scope, _writer) = notify_harness();
+    let unloaded = SessionId::new("sess_unloaded");
+    let faulted_idle = SessionId::new("sess_faulted_idle");
+    let faulted_sub = SessionId::new("sess_faulted_sub");
+    for (sess, ws, id) in [
+        (&unloaded, "ws_a", "id_a"),
+        (&faulted_idle, "ws_b", "id_b"),
+        (&faulted_sub, "ws_c", "id_c"),
+    ] {
+        server
+            .context
+            .register_with_identity(sess.as_str(), ws, Some(id));
+    }
+    let _ = server.live(&unloaded).await.unwrap();
+    let _ = server.live(&faulted_idle).await.unwrap();
+    let subscribed = crate::subscribe::subscribe(
+        &server,
+        &json!({"topic": "conversation/sess_faulted_sub", "connectionId": "c1",
+                "clientMode": "desktop-continuous"}),
+    )
+    .await
+    .unwrap();
+    run(subscribed).await;
+    let first = wire.next_message().await;
+    assert_eq!(first["method"], crate::context::FRAME);
+
+    emit(
+        &seen,
+        &faulty_snapshot(unloaded.as_str(), SessionLifecycleState::Unloaded),
+    );
+    emit(
+        &seen,
+        &faulty_snapshot(faulted_idle.as_str(), SessionLifecycleState::Faulted),
+    );
+    emit(
+        &seen,
+        &faulty_snapshot(faulted_sub.as_str(), SessionLifecycleState::Faulted),
+    );
+    let params = wire.next_notification(SESSION_LIFECYCLE_CHANGED).await;
+    assert_eq!(params["sessionId"], "sess_faulted_sub");
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    assert!(server.bridge.get(&unloaded).is_none());
+    assert!(server.context.workspace_of(unloaded.as_str()).is_none());
+    assert!(server.context.identity_of(unloaded.as_str()).is_none());
+
+    assert!(server.bridge.get(&faulted_idle).is_none());
+    assert!(server.context.workspace_of(faulted_idle.as_str()).is_none());
+    assert!(server.context.identity_of(faulted_idle.as_str()).is_none());
+
+    assert!(server.bridge.get(&faulted_sub).is_some());
+    assert!(server.context.workspace_of(faulted_sub.as_str()).is_some());
+    assert!(server.context.identity_of(faulted_sub.as_str()).is_some());
+}

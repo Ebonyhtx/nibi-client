@@ -17,7 +17,7 @@ mod stop;
 mod supervise;
 mod watch;
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, RwLock};
 use std::time::Duration;
@@ -194,6 +194,9 @@ pub(crate) struct SessionShell {
     pub acked: u64,
 }
 
+const MAX_FINISHED_COMMANDS: usize = 512;
+const MAX_STOP_RECORDS: usize = 256;
+
 #[derive(Default)]
 pub(crate) struct State {
     pub commands: HashMap<OperationId, Arc<Running>>,
@@ -201,8 +204,54 @@ pub(crate) struct State {
     /// 停止操作的结果，按 operationId 与期望的执行身份重放（README §6 规则 3）。
     /// 第三个值是停止时带的 `expectedExecutionId`：同一个 operationId 换了身份也算参数不同（拒绝而不是复用结果）。
     pub stops: HashMap<OperationId, (BackgroundTask, Option<String>, BackgroundStop)>,
+    /// 已结束命令与已记录停止结果的淘汰顺序队列，避免长进程无界累积。
+    finished_order: VecDeque<OperationId>,
+    stop_order: VecDeque<OperationId>,
     /// 正在跑的 Linux sandbox 与 bwrap 在宿主上建的挂载点（命令结束后清理）。
     pub mounts: mounts::Mounts,
+}
+
+impl State {
+    pub(crate) fn record_finished(&mut self, operation: OperationId) {
+        self.finished_order.push_back(operation);
+        let scan = self.finished_order.len();
+        let mut checked = 0;
+        while self.finished_order.len() > MAX_FINISHED_COMMANDS && checked < scan {
+            checked += 1;
+            let Some(candidate) = self.finished_order.pop_front() else {
+                break;
+            };
+            let still_running = self
+                .commands
+                .get(&candidate)
+                .is_some_and(|running| running.finished.borrow().is_none());
+            // 仍被未确认后台通知引用的命令不能驱逐，保留待通知消费
+            let referenced_by_notice = self
+                .sessions
+                .values()
+                .any(|shell| shell.notices.iter().any(|notice| notice.operation == candidate));
+            if still_running || referenced_by_notice {
+                self.finished_order.push_back(candidate);
+            } else {
+                self.commands.remove(&candidate);
+            }
+        }
+    }
+
+    pub(crate) fn record_stop(
+        &mut self,
+        operation: OperationId,
+        entry: (BackgroundTask, Option<String>, BackgroundStop),
+    ) {
+        if self.stops.insert(operation.clone(), entry).is_none() {
+            self.stop_order.push_back(operation);
+            while self.stop_order.len() > MAX_STOP_RECORDS {
+                if let Some(oldest) = self.stop_order.pop_front() {
+                    self.stops.remove(&oldest);
+                }
+            }
+        }
+    }
 }
 
 /// 监督任务与 [`Shells`] 共享的状态。锁只在同步代码里短暂持有。
@@ -217,6 +266,10 @@ pub(crate) struct Shared {
 impl Shared {
     pub(crate) fn state(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    pub(crate) fn record_finished(&self, operation: OperationId) {
+        self.state().record_finished(operation);
     }
 
     fn execution(&self, session: &SessionId) -> Option<SessionExecutionPreferences> {
@@ -672,6 +725,10 @@ impl Shells {
             }
         }
         state.sessions.remove(session);
+        // 清理已关闭会话中已完成且无通知引用的命令历史
+        state.commands.retain(|_, running| {
+            !(&running.session == session && running.finished.borrow().is_some())
+        });
     }
 
     /// 会话物化时 Host 给的三项执行偏好（`NIBI session/requestRuntimePreferences`）。

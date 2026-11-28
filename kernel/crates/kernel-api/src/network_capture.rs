@@ -49,6 +49,13 @@ pub struct NetworkCaptureBatch {
     pub dropped: u64,
 }
 
+/// 单次记录后的唤醒信号：区分“队列从空变为非空”和“已达单批上限”。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct RecordOutcome {
+    pub woke_empty: bool,
+    pub full: bool,
+}
+
 /// 捕获开关与攒批的状态。
 #[derive(Default)]
 pub struct CaptureState {
@@ -73,18 +80,24 @@ impl CaptureState {
         self.capture_id.as_deref()
     }
 
-    /// 记一条；没开捕获或 URL 不可上报时什么都不做。返回是否到达攒批上限（调用方据此立即冲一批）。
-    pub fn record(&mut self, timestamp: u64, pid: u32, method: &str, url: &str) -> bool {
+    /// 当前是否已开启捕获且仍有未发送记录。
+    pub fn has_pending(&self) -> bool {
+        self.capture_id.is_some() && !self.records.is_empty()
+    }
+
+    /// 记一条；没开捕获或 URL 不可上报时什么都不做。返回队列由空转非空及是否满批信号。
+    pub fn record(&mut self, timestamp: u64, pid: u32, method: &str, url: &str) -> RecordOutcome {
         if self.capture_id.is_none() || method.eq_ignore_ascii_case("CONNECT") {
-            return false;
+            return RecordOutcome::default();
         }
         if self.records.len() >= CAPTURE_BATCH_LIMIT {
             self.dropped += 1;
-            return false;
+            return RecordOutcome::default();
         }
         let Some(url) = sanitize_url(url) else {
-            return false;
+            return RecordOutcome::default();
         };
+        let woke_empty = self.records.is_empty();
         let mut method = method.to_owned();
         method.truncate(32);
         self.records.push(NetworkRequestRecord {
@@ -94,7 +107,10 @@ impl CaptureState {
             method,
             url,
         });
-        self.records.len() >= CAPTURE_BATCH_LIMIT
+        RecordOutcome {
+            woke_empty,
+            full: self.records.len() >= CAPTURE_BATCH_LIMIT,
+        }
     }
 
     /// 取走攒下的记录。没开捕获或没有记录时为 `None`（不发空批）。
@@ -161,11 +177,23 @@ mod tests {
     #[test]
     fn recording_is_off_until_a_capture_id_is_set() {
         let mut state = CaptureState::default();
-        assert!(!state.record(1, 2, "GET", "https://example.com/a?b=1"));
+        assert_eq!(
+            state.record(1, 2, "GET", "https://example.com/a?b=1"),
+            RecordOutcome::default()
+        );
         assert!(state.take_batch().is_none());
+        assert!(!state.has_pending());
         state.set_capture_id(Some("cap-1".to_owned()));
-        assert!(!state.record(1, 2, "GET", "https://example.com/a?b=1"));
+        assert_eq!(
+            state.record(1, 2, "GET", "https://example.com/a?b=1"),
+            RecordOutcome {
+                woke_empty: true,
+                full: false,
+            }
+        );
+        assert!(state.has_pending());
         let batch = state.take_batch().expect("a batch");
+        assert!(!state.has_pending());
         assert_eq!(batch.capture_id, "cap-1");
         assert_eq!(batch.records.len(), 1);
         assert_eq!(batch.records[0].process_type, "cli");
@@ -178,13 +206,32 @@ mod tests {
     fn the_batch_limit_drops_the_overflow() {
         let mut state = CaptureState::default();
         state.set_capture_id(Some("cap-1".to_owned()));
-        // 前 99 条正常收；第 100 条（索引 99）到上限，返回值告诉调用方该冲批了。
-        for index in 0..CAPTURE_BATCH_LIMIT - 1 {
-            assert!(!state.record(index as u64, 1, "GET", "https://example.com/"));
+        // 第 1 条触发 woke_empty，前 99 条均未满批，第 100 条（索引 99）触发 full。
+        assert_eq!(
+            state.record(0, 1, "GET", "https://example.com/"),
+            RecordOutcome {
+                woke_empty: true,
+                full: false,
+            }
+        );
+        for index in 1..CAPTURE_BATCH_LIMIT - 1 {
+            assert_eq!(
+                state.record(index as u64, 1, "GET", "https://example.com/"),
+                RecordOutcome::default()
+            );
         }
-        assert!(state.record(99, 1, "GET", "https://example.com/"));
+        assert_eq!(
+            state.record(99, 1, "GET", "https://example.com/"),
+            RecordOutcome {
+                woke_empty: false,
+                full: true,
+            }
+        );
         // 再来的就是溢出：丢掉并计数。
-        assert!(!state.record(100, 1, "GET", "https://example.com/"));
+        assert_eq!(
+            state.record(100, 1, "GET", "https://example.com/"),
+            RecordOutcome::default()
+        );
         let batch = state.take_batch().unwrap();
         assert_eq!(batch.records.len(), CAPTURE_BATCH_LIMIT);
         assert_eq!(batch.dropped, 1);
@@ -219,7 +266,10 @@ mod tests {
     fn connect_requests_are_not_recorded() {
         let mut state = CaptureState::default();
         state.set_capture_id(Some("cap".to_owned()));
-        assert!(!state.record(1, 1, "CONNECT", "https://example.com/"));
+        assert_eq!(
+            state.record(1, 1, "CONNECT", "https://example.com/"),
+            RecordOutcome::default()
+        );
         assert!(state.take_batch().is_none());
     }
 }

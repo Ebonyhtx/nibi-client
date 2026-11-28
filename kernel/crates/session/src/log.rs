@@ -8,7 +8,7 @@
 //!
 //! 修复（R1-4）：以前保存全部事件（含每个 StreamDelta / ToolProgress），长会话里内存只增不减。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, PoisonError};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
@@ -24,6 +24,10 @@ use tokio::sync::broadcast;
 const LIVE_CAPACITY: usize = 1024;
 /// 被取代的空位至少这么多、且占到三分之一时整理一次（每个空位后面通常跟着一段被它隔开的增量，空位到不了一半）。
 const COMPACT_AFTER: usize = 64;
+/// 会话事件日志保留上界（长会话/大输出时防止条目数、增量字节与片索引无限增长）。
+const MAX_RETAINED_ENTRIES: usize = 4096;
+const MAX_RETAINED_TEXT_BYTES: usize = 4 * 1024 * 1024;
+const MAX_RETAINED_PIECES: usize = 65_536;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DeltaKind {
@@ -239,9 +243,16 @@ fn progress_shape<'a>(tool_use: &'a ToolUseId, data: &'a Value) -> Shape<'a> {
 }
 
 struct Inner {
-    entries: Vec<Entry>,
-    /// 每个工具最新一条带 `output` 的进度在 `entries` 里的位置。
+    entries: VecDeque<Entry>,
+    /// 已从队列头部逐出的逻辑下标偏移量，用于校验 `outputs` 映射是否仍落在当前窗口内。
+    base_index: usize,
+    /// 每个工具最新一条带 `output` 的进度在 `entries` 里的逻辑位置。
     outputs: HashMap<ToolUseId, usize>,
+    /// 窗口内留存的流式文字字节数与片索引数（O(1) 预算判定）。
+    text_bytes: usize,
+    piece_count: usize,
+    /// 已被逐出的最大序号。
+    floor: u64,
     superseded: usize,
     next: u64,
     /// 当前的状态 revision（缺口 G1）。
@@ -252,41 +263,57 @@ impl Inner {
     fn store(&mut self, sequenced: &SequencedEvent) {
         match shape(&sequenced.event) {
             Shape::Delta(block, text) => {
-                if let Some(Entry::Run(run)) = self.entries.last_mut()
+                if let Some(Entry::Run(run)) = self.entries.back_mut()
                     && run.block == block
                 {
                     run.text.push_str(text);
                     run.pieces.push((sequenced.seq, run.text.len()));
                     run.revision = sequenced.revision;
-                    return;
+                    self.text_bytes += text.len();
+                    self.piece_count += 1;
+                } else {
+                    self.text_bytes += text.len();
+                    self.piece_count += 1;
+                    self.entries.push_back(Entry::Run(Run {
+                        block,
+                        text: text.to_owned(),
+                        pieces: vec![(sequenced.seq, text.len())],
+                        revision: sequenced.revision,
+                    }));
                 }
-                self.entries.push(Entry::Run(Run {
-                    block,
-                    text: text.to_owned(),
-                    pieces: vec![(sequenced.seq, text.len())],
-                    revision: sequenced.revision,
-                }));
             }
             Shape::Output(tool_use) => {
-                if let Some(at) = self.outputs.insert(tool_use.clone(), self.entries.len()) {
-                    self.entries[at] = Entry::Superseded;
+                let logical_at = self.base_index + self.entries.len();
+                if let Some(prev_at) = self.outputs.insert(tool_use.clone(), logical_at)
+                    && let Some(rel) = prev_at.checked_sub(self.base_index)
+                    && let Some(slot) = self.entries.get_mut(rel)
+                {
+                    *slot = Entry::Superseded;
                     self.superseded += 1;
                 }
-                self.entries.push(Entry::Event(sequenced.clone()));
+                self.entries.push_back(Entry::Event(sequenced.clone()));
                 if self.superseded >= COMPACT_AFTER && self.superseded * 3 >= self.entries.len() {
                     self.compact();
                 }
             }
-            Shape::LiveOnly => {}
-            Shape::Plain => self.entries.push(Entry::Event(sequenced.clone())),
+            Shape::LiveOnly => return,
+            Shape::Plain => {
+                if let KernelEvent::ToolDone { tool_use, .. } = &sequenced.event {
+                    // 工具完成后不再产生新的输出进度，立即移除对应下标条目
+                    self.outputs.remove(tool_use);
+                }
+                self.entries.push_back(Entry::Event(sequenced.clone()));
+            }
         }
+        self.evict_to_budget();
     }
 
     /// 去掉空位；去掉之后相邻的同一块的段合成一段。
     fn compact(&mut self) {
-        let mut kept: Vec<Entry> = Vec::with_capacity(self.entries.len() - self.superseded);
+        let mut kept: VecDeque<Entry> =
+            VecDeque::with_capacity(self.entries.len().saturating_sub(self.superseded));
         for entry in std::mem::take(&mut self.entries) {
-            match (entry, kept.last_mut()) {
+            match (entry, kept.back_mut()) {
                 (Entry::Superseded, _) => {}
                 (Entry::Run(run), Some(Entry::Run(previous))) if previous.block == run.block => {
                     let offset = previous.text.len();
@@ -296,10 +323,11 @@ impl Inner {
                         .extend(run.pieces.into_iter().map(|(seq, end)| (seq, offset + end)));
                     previous.revision = run.revision;
                 }
-                (entry, _) => kept.push(entry),
+                (entry, _) => kept.push_back(entry),
             }
         }
         self.entries = kept;
+        self.base_index = 0;
         self.superseded = 0;
         self.outputs = self
             .entries
@@ -316,6 +344,92 @@ impl Inner {
             })
             .collect();
     }
+
+    /// 裁剪超出保留上界的头部条目或单段超长流式片，避免长会话内存无界膨胀。
+    fn evict_to_budget(&mut self) {
+        while self.entries.len() > MAX_RETAINED_ENTRIES
+            || (self.entries.len() > 1
+                && (self.text_bytes > MAX_RETAINED_TEXT_BYTES
+                    || self.piece_count > MAX_RETAINED_PIECES))
+        {
+            let Some(front) = self.entries.pop_front() else {
+                break;
+            };
+            self.base_index += 1;
+            match front {
+                Entry::Superseded => {
+                    self.superseded = self.superseded.saturating_sub(1);
+                }
+                Entry::Event(event) => {
+                    self.floor = self.floor.max(event.seq);
+                    if let KernelEvent::ToolProgress { tool_use, .. } = &event.event
+                        && self
+                            .outputs
+                            .get(tool_use)
+                            .is_some_and(|at| *at < self.base_index)
+                    {
+                        self.outputs.remove(tool_use);
+                    }
+                }
+                Entry::Run(run) => {
+                    self.text_bytes = self.text_bytes.saturating_sub(run.text.len());
+                    self.piece_count = self.piece_count.saturating_sub(run.pieces.len());
+                    if let Some((last_seq, _)) = run.pieces.last() {
+                        self.floor = self.floor.max(*last_seq);
+                    }
+                }
+            }
+        }
+        if self.entries.len() == 1
+            && (self.text_bytes > MAX_RETAINED_TEXT_BYTES
+                || self.piece_count > MAX_RETAINED_PIECES)
+            && let Some(Entry::Run(run)) = self.entries.front_mut()
+        {
+            trim_run_front(
+                run,
+                &mut self.text_bytes,
+                &mut self.piece_count,
+                &mut self.floor,
+            );
+        }
+    }
+}
+
+fn trim_run_front(
+    run: &mut Run,
+    text_bytes: &mut usize,
+    piece_count: &mut usize,
+    floor: &mut u64,
+) {
+    let total_pieces = run.pieces.len();
+    if total_pieces <= 1 {
+        return;
+    }
+    let total_len = run.text.len();
+    let mut cut_index = None;
+    for (idx, &(seq, end)) in run.pieces.iter().enumerate() {
+        if idx + 1 >= total_pieces {
+            break;
+        }
+        let rem_bytes = total_len - end;
+        let rem_pieces = total_pieces - (idx + 1);
+        if rem_bytes <= MAX_RETAINED_TEXT_BYTES && rem_pieces <= MAX_RETAINED_PIECES {
+            cut_index = Some((idx + 1, end, seq));
+            break;
+        }
+    }
+    let (drop_n, cut_bytes, evicted_seq) = cut_index.unwrap_or_else(|| {
+        let (seq, end) = run.pieces[total_pieces - 2];
+        (total_pieces - 1, end, seq)
+    });
+    run.pieces.drain(..drop_n);
+    run.text.drain(..cut_bytes);
+    for (_, end) in &mut run.pieces {
+        *end -= cut_bytes;
+    }
+    *text_bytes = text_bytes.saturating_sub(cut_bytes);
+    *piece_count = piece_count.saturating_sub(drop_n);
+    *floor = (*floor).max(evicted_seq);
 }
 
 /// 存着的条目数与流式文字的字节数（测试看内存上界）。
@@ -335,8 +449,12 @@ impl EventLog {
     pub(crate) fn new() -> Self {
         Self {
             inner: Mutex::new(Inner {
-                entries: Vec::new(),
+                entries: VecDeque::new(),
+                base_index: 0,
                 outputs: HashMap::new(),
+                text_bytes: 0,
+                piece_count: 0,
+                floor: 0,
                 superseded: 0,
                 next: 1,
                 revision: 0,

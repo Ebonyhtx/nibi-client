@@ -274,25 +274,52 @@ impl Server {
     ///
     /// 与上游 `context.notify` 同一姿态：同步、尽力而为；失败只记日志，不影响已完成的生命周期事实。
     fn publish_lifecycle_changed(&self, snapshot: &SessionLifecycleSnapshot) {
-        let Some(live) = self.bridge.get(&snapshot.session_id) else {
-            return;
-        };
-        if !live.sink.has_subscribers() {
-            return;
+        let live = self.bridge.get(&snapshot.session_id);
+        let has_subscribers = live
+            .as_ref()
+            .is_some_and(|live| live.sink.has_subscribers());
+        if has_subscribers {
+            let params = lifecycle_snapshot(snapshot);
+            if !self
+                .context
+                .peer
+                .try_notify(SESSION_LIFECYCLE_CHANGED, &params)
+            {
+                tracing::debug!(
+                    event = "protocol.session_lifecycle.notify_failed",
+                    session = %snapshot.session_id,
+                    state = snapshot.state.as_str(),
+                    "the lifecycle notification was dropped (connection closed or queue full)"
+                );
+            }
         }
-        let params = lifecycle_snapshot(snapshot);
-        if !self
-            .context
-            .peer
-            .try_notify(SESSION_LIFECYCLE_CHANGED, &params)
-        {
-            tracing::debug!(
-                event = "protocol.session_lifecycle.notify_failed",
-                session = %snapshot.session_id,
-                state = snapshot.state.as_str(),
-                "the lifecycle notification was dropped (connection closed or queue full)"
-            );
+        // 先通知订阅者再回收：Unloaded 或无订阅者的 Faulted 回收协议桥与每会话登记表（保留 followups）
+        let should_evict = matches!(
+            snapshot.state,
+            nibi_kernel_api::residency::SessionLifecycleState::Unloaded
+        ) || (matches!(
+            snapshot.state,
+            nibi_kernel_api::residency::SessionLifecycleState::Faulted
+        ) && !has_subscribers);
+        if should_evict {
+            self.bridge.close(&snapshot.session_id);
+            self.evict_session_tables(&snapshot.session_id);
         }
+    }
+
+    fn evict_session_tables(&self, session: &SessionId) {
+        self.context.unregister(session.as_str());
+        self.hook_admissions
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+        self.hook_reviews
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+        // 附件事务的暂存按会话隔离（Host `clearSession`）。
+        self.uploads
+            .with(|table| table.clear_session(session.as_str()));
     }
 
     /// 每个协议请求的常驻租约（上游 `handleRequest` 的同一条闸门）：
@@ -652,17 +679,7 @@ impl Server {
                 );
             }
         }
-        self.hook_admissions
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .remove(&session);
-        self.hook_reviews
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .remove(&session);
-        // 附件事务的暂存按会话隔离（Host `clearSession`）。
-        self.uploads
-            .with(|table| table.clear_session(session.as_str()));
+        self.evict_session_tables(&session);
         json!({"closed": true})
     }
 
@@ -697,16 +714,7 @@ impl Server {
                 )
                 .await;
             self.bridge.close(session);
-            self.hook_admissions
-                .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .remove(session);
-            self.hook_reviews
-                .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .remove(session);
-            self.uploads
-                .with(|table| table.clear_session(session.as_str()));
+            self.evict_session_tables(session);
         }
         Ok(json!({
             "released": report.released.iter().map(|session| session.as_str()).collect::<Vec<_>>(),

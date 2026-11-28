@@ -265,6 +265,14 @@ impl Runner<'_> {
         )
         .map_err(|a| a.error)?;
         self.acquire(Self::journal_mode)?;
+        // WAL 模式下调整 synchronous = NORMAL 并限制持久化库 WAL 体积上限为 64 MiB
+        let wal_pragmas = if self.memory {
+            "pragma synchronous = normal"
+        } else {
+            "pragma synchronous = normal; pragma journal_size_limit = 67108864;"
+        };
+        self.sql(self.conn.execute_batch(wal_pragmas), "SQLite setup failed")
+            .map_err(|a| a.error)?;
         let kind = self.acquire(Self::preflight)?;
         self.facts = Some(Facts {
             kind,

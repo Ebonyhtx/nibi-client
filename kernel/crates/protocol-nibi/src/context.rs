@@ -106,6 +106,18 @@ impl Context {
         }
     }
 
+    /// 回收已卸载或已关闭会话在协议上下文中的登记，防止长期运行后会话表与身份表只增不减。
+    pub fn unregister(&self, session: &str) {
+        self.sessions
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+        self.identities
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+    }
+
     /// 远程工作区的身份；本机或不知道时为 None。
     pub fn identity_of(&self, session: &str) -> Option<String> {
         self.identities

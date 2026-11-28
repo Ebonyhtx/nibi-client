@@ -1856,3 +1856,66 @@ fn a_fresh_subagent_session_shows_the_initial_model_marker_cold() {
         "{rows:?}"
     );
 }
+
+/// HistoryRewritten 带截断点时只移除目标行及所属轮头（含）之后的行，保留前序对话并恢复末轮可编辑态。
+#[test]
+fn a_history_rewrite_only_truncates_from_its_target_row() {
+    let mut feed = Feed::new();
+    for (turn, user_id, assistant_id) in
+        [("turn_1", "msg_u1", "msg_a1"), ("turn_2", "msg_u2", "msg_a2")]
+    {
+        feed.apply(KernelEvent::TurnStarted {
+            execution_kind: None,
+            input_source: None,
+            origin_meta: None,
+            workflow_launch: None,
+            turn: TurnId::new(turn),
+            command: Some(CommandId::new("c1")),
+        });
+        feed.apply(KernelEvent::MessageDone {
+            message: user(user_id, "q"),
+        });
+        feed.apply(KernelEvent::MessageDone {
+            message: assistant(
+                assistant_id,
+                vec![ContentBlock::Text { text: "a".into() }],
+            ),
+        });
+        feed.apply(KernelEvent::TurnFinished {
+            turn: TurnId::new(turn),
+            outcome: TurnOutcome::Success,
+            usage: Some(Usage {
+                input_tokens: 1,
+                output_tokens: 1,
+                ..Usage::default()
+            }),
+        });
+    }
+    // 行号：1=turn_1 头、2=u1、3=a1、4=turn_2 头、5=u2、6=a2。
+    let rewritten = feed.apply(KernelEvent::HistoryRewritten {
+        generation: 1,
+        truncate_from_entity: Some("msg_u2".into()),
+    });
+    assert_eq!(rewritten[0]["op"], "row.removed");
+    assert_eq!(rewritten[0]["fromRowId"], 4);
+    let snapshot = feed.projection.snapshot(9, "epoch-1");
+    let rows = snapshot["rows"]["window"].as_array().unwrap();
+    let kinds: Vec<&str> = rows.iter().map(|row| row["kind"].as_str().unwrap()).collect();
+    assert_eq!(kinds, ["turnHeader", "userInput", "assistantText"]);
+    assert_eq!(snapshot["rows"]["firstRowId"], 1);
+    assert_eq!(rows[1]["entityId"], "msg_u1");
+    assert_eq!(rows[1]["actions"]["canEdit"], true);
+
+    // 回退到首轮输入（包含其 turn_1 轮头）：清空整表。
+    let rewritten_first = feed.apply(KernelEvent::HistoryRewritten {
+        generation: 2,
+        truncate_from_entity: Some("msg_u1".into()),
+    });
+    assert_eq!(rewritten_first[0]["op"], "row.removed");
+    assert_eq!(rewritten_first[0]["fromRowId"], 0);
+    let empty_snapshot = feed.projection.snapshot(10, "epoch-1");
+    assert_eq!(
+        empty_snapshot["rows"]["window"].as_array().unwrap().len(),
+        0
+    );
+}

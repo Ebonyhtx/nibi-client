@@ -232,7 +232,8 @@ pub struct Capture {
     state: Arc<NetworkCapture>,
     context: Arc<Context>,
     spawner: Spawner,
-    flush_pending: Arc<tokio::sync::Notify>,
+    wake_pending: Arc<tokio::sync::Notify>,
+    flush_now: Arc<tokio::sync::Notify>,
 }
 
 impl Capture {
@@ -241,7 +242,8 @@ impl Capture {
             state: Arc::new(NetworkCapture::default()),
             context,
             spawner: spawner.clone(),
-            flush_pending: Arc::new(tokio::sync::Notify::new()),
+            wake_pending: Arc::new(tokio::sync::Notify::new()),
+            flush_now: Arc::new(tokio::sync::Notify::new()),
         })
     }
 
@@ -249,19 +251,27 @@ impl Capture {
     pub fn observer(self: &Arc<Self>) -> Option<Arc<dyn EgressObserver>> {
         Some(Arc::new(CaptureObserver {
             state: Arc::downgrade(&self.state),
-            flush: self.flush_pending.clone(),
+            wake_pending: self.wake_pending.clone(),
+            flush_now: self.flush_now.clone(),
             clock: self.context.clock.clone(),
         }))
     }
 
-    /// 起攒批任务（进程生命周期内一直跑）。
+    /// 起攒批任务（进程生命周期内一直跑；捕获关闭或空队列时不轮询睡眠，仅靠 Notify 按需唤醒）。
     pub fn start(self: &Arc<Self>) -> Task<()> {
         let capture = self.clone();
         self.spawner.spawn("network-capture-flush", async move {
             loop {
-                // 开捕获时才有批次可发：每 250 ms 醒一次（Node 的 `setTimeout(flush, 250)`）。
+                // 等待有未发送记录（未开捕获或队列为空时零定时唤醒）
+                loop {
+                    let wake = capture.wake_pending.notified();
+                    if capture.state.with(|state| state.has_pending()) {
+                        break;
+                    }
+                    wake.await;
+                }
                 tokio::select! {
-                    _ = capture.flush_pending.notified() => {}
+                    _ = capture.flush_now.notified() => {}
                     _ = tokio::time::sleep(Duration::from_millis(
                         nibi_kernel_api::network_capture::CAPTURE_FLUSH_MS,
                     )) => {}
@@ -299,7 +309,8 @@ impl Capture {
 /// 出站请求 → 捕获状态。`Egress` 在每条请求发出前调它。
 struct CaptureObserver {
     state: Weak<NetworkCapture>,
-    flush: Arc<tokio::sync::Notify>,
+    wake_pending: Arc<tokio::sync::Notify>,
+    flush_now: Arc<tokio::sync::Notify>,
     /// 记录的 `timestamp` 取注入的时钟（与其余遥测同源）。
     clock: Arc<dyn nibi_kernel_api::clock::Clock>,
 }
@@ -309,11 +320,14 @@ impl EgressObserver for CaptureObserver {
         let Some(state) = self.state.upgrade() else {
             return;
         };
-        // 没开捕获时这里什么都不做（`record` 自己判）；满一批就提醒攒批任务立即冲。
+        // 没开捕获时这里什么都不做（`record` 自己判）；首条入队唤醒任务，满一批立即冲批。
         let now = self.clock.now_ms();
-        let full = state.with(|state| state.record(now, std::process::id(), method, url));
-        if full {
-            self.flush.notify_one();
+        let outcome = state.with(|state| state.record(now, std::process::id(), method, url));
+        if outcome.woke_empty {
+            self.wake_pending.notify_one();
+        }
+        if outcome.full {
+            self.flush_now.notify_one();
         }
     }
 }

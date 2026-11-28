@@ -12,7 +12,7 @@
 //! - `saturated` 的连接暂停投递：位置不动、增量留在日志里，`drained` 后下一次 flush 补上（Node
 //!   `setConnectionFlowState`）。
 
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 /// Node `PROTOCOL_V4_LIMITS.eventRetentionPerSession`。
 pub const DEFAULT_RETENTION: usize = 2000;
@@ -40,8 +40,8 @@ pub struct Batch<D> {
 pub struct TopicLog<D> {
     epoch: String,
     seq: u64,
-    /// 保留窗：`(seq, 这一组增量)`，序号升序。
-    log: Vec<(u64, Vec<D>)>,
+    /// 保留窗：`(seq, 这一组增量)`，序号升序（O(1) 头尾淘汰与追加）。
+    log: VecDeque<(u64, Vec<D>)>,
     /// 已经被淘汰的最大序号；`base.seq < floor` 的续传请求已无法无损重放。
     floor: u64,
     retention: usize,
@@ -58,7 +58,7 @@ impl<D: Clone> TopicLog<D> {
         Self {
             epoch: epoch.into(),
             seq: 0,
-            log: Vec::new(),
+            log: VecDeque::new(),
             floor: 0,
             retention: retention.max(1),
             subscribers: Vec::new(),
@@ -86,10 +86,11 @@ impl<D: Clone> TopicLog<D> {
         }
         self.seq += 1;
         let seq = self.seq;
-        self.log.push((seq, deltas));
+        self.log.push_back((seq, deltas));
         while self.log.len() > self.retention {
-            let (evicted, _) = self.log.remove(0);
-            self.floor = evicted;
+            if let Some((evicted, _)) = self.log.pop_front() {
+                self.floor = evicted;
+            }
         }
         seq
     }

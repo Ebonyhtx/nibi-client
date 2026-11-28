@@ -153,6 +153,17 @@ impl NodeStore {
     }
 }
 
+impl Drop for NodeStore {
+    fn drop(&mut self) {
+        // 释放存储句柄前尝试非阻塞 PASSIVE checkpoint，控制长期运行后残留 WAL 体积
+        if let Ok(mut slot) = self.connection.try_lock()
+            && let Some(conn) = slot.as_mut()
+        {
+            let _ = conn.execute_batch("pragma wal_checkpoint(PASSIVE);");
+        }
+    }
+}
+
 fn open_database(path: &Path, now_ms: u64) -> Result<Connection, StoreError> {
     let (conn, _) =
         repo::open::open(path, repo::open::MIGRATION_LOCK_WAIT, now_ms).map_err(storage)?;

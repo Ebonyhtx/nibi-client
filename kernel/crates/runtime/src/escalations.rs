@@ -11,7 +11,7 @@
 //! **父会话**收口（跨会话的 qid 一律按 `unknown_question` 拒绝，与 Node 的「每个 app 实例
 //! 一张表」同一条纪律）；`pending` 只列出本会话名下的问题。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use serde_json::json;
@@ -32,6 +32,9 @@ const MAX_ESCALATIONS_PER_ASK: u32 = 3;
 /// 已退场 qid 的记忆条数：**有界**。长跑的会话可以问答任意多次，无界的历史表就是一处静默
 /// 增长的内存；被逐出之后作答只会得到 `unknown_question`——诚实的退化。
 const RETIRED_HISTORY_LIMIT: usize = 256;
+/// 仅保留最近若干个 run 的序号与 ask 预算记录（存在 parked 停驻提问的 run 豁免淘汰）。
+const RUN_HISTORY_LIMIT: usize = 256;
+const BUDGET_HISTORY_LIMIT: usize = 512;
 
 /// 预算耗尽时回给模型的工具结果文案（普通结果，不是错误；与 Node 逐字相同）。
 const BUDGET_EXHAUSTED: &str = "Escalation budget exhausted: at most 3 escalations per task. \
@@ -61,11 +64,13 @@ struct Inner {
     order: Vec<String>,
     /// 已退场 qid → (原因, 父会话)。
     retired: HashMap<String, (RetiredReason, SessionId)>,
-    retired_order: Vec<String>,
+    retired_order: VecDeque<String>,
     /// 每个 run 的 qid 序号（qid 的第二段）。
     next_seq: HashMap<String, u64>,
+    run_order: VecDeque<String>,
     /// per-ask 的升级计数：`(runId, ask)` → 已用次数。
     budget: HashMap<(String, String), u32>,
+    budget_order: VecDeque<(String, String)>,
 }
 
 /// 停驻注册表（`escalate` 与 `ResolveWorkflowQuestion` 的唯一连线）。
@@ -281,7 +286,9 @@ pendingQuestions for the ids that are actually awaiting an answer."
         }
         let asked_at = self.clock.now_ms();
         let mut inner = self.lock();
-        let used = inner.budget.entry((run_id.clone(), ask)).or_default();
+        let budget_key = (run_id.clone(), ask);
+        let is_new_budget = !inner.budget.contains_key(&budget_key);
+        let used = inner.budget.entry(budget_key.clone()).or_default();
         if *used >= MAX_ESCALATIONS_PER_ASK {
             return Err(WorkflowEscalationOutcome::Refused {
                 reason: "budget_exhausted".to_owned(),
@@ -289,10 +296,13 @@ pendingQuestions for the ids that are actually awaiting an answer."
             });
         }
         *used += 1;
+        if is_new_budget {
+            inner.budget_order.push_back(budget_key);
+        }
         let qid = mint(&mut inner, &run_id);
         let question = WorkflowQuestion {
             qid: qid.clone(),
-            run_id,
+            run_id: run_id.clone(),
             parent,
             actor,
             actor_name,
@@ -309,6 +319,7 @@ pendingQuestions for the ids that are actually awaiting an answer."
             },
         );
         inner.order.push(qid.clone());
+        prune_run_state(&mut inner, &run_id);
         let text = notification_text(&question);
         Ok((qid, question, rx, text))
     }
@@ -325,10 +336,58 @@ fn retire(inner: &mut Inner, qid: &str, reason: RetiredReason, parent: &SessionI
     inner
         .retired
         .insert(qid.to_owned(), (reason, parent.clone()));
-    inner.retired_order.push(qid.to_owned());
+    inner.retired_order.push_back(qid.to_owned());
     while inner.retired_order.len() > RETIRED_HISTORY_LIMIT {
-        let oldest = inner.retired_order.remove(0);
-        inner.retired.remove(&oldest);
+        if let Some(oldest) = inner.retired_order.pop_front() {
+            inner.retired.remove(&oldest);
+        }
+    }
+}
+
+fn prune_run_state(inner: &mut Inner, protected_run: &str) {
+    if inner.run_order.len() <= RUN_HISTORY_LIMIT
+        && inner.budget_order.len() <= BUDGET_HISTORY_LIMIT
+    {
+        return;
+    }
+    let active_runs: HashSet<String> = inner
+        .parked
+        .values()
+        .map(|entry| entry.question.run_id.clone())
+        .collect();
+    if inner.run_order.len() > RUN_HISTORY_LIMIT {
+        let scan = inner.run_order.len();
+        for _ in 0..scan {
+            if inner.run_order.len() <= RUN_HISTORY_LIMIT {
+                break;
+            }
+            let Some(oldest_run) = inner.run_order.pop_front() else {
+                break;
+            };
+            // 仍有问题停驻中的 run 不允许淘汰，避免序号/预算丢失
+            if oldest_run == protected_run || active_runs.contains(&oldest_run) {
+                inner.run_order.push_back(oldest_run);
+            } else {
+                inner.next_seq.remove(&oldest_run);
+                inner.budget.retain(|(run, _), _| run != &oldest_run);
+            }
+        }
+    }
+    if inner.budget_order.len() > BUDGET_HISTORY_LIMIT {
+        let scan = inner.budget_order.len();
+        for _ in 0..scan {
+            if inner.budget_order.len() <= BUDGET_HISTORY_LIMIT {
+                break;
+            }
+            let Some(oldest_key) = inner.budget_order.pop_front() else {
+                break;
+            };
+            if oldest_key.0 == protected_run || active_runs.contains(&oldest_key.0) {
+                inner.budget_order.push_back(oldest_key);
+            } else {
+                inner.budget.remove(&oldest_key);
+            }
+        }
     }
 }
 
@@ -336,9 +395,14 @@ fn retire(inner: &mut Inner, qid: &str, reason: RetiredReason, parent: &SessionI
 /// 因而按构造必有一个未占用的）。
 fn mint(inner: &mut Inner, run_id: &str) -> String {
     let seq = {
+        let is_new_run = !inner.next_seq.contains_key(run_id);
         let next = inner.next_seq.entry(run_id.to_owned()).or_default();
         *next += 1;
-        *next
+        let seq = *next;
+        if is_new_run {
+            inner.run_order.push_back(run_id.to_owned());
+        }
+        seq
     };
     for fragment in fragments(run_id) {
         let candidate = format!("dwfq-{fragment}-{seq}");
