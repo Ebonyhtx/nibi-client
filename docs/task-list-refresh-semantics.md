@@ -361,3 +361,26 @@ runtime unavailable(workspaceKey) ───────────────�
 
 生产日志只保留 runtime available/unavailable 与真实订阅生命周期；observer reconcile、dormant 命中和逐帧
 细节使用 `debug`，避免 workspace 数量乘以列表消费者形成新的日志风暴。
+
+## 5. 列表行的来源边界与恢复自愈（2026-11-28）
+
+**行来源边界**：任务列表行的权威口径是"task-list 类型才进 sessions-index / tasks-index"。
+Node 侧 `getSessionWorkspaceId` 对 `subagent_child`、`workflow_child`、`nested_workflow_child`、
+`selection_side_chat` 回 null；Rust 网关同口径——`Live::collect` 的实时行按 `auxiliary` 旗标
+（`SelectionSideChat` + `Subagent`）与 draft 一起挡在快照与 `session.upserted` 之外，快照种子
+（`stored_rows` → `load::list` → `sessions::list`）沿用 `/resume` 的顶层 + fork 口径。
+2026-11-28 之前 Rust 只挡 selection_side_chat，子代理子会话的实时行漏进 sessions-index，
+Host 镜像随之在侧栏长出一条与父任务并排的子会话行；修复后存量脏行由启动期
+`repairSubagentTaskIndex` 自愈（快照不再包含子会话，它们落在可见集合外）。回归：
+`subscribe_tests::a_subagent_child_stays_out_of_the_sessions_index`。
+
+**恢复自愈契约**：同一份 subscription 在任何一层"已不认"（scope 换代驱逐、错位 unsubscribe、
+会话归档后 bridge 关闭等）都是**确定性失效**而非瞬态故障，故障码为
+`fault.subscription.notOwned`。`conversationProjectionStore` 与 `sessionsIndexStore` 的 resync
+恢复阶梯命中它时，携当前水位 fresh subscribe，由服务端裁决 resume/snapshot 完成自愈；
+其它文本按瞬态处理走原有重试/报错。内核（4.1.6 及更早）对同一条件回自己的文本
+`unknown subscription <id>`，两个 store 也把它当同一确定性失效处理；4.1.7 起内核
+`subscribe.rs::resync` 的 gone 路径统一回 `fault.subscription.notOwned (<id>)`。会话归档后
+取消归档即触发该路径（2026-11-28 真机：pane 卡死「unknown subscription sub-…」，点重新连接
+等价于自愈动作）。回归：`subscribe_tests::a_resync_for_a_session_outside_the_bridge_reports_not_owned`、
+`sessionsIndexStore.test.ts` 的两个自愈用例。
