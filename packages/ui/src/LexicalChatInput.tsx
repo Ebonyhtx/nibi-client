@@ -956,13 +956,16 @@ function E2ELexicalInputBridgePlugin({ inputTestId }: { inputTestId?: string }) 
     };
 
     let retryTimer: number | null = null;
-    const tryAttachBridge = () => {
+    let retryAttempts = 0;
+    const MAX_RETRY_ATTEMPTS = 30;
+    const tryAttachBridge = (): boolean => {
       const nextInput = resolveInput(editor.getRootElement());
       attachBridge(nextInput);
       if (nextInput && retryTimer !== null) {
         window.clearInterval(retryTimer);
         retryTimer = null;
       }
+      return Boolean(nextInput);
     };
     const unregisterRoot = editor.registerRootListener((rootElement, previousRootElement) => {
       if (previousRootElement !== rootElement) {
@@ -973,10 +976,21 @@ function E2ELexicalInputBridgePlugin({ inputTestId }: { inputTestId?: string }) 
       attachBridge(resolveInput(rootElement));
     });
 
-    tryAttachBridge();
-    // edit 场景里 ChatPromptEditor 的 initialValue 回填、Lexical root 注册、
-    // React DOM 提交顺序可能跨多个帧。短轮询只负责补挂测试 bridge，不参与产品行为。
-    retryTimer = window.setInterval(tryAttachBridge, 100);
+    // 若首帧已挂载到 DOM 则不创建轮询；仅在异步延迟挂载时短轮询并设 3 秒上限兜底。
+    if (!tryAttachBridge()) {
+      retryTimer = window.setInterval(() => {
+        if (typeof document !== "undefined" && document.hidden) {
+          return;
+        }
+        retryAttempts += 1;
+        if (tryAttachBridge() || retryAttempts >= MAX_RETRY_ATTEMPTS) {
+          if (retryTimer !== null) {
+            window.clearInterval(retryTimer);
+            retryTimer = null;
+          }
+        }
+      }, 100);
+    }
 
     return () => {
       unregisterRoot();

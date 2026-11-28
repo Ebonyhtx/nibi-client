@@ -407,7 +407,7 @@ export function ChatPromptEditor({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "nibi-atelier-composer relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-input-border bg-card p-3 hover:border-input-border-hover focus-within:!border-input-border-focused focus-within:bg-input-focused",
+          "nibi-atelier-composer relative flex flex-col gap-2.5 overflow-hidden rounded-[22px] border border-border/85 bg-card px-4 pt-3.5 pb-2.5 hover:border-border-hover focus-within:!border-input-border-focused focus-within:bg-input-focused",
           isInline && "flex-row flex-wrap items-end gap-2 p-2",
           (isWorkspaceFileDropActive || isExternalFileDropActive) &&
             "border-brand bg-input-focused ring-2 ring-brand/25",
@@ -415,7 +415,7 @@ export function ChatPromptEditor({
         )}
       >
         {draggingOverlayHint ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-brand/60 bg-card/85 backdrop-blur-md">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[22px] border-2 border-dashed border-brand/60 bg-card/85 backdrop-blur-md">
             <div className="flex items-center gap-2 rounded-full border border-border bg-popover px-4 py-2 text-ui-base text-foreground shadow-[var(--nibi-shadow-card)]">
               <Hand className="size-4 text-primary" />
               <span>{draggingOverlayHint}</span>
@@ -480,7 +480,7 @@ export function ChatPromptEditor({
                   disabled={submitDisabled}
                   data-testid={submitTestId ?? TID_CHAT_SEND_BUTTON}
                   aria-label={submitLabel}
-                  className="gap-1 rounded-xl bg-primary text-ui-base text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] hover:bg-primary/92 active:scale-[0.95]"
+                  className="gap-1 rounded-full bg-primary text-ui-base text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] hover:bg-primary/92 active:scale-[0.95]"
                 >
                   {submitting ? <Spinner className="size-4" /> : <ArrowUpIcon className="size-4" />}
                   <span className="sr-only">{submitLabel}</span>

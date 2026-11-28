@@ -99,8 +99,8 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
           "disabled:pointer-events-none disabled:opacity-50",
           compact
-            ? // 四卡等宽等高：h-9 固定 36px，单行 truncate 不会把卡片撑高，也不会落单换行。
-              "h-9 items-center gap-1.5 rounded-lg px-2.5 py-0"
+            ? // 四卡等宽等高：min-h-9 让默认字号下保持 36px 紧凑一行，字号放大时自然随内容撑高而不裁切。
+              "min-h-9 items-center gap-2 rounded-xl px-3 py-1.5"
             : "min-h-14 items-start gap-2.5 rounded-xl p-3",
           className,
         )}
@@ -125,10 +125,10 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
           <span
             data-draft-suggested-prompt-text="true"
             className={cn(
-              "font-medium text-foreground",
+              "font-display text-foreground",
               compact
-                ? "block truncate text-ui-sm leading-5"
-                : "line-clamp-2 break-words text-ui-base leading-5",
+                ? "nibi-serif-icon-align block truncate text-[13px] font-medium leading-[1.4]"
+                : "line-clamp-2 break-words text-ui-base font-semibold leading-[1.4]",
             )}
           >
             {label}
@@ -316,7 +316,9 @@ export function ConversationDraftSuggestedPrompts({
     >
       {hasHeader ? (
         <div className="mb-2 flex items-center justify-between gap-2 px-1 text-ui-sm text-foreground-subtle">
-          <span>{intl.formatMessage({ id: "occupationOnboarding.suggestionsHeading" })}</span>
+          <span className="font-display text-ui-base font-semibold leading-[1.4] text-foreground-subtle">
+            {intl.formatMessage({ id: "occupationOnboarding.suggestionsHeading" })}
+          </span>
           <div className="flex shrink-0 items-center gap-2">
             {onRefresh ? (
               <Button

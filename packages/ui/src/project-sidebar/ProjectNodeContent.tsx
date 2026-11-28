@@ -243,7 +243,7 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
                   );
                 }
               }}
-              className="group/project-row ml-2 flex h-8 min-w-0 items-center gap-1 rounded-lg pr-1 transition-colors duration-150 hover:bg-card/45 dark:hover:bg-surface-hover"
+              className="group/project-row ml-2 flex h-8 min-w-0 items-center gap-1 rounded-lg pr-1 transition-colors duration-150 hover:bg-card/60 dark:hover:bg-surface-hover"
             >
               {/* 标题仍可展开历史；失效提示仅绑定禁用的操作按钮，避免悬停整行也弹出。 */}
               <span className="flex min-w-0 flex-1 shrink-0">
@@ -279,7 +279,10 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
                           <ProjectFolderIcon
                             rootCount={project.roots.length}
                             open={isOpen}
-                            className="size-4 shrink-0 text-foreground-subtle"
+                            className={cn(
+                              "size-4 shrink-0 transition-colors",
+                              isOpen ? "text-primary/80" : "text-foreground-subtle",
+                            )}
                           />
                         )}
                       </span>

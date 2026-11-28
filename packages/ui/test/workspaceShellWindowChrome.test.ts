@@ -6,7 +6,7 @@ import {
 } from "../src/app-shell/workspaceShellWindowChrome.js";
 
 describe("resolveWorkspaceShellWindowChromeClass", () => {
-  it("uses 6px corners on macOS Sequoia and earlier", () => {
+  it("uses 12px corners on macOS Sequoia and earlier", () => {
     expect(
       resolveWorkspaceShellWindowChromeClass({
         isMacDesktop: true,
@@ -15,10 +15,10 @@ describe("resolveWorkspaceShellWindowChromeClass", () => {
         isWindowsMaximized: false,
         supportsNativeRoundedCorners: false,
       }),
-    ).toBe("rounded-md border border-border");
+    ).toBe("rounded-xl border border-border/75");
   });
 
-  it("uses 12px corners on macOS Tahoe and later", () => {
+  it("uses 18px Folio corners on macOS Tahoe and later", () => {
     expect(
       resolveWorkspaceShellWindowChromeClass({
         isMacDesktop: true,
@@ -27,41 +27,41 @@ describe("resolveWorkspaceShellWindowChromeClass", () => {
         isWindowsMaximized: false,
         supportsNativeRoundedCorners: false,
       }),
-    ).toBe("rounded-xl border border-border");
+    ).toBe("rounded-[18px] border border-border/75");
   });
 
-  it("uses 6px corners in Windows 11 normal windows", () => {
+  it("uses 18px Folio corners in Windows 11 normal windows", () => {
     expect(
       resolveWorkspaceShellWindowChromeClass({
         isWindowsDesktop: true,
         isWindowsMaximized: false,
         supportsNativeRoundedCorners: true,
       }),
-    ).toBe("rounded-md border border-border");
+    ).toBe("rounded-[18px] border border-border/75");
   });
 
-  it("squares only the outer corners and preserves the full border on Windows 10", () => {
+  it("uses symmetric 18px Folio corners for the inset sheet on Windows 10 too", () => {
     expect(
       resolveWorkspaceShellWindowChromeClass({
         isWindowsDesktop: true,
         isWindowsMaximized: false,
         supportsNativeRoundedCorners: false,
       }),
-    ).toBe("rounded-l-md border border-border");
+    ).toBe("rounded-[18px] border border-border/75");
   });
 
-  it("preserves the existing appearance while Windows capability is unknown", () => {
+  it("preserves the existing Folio appearance while Windows capability is unknown", () => {
     expect(
       resolveWorkspaceShellWindowChromeClass({
         isWindowsDesktop: true,
         isWindowsMaximized: false,
         supportsNativeRoundedCorners: null,
       }),
-    ).toBe("rounded-md border border-border");
+    ).toBe("rounded-[18px] border border-border/75");
   });
 });
 
-it("uses the settings xl corners on Linux", () => {
+it("uses 18px Folio corners on Linux", () => {
   expect(
     resolveWorkspaceShellWindowChromeClass({
       isLinuxDesktop: true,
@@ -69,18 +69,18 @@ it("uses the settings xl corners on Linux", () => {
       isWindowsMaximized: false,
       supportsNativeRoundedCorners: false,
     }),
-  ).toBe("rounded-xl border border-border");
+  ).toBe("rounded-[18px] border border-border/75");
 });
 
 describe("workspace shell resize handle inset", () => {
   it.each([
-    ["macOS Sequoia", { isMacDesktop: true, macOSMajorVersion: 15 }, 6, 10],
-    ["unknown macOS", { isMacDesktop: true, macOSMajorVersion: null }, 6, 10],
-    ["macOS Sonoma", { isMacDesktop: true, macOSMajorVersion: 14 }, 6, 10],
-    ["Web", {}, 12, 16],
-    ["macOS Tahoe", { isMacDesktop: true, macOSMajorVersion: 26 }, 12, 16],
-    ["Windows", { isWindowsDesktop: true }, 6, 12],
-    ["Linux", { isLinuxDesktop: true }, 12, 16],
+    ["macOS Sequoia", { isMacDesktop: true, macOSMajorVersion: 15 }, 12, 12],
+    ["unknown macOS", { isMacDesktop: true, macOSMajorVersion: null }, 18, 18],
+    ["macOS Sonoma", { isMacDesktop: true, macOSMajorVersion: 14 }, 12, 12],
+    ["Web", {}, 18, 18],
+    ["macOS Tahoe", { isMacDesktop: true, macOSMajorVersion: 26 }, 18, 18],
+    ["Windows", { isWindowsDesktop: true }, 18, 18],
+    ["Linux", { isLinuxDesktop: true }, 18, 18],
   ] as const)(
     "aligns %s handle with the start of the straight edge",
     (_name, platform, radius, inset) => {

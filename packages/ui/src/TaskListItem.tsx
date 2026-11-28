@@ -1,7 +1,7 @@
 import { RemoteTaskDeviceLabel } from "@/remote-connection/RemoteTaskDeviceLabel.js";
 /* eslint-disable max-lines -- task item 同时承载默认列表和 timeline 两行布局的共享交互，先保持动作链路集中避免归档/置顶回归。 */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Archive, Clock, CloudUpload, LoaderIcon, ListTree, Pin, Smartphone } from "lucide-react";
+import { Archive, Clock, CloudUpload, ListTree, Pin, Smartphone } from "lucide-react";
 import { isCronTask, type NibiTaskMeta } from "@nibi/shared";
 import { TID_TASK_ARCHIVE, TID_TASK_ITEM, testId } from "@nibi/shared/test-ids";
 import { Badge } from "@/components/ui/badge.js";
@@ -556,7 +556,7 @@ export const MemoTaskItem = memo(function TaskListItem({
         }
       }}
       className={cn(
-        "group/task-item flex cursor-pointer gap-2 rounded-lg pl-2.5 pr-1 py-1 transition-[color,background-color,border-color,box-shadow] duration-150",
+        "group/task-item flex cursor-pointer gap-2 rounded-xl pl-2.5 pr-2 py-1.5 transition-[color,background-color,border-color,box-shadow] duration-150",
         // 默认行 32px 时前置槽整行居中；长出工作流运行行后行体是两行的纵向列，槽改为对齐首行。
         variant === "timeline"
           ? "items-start py-1.5"
@@ -564,8 +564,11 @@ export const MemoTaskItem = memo(function TaskListItem({
             ? "items-start"
             : "items-center",
         isActive
-          ? "bg-card text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25"
-          : hoverEnabled && "hover:bg-card/55 dark:hover:bg-surface-hover",
+          ? "border border-border/65 bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)]"
+          : cn(
+              "border border-transparent",
+              hoverEnabled && "hover:bg-card/55 dark:hover:bg-surface-hover",
+            ),
       )}
     >
       {/* Bugfix: 之前任务列表依赖 divide-y 画分隔线，深色侧栏里每个 item 上下都会出现明显黑线，
@@ -583,8 +586,6 @@ export const MemoTaskItem = memo(function TaskListItem({
           aria-hidden="true"
           className={cn(
             "flex size-4 items-center justify-center transition-opacity",
-            // SVG 自身旋转会逐帧重算样式；让现有 HTML 槽位合成旋转，保留图标与状态语义。
-            leadingIndicator === "loading" && "animate-spin",
             shouldRenderPinAction && "hidden",
             isMobileActive && "invisible",
           )}
@@ -595,7 +596,7 @@ export const MemoTaskItem = memo(function TaskListItem({
           ) : leadingIndicator === "unread" ? (
             <span data-unread-indicator="true" className="size-[7px] rounded-full bg-icon-blue" />
           ) : leadingIndicator === "loading" ? (
-            <LoaderIcon className="size-4 text-foreground-subtle" />
+            <span aria-hidden="true" className="running-status-dot running-status-dot--row" />
           ) : null}
         </span>
         {shouldRenderPinAction ? (
@@ -656,7 +657,7 @@ export const MemoTaskItem = memo(function TaskListItem({
               </Badge>
             ) : null}
           </div>
-          <div className="flex min-w-0 items-center justify-between gap-2 text-ui-base text-foreground-subtle h-6">
+          <div className="flex min-w-0 items-center justify-between gap-2 text-ui-caption text-foreground-subtlest h-5">
             <div className="flex min-w-0 items-center gap-1.5">
               <span className="truncate" data-task-workspace-label="true">
                 {workspaceLabel}

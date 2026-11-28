@@ -22,8 +22,10 @@ afterEach(() => {
 
 describe("applyTheme", () => {
   it.each([
-    ["nibi-dark", "dark", "#161616"],
-    ["nibi-light", "light", "#f8f8f8"],
+    ["nibi-dark", "dark", "#181714"],
+    ["nibi-obsidian", "dark", "#12151e"],
+    ["nibi-light", "light", "#fcf9f2"],
+    ["nibi-mist", "light", "#fafafa"],
   ] as const)("把 %s 同步到已 opt-in 的浏览器主题表面", (theme, resolvedTheme, background) => {
     document.documentElement.setAttribute("data-nibi-browser-theme-surface", "light");
     document.documentElement.style.setProperty("--color-background", background);
@@ -86,7 +88,21 @@ describe("applyTheme", () => {
     });
 
     expect(() => applyTheme("nibi-dark")).not.toThrow();
-    expect(toggle).toHaveBeenCalledTimes(3);
+    expect(toggle).toHaveBeenCalledTimes(5);
+  });
+
+  it("应用 nibi-obsidian 与 nibi-mist 时只激活对应的主题 class", () => {
+    applyTheme("nibi-obsidian");
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(document.documentElement.classList.contains("theme-nibi-obsidian")).toBe(true);
+    expect(document.documentElement.classList.contains("theme-nibi-dark")).toBe(false);
+    expect(document.documentElement.classList.contains("theme-nibi-mist")).toBe(false);
+
+    applyTheme("nibi-mist");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    expect(document.documentElement.classList.contains("theme-nibi-mist")).toBe(true);
+    expect(document.documentElement.classList.contains("theme-nibi-light")).toBe(false);
+    expect(document.documentElement.classList.contains("theme-nibi-obsidian")).toBe(false);
   });
 });
 

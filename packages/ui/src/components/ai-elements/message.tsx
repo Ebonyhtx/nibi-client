@@ -459,7 +459,8 @@ const messageCjkPlugin: typeof cjk = {
 };
 // Custom CodeBlock & MermaidBlock replace Streamdown built-ins; omit unused @streamdown/code & @streamdown/mermaid
 // so their heavy grammars and diagram runtimes aren't pulled into the main bundle.
-const streamdownPlugins = { cjk: messageCjkPlugin, math: messageMathPlugin };
+const streamdownBasePlugins = { cjk: messageCjkPlugin };
+const streamdownMathPlugins = { cjk: messageCjkPlugin, math: messageMathPlugin };
 const messageLinkSafety = { enabled: false } as const;
 // `decoration-dashed` 会把原有的细圆点下划线绘制成短线段；这里只改变下划线的
 // 出现时机，继续使用 `dotted` 保留原视觉形态。
@@ -883,7 +884,7 @@ function resolveMessageCodeTheme(
       : codePreviewSettings.lightTheme;
   }
 
-  return theme === "dark" || theme === "nibi-dark"
+  return theme === "dark" || theme === "nibi-dark" || theme === "nibi-obsidian"
     ? codePreviewSettings.darkTheme
     : codePreviewSettings.lightTheme;
 }
@@ -1752,7 +1753,7 @@ export const MessageResponse = memo(
           // 说明：这里继续关掉 Streamdown 默认链接行为，统一改由上面的自定义 a 渲染器接管。
           // 这样工作区文件链接和 http/https 外链都能走我们自己的安全分流，其它协议仍保持不可点击。
           linkSafety={messageLinkSafety}
-          plugins={streamdownPlugins}
+          plugins={hasMathDelimiter ? streamdownMathPlugins : streamdownBasePlugins}
           controls={STREAMDOWN_CONTROLS}
           // Streamdown 的 harden 插件会在自定义 a renderer 之前把 file:// 标成 [blocked]。
           // 这里先把 file URI 规整成本地路径 href，让后续 resolveMarkdownFileLink 统一走预览/文件树打开逻辑。

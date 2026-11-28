@@ -419,7 +419,7 @@ export function OpenSplitButton({
   const button = (
     <DropdownMenu onOpenChange={(open) => open && void loadEditors()}>
       <div
-        className="flex h-7 shrink-0 items-center overflow-hidden rounded-lg border border-border bg-input transition-all hover:border-border-hover"
+        className="flex h-7 shrink-0 items-center overflow-hidden rounded-lg border border-border bg-input transition-colors hover:border-border-hover"
         onClick={stopEventPropagation}
         onPointerDown={stopEventPropagation}
       >

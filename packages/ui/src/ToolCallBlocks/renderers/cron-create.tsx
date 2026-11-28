@@ -185,7 +185,7 @@ export function CronCreateAutomationCard({
   return (
     <div
       data-testid={TID_CRON_CREATE_CARD}
-      className="my-1 w-full rounded-xl border border-border/70 bg-card/70 px-3 py-3 shadow-sm backdrop-blur-sm"
+      className="my-1 w-full rounded-xl border border-border/70 bg-card px-3 py-3 shadow-sm"
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface text-foreground-subtle">

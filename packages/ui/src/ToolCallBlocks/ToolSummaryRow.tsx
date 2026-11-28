@@ -204,7 +204,7 @@ export function ToolSummaryRow(props: ToolSummaryRowProps) {
         aria-label={action.ariaLabel}
         onClick={action.onActivate}
         onKeyDown={(event) => handleToolSummaryActionKeyDown(event, action.onActivate)}
-        className="summary-hover-text group/tool-summary -mx-1.5 inline-flex max-w-full cursor-pointer items-center gap-2 self-start rounded-md px-1.5 py-0.5 text-left text-ui-base transition-colors duration-150 hover:bg-hover/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+        className="summary-hover-text group/tool-summary -mx-1.5 inline-flex max-w-full cursor-pointer items-center gap-2 self-start rounded-lg px-1.5 py-0.5 text-left text-ui-caption transition-colors duration-150 hover:bg-surface/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
         title={title}
       >
         {sharedContent}
@@ -231,7 +231,7 @@ export function ToolSummaryRow(props: ToolSummaryRowProps) {
             event.preventDefault();
             event.currentTarget.click();
           }}
-          className="summary-hover-text group/tool-summary -mx-1.5 inline-flex max-w-full cursor-pointer items-center gap-2 self-start rounded-md px-1.5 py-0.5 text-left text-ui-base transition-colors duration-150 hover:bg-hover/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+          className="summary-hover-text group/tool-summary -mx-1.5 inline-flex max-w-full cursor-pointer items-center gap-2 self-start rounded-lg px-1.5 py-0.5 text-left text-ui-caption transition-colors duration-150 hover:bg-surface/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
           title={title}
         >
           {sharedContent}
@@ -239,7 +239,7 @@ export function ToolSummaryRow(props: ToolSummaryRowProps) {
             data-summary-chevron
             aria-hidden
             className={cn(
-              "size-4 text-foreground-subtlest opacity-0 transition-transform transition-opacity duration-200 ease-out will-change-transform group-hover/tool-summary:opacity-100 shrink-0",
+              "size-3.5 text-foreground-subtlest opacity-40 transition-[transform,opacity] duration-200 ease-out will-change-transform group-hover/tool-summary:opacity-100 shrink-0",
               isExpanded ? "rotate-90 opacity-100" : "rotate-0",
               forceOpen && "opacity-100",
             )}
@@ -252,7 +252,7 @@ export function ToolSummaryRow(props: ToolSummaryRowProps) {
   return (
     <div
       data-testid={testId(TID_TOOL_SUMMARY_TRIGGER, toolId)}
-      className="summary-hover-text group/tool-summary cursor-default flex w-full items-center gap-2 text-left text-ui-base transition-colors focus-visible:outline-none"
+      className="summary-hover-text group/tool-summary cursor-default flex w-full items-center gap-2 text-left text-ui-caption transition-colors focus-visible:outline-none"
       title={title}
     >
       {sharedContent}
@@ -304,7 +304,7 @@ export function ConsecutiveSummaryGroup({
           aria-controls={contentId}
           data-summary-group-trigger
           aria-label={statistics}
-          className="summary-hover-text group/tool-summary -mx-1.5 flex w-fit max-w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-1.5 py-0.5 text-left text-ui-base transition-colors duration-150 hover:bg-hover/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+          className="summary-hover-text group/tool-summary -mx-1.5 flex w-fit max-w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-1.5 py-0.5 text-left text-ui-caption transition-colors duration-150 hover:bg-surface/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
         >
           {/* 无活动项只是工具间隙；收起时保留末尾摘要，结构闭合后才切换统计。 */}
           {open || !groupRunning ? (
@@ -353,8 +353,8 @@ export function ConsecutiveSummaryGroup({
             data-summary-chevron
             aria-hidden
             className={cn(
-              "size-4 shrink-0 text-foreground-subtlest opacity-0 transition-transform transition-opacity group-hover/tool-summary:opacity-100 group-focus-visible/tool-summary:opacity-100",
-              open && "rotate-90",
+              "size-3.5 shrink-0 text-foreground-subtlest opacity-40 transition-[transform,opacity] group-hover/tool-summary:opacity-100 group-focus-visible/tool-summary:opacity-100",
+              open && "rotate-90 opacity-100",
             )}
           />
         </button>
@@ -374,7 +374,7 @@ export function ConsecutiveSummaryGroup({
             ref={scroll.contentRef}
             // 实体边框加 14px 内边距只有 23px，子文字会偏左；导线不占布局，8px + 16px 与组头文字严格对齐。
             // 组内思考原有导线与缩进会叠出第二层边界；由分组统一提供导线，正文与标题对齐，并收紧标题到正文的留白。
-            className="relative ml-2 flex flex-col gap-2 pl-4 before:absolute before:inset-y-0 before:left-0 before:border-l before:border-border/80 [&_[data-summary-leading-icon]]:hidden [&_[data-reasoning-content]>div>div]:pt-1 [&_[data-reasoning-scroll-mask]]:ml-0 [&_[data-reasoning-scroll-mask]]:border-l-0 [&_[data-reasoning-scroll-mask]]:pl-0"
+            className="relative ml-2 flex flex-col gap-2 pl-4 before:absolute before:inset-y-0 before:left-0 before:border-l before:border-primary/25 dark:before:border-border/80 [&_[data-summary-leading-icon]]:hidden [&_[data-reasoning-content]>div>div]:pt-1 [&_[data-reasoning-scroll-mask]]:ml-0 [&_[data-reasoning-scroll-mask]]:border-l-0 [&_[data-reasoning-scroll-mask]]:pl-0"
             data-conversation-work-items="group"
           >
             {children}

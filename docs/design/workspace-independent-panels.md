@@ -4,14 +4,14 @@
 
 桌面和宽屏 Web 保持侧栏，将原本共用外框的会话与 Side Pane 拆成独立面板；窗口根背景、侧栏保持原语义。
 
-Workspace layout 的平台圆角：Windows 为 `rounded-md`（默认 6px），macOS Sequoia 及更早版本为 6px，Tahoe 26+ 为 12px，未知 macOS 版本暂用 6px；Linux 和 Web 为 `xl`（12px）。Windows 设置页同步使用 6px。
+Workspace layout 的平台圆角（2026-11 Folio Desk 起）：Windows、Linux、Web 与 macOS 26+ 为 18px（`rounded-[18px]`），macOS 26 以前为 12px（`rounded-xl`）；未知 macOS 版本按 18px。圆角函数不再读取 Windows 原生圆角能力，各平台使用同一外沿与边框强度（`border-border/75`）。
 
-SPT-E2E-000 的圆角 token 验收区分 Side Pane 状态：展开时仅检查 Side Pane 外框的 `rounded-md` / `rounded-l-md`，会话外框通过 `--workspace-panel-radius` 保持独立面板圆角；收起后再检查会话外框的 chrome token。两种状态均检查实际计算圆角，避免把展开状态的动态变量误判为缺少 token。
+SPT-E2E-000 的圆角 token 验收区分 Side Pane 状态：展开时检查 Side Pane 外框使用 `rounded-[18px]` / `rounded-xl`，会话外框通过 `--workspace-panel-radius` 保持独立面板圆角；收起后再检查会话外框的 chrome token。两种状态均检查实际计算圆角，避免把展开状态的动态变量误判为缺少 token。
 
 ## 平台外沿尺寸（2026-10-09，取代下文历史尺寸）
 
-- Windows 工作区右侧、底部、顶部额外间隔和 Sidebar 收起后的左留白均为 6px；Linux 均保留 4px，主面板圆角保留 12px。
-- Windows 设置页同步右侧、底部和顶部 6px 留白与 6px 圆角；导航与内容相接的左侧不增加间距。macOS、Web、手机保持现有规则。
+- Windows 工作区右侧、底部、顶部额外间隔和 Sidebar 收起后的左留白均为 6px；Linux 均保留 4px。主面板圆角按上节 18px / 12px 规则。
+- Windows 设置页同步右侧、底部和顶部 6px 留白，面板沿用 `rounded-md`；其他平台使用 `rounded-xl`。导航与内容相接的左侧不增加间距。
 - 新任务、会话、插件、Automations 复用共享工作区边界，终端和 Side Pane 同步圆角；面板之间的 4px 拖动热区不变。
 - 拖动指示线保留 2px、foreground-subtlest/50、沿边延伸及现有显隐规则。Sidebar 指示线端点按平台外沿留白加圆角内缩，Windows 为 12px，Linux 为 16px。
 - SPT-E2E-000 验证平台尺寸、收起左留白和拖动，UP-00 验证设置页；平台函数单测覆盖 Linux、Windows 能力未知、普通和最大化窗口。

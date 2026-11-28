@@ -9,7 +9,6 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
-  DropdownMenuPortal,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu.js";
@@ -192,16 +191,14 @@ export function ComposerProviderMenu({
         <DropdownMenuSubTrigger {...triggerProps} ref={triggerRef} indicator={loadingIndicator}>
           {title}
         </DropdownMenuSubTrigger>
-        <DropdownMenuPortal>
-          <DropdownMenuSubContent
-            sideOffset={offset.side}
-            alignOffset={offset.align}
-            collisionPadding={12}
-            className="z-[61] w-max min-w-0 max-w-(--radix-dropdown-menu-content-available-width) max-h-(--radix-dropdown-menu-content-available-height) [app-region:no-drag]"
-          >
-            {contents}
-          </DropdownMenuSubContent>
-        </DropdownMenuPortal>
+        <DropdownMenuSubContent
+          sideOffset={offset.side}
+          alignOffset={offset.align}
+          collisionPadding={12}
+          className="z-[61] w-max min-w-0 max-w-(--radix-dropdown-menu-content-available-width) max-h-(--radix-dropdown-menu-content-available-height) [app-region:no-drag]"
+        >
+          {contents}
+        </DropdownMenuSubContent>
       </DropdownMenuSub>
       {children}
     </>

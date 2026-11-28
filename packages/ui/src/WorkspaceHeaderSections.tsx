@@ -102,6 +102,7 @@ export function WorkspaceHeaderTitleSection({
   selectedEditor: _selectedEditor,
   simplifyForNarrowRemote = false,
   compact = false,
+  folioBar = false,
 }: WorkspaceHeaderTitleSectionProps) {
   const { intl } = useNibiIntl();
   const openFeedbackSubmit = useFeedbackStore((state) => state.openSubmit);
@@ -401,7 +402,8 @@ export function WorkspaceHeaderTitleSection({
       className={cn(
         // 标题区必须按内容占宽，不能 flex-1 铺满整条 header。
         // 父级 header 是 drag 区域；如果 no-drag 的标题区铺满剩余空间，mac/Windows 标题栏空白处会无法拖动窗口。
-        "flex min-w-0 items-center gap-2 overflow-hidden [app-region:no-drag]",
+        "flex min-w-0 items-center overflow-hidden [app-region:no-drag]",
+        folioBar ? "h-7 gap-1.5 rounded-lg px-1.5 transition-colors hover:bg-hover/60" : "gap-2",
         simplifyForNarrowRemote && "max-md:gap-1",
       )}
     >
@@ -494,7 +496,7 @@ export function WorkspaceHeaderTitleSection({
           <Button
             type="button"
             variant="ghost"
-            size={isRemoteWorkspace ? "sm" : compact ? "icon-sm" : "icon-md"}
+            size={isRemoteWorkspace ? "sm" : compact || folioBar ? "icon-sm" : "icon-md"}
             className={
               isRemoteWorkspace
                 ? "min-w-0 max-w-40 gap-1.5 px-1.5 text-foreground-subtle"
@@ -517,7 +519,7 @@ export function WorkspaceHeaderTitleSection({
                 </span>
               </>
             ) : (
-              <Folder className="size-4 text-foreground-subtle" />
+              <Folder className={cn("text-foreground-subtle", folioBar ? "size-3.5" : "size-4")} />
             )}
           </Button>
         </ControlHintTooltip>
@@ -526,9 +528,11 @@ export function WorkspaceHeaderTitleSection({
       <h1
         data-testid={TID_WORKSPACE_TITLE}
         className={cn(
-          "flex min-w-12 max-w-100 shrink items-center gap-2 truncate font-semibold text-foreground @max-[560px]/workspace-header:max-w-[30vw] @max-[420px]/workspace-header:max-w-[22vw]",
+          "flex min-w-12 max-w-100 shrink items-center gap-2 truncate @max-[560px]/workspace-header:max-w-[30vw] @max-[420px]/workspace-header:max-w-[22vw]",
           simplifyForNarrowRemote && "max-md:max-w-[42vw]",
-          compact ? "text-[0.92rem]" : "text-ui-base",
+          folioBar
+            ? "font-display text-[14.5px] font-semibold leading-[1.45] tracking-[-0.005em] text-foreground translate-y-[0.5px]"
+            : cn("font-semibold text-foreground", compact ? "text-[0.92rem]" : "text-ui-base"),
         )}
         title={activeTaskTitle}
       >
@@ -556,11 +560,11 @@ export function WorkspaceHeaderTitleSection({
               <Button
                 type="button"
                 variant="ghost"
-                size={compact ? "icon-sm" : "icon-md"}
+                size={compact || folioBar ? "icon-sm" : "icon-md"}
                 data-testid={TID_WORKSPACE_MORE_BUTTON}
                 aria-label={intl.formatMessage({ id: "common.more" })}
               >
-                <Ellipsis className="size-4" />
+                <Ellipsis className={folioBar ? "size-3.5" : "size-4"} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">

@@ -1,7 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type CSSProperties } from "react";
 import { readPrefs, updatePrefs } from "@/lib/nibiStorage.js";
 
-export type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
+export type Theme =
+  | "light"
+  | "dark"
+  | "nibi-light"
+  | "nibi-dark"
+  | "nibi-obsidian"
+  | "nibi-mist"
+  | "system";
 export type ResolvedTheme = "light" | "dark";
 
 const BROWSER_THEME_SURFACE_ATTRIBUTE = "data-nibi-browser-theme-surface";
@@ -24,7 +31,9 @@ export function resolveTheme(theme: Theme): ResolvedTheme {
     return getSystemTheme();
   }
 
-  return normalized === "dark" || normalized === "nibi-dark" ? "dark" : "light";
+  return normalized === "dark" || normalized === "nibi-dark" || normalized === "nibi-obsidian"
+    ? "dark"
+    : "light";
 }
 
 export function normalizeThemePreference(theme: Theme): Theme {
@@ -76,6 +85,8 @@ export function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", resolved === "dark");
   document.documentElement.classList.toggle("theme-nibi-light", appliedTheme === "nibi-light");
   document.documentElement.classList.toggle("theme-nibi-dark", appliedTheme === "nibi-dark");
+  document.documentElement.classList.toggle("theme-nibi-obsidian", appliedTheme === "nibi-obsidian");
+  document.documentElement.classList.toggle("theme-nibi-mist", appliedTheme === "nibi-mist");
   syncBrowserThemeSurface(resolved);
 }
 
@@ -107,6 +118,8 @@ function isThemeValue(value: string | null): value is Theme {
     value === "dark" ||
     value === "nibi-light" ||
     value === "nibi-dark" ||
+    value === "nibi-obsidian" ||
+    value === "nibi-mist" ||
     value === "system"
   );
 }
@@ -149,4 +162,112 @@ export function useTheme() {
   }, [theme]);
 
   return { theme, setTheme } as const;
+}
+
+export type CanonicalThemeMode =
+  | "system"
+  | "nibi-light"
+  | "nibi-mist"
+  | "nibi-dark"
+  | "nibi-obsidian";
+
+export interface ThemeSwatchSurface {
+  desk: string;
+  sheet: string;
+  ink: string;
+  accent: string;
+  border: string;
+}
+
+export interface ThemeSwatchSpec extends ThemeSwatchSurface {
+  splitDark?: ThemeSwatchSurface;
+}
+
+/** 与 styles.css 四套宣纸书案主题 token 对齐的主题色板元数据，供设置画廊与快捷菜单共享。 */
+export const THEME_SWATCH_META: Record<CanonicalThemeMode, ThemeSwatchSpec> = {
+  "nibi-light": {
+    desk: "#efe6d5",
+    sheet: "#fcf9f2",
+    ink: "#1c2b42",
+    accent: "#a85014",
+    border: "#dcd1be",
+  },
+  "nibi-mist": {
+    desk: "#e8ebef",
+    sheet: "#fafbfc",
+    ink: "#1e2a38",
+    accent: "#266161",
+    border: "#d3dae3",
+  },
+  "nibi-dark": {
+    desk: "#100f0d",
+    sheet: "#181714",
+    ink: "#e8e1d5",
+    accent: "#e6c28e",
+    border: "#2e2b25",
+  },
+  "nibi-obsidian": {
+    desk: "#0a0d12",
+    sheet: "#11161e",
+    ink: "#e2e8f0",
+    accent: "#5ec2b6",
+    border: "#222c3a",
+  },
+  system: {
+    desk: "#efe6d5",
+    sheet: "#fcf9f2",
+    ink: "#1c2b42",
+    accent: "#a85014",
+    border: "#dcd1be",
+    splitDark: {
+      desk: "#100f0d",
+      sheet: "#181714",
+      ink: "#e8e1d5",
+      accent: "#e6c28e",
+      border: "#2e2b25",
+    },
+  },
+};
+
+export function resolveCanonicalThemeMode(theme: Theme): CanonicalThemeMode {
+  const normalized = normalizeThemePreference(theme);
+  if (
+    normalized === "system" ||
+    normalized === "nibi-light" ||
+    normalized === "nibi-mist" ||
+    normalized === "nibi-dark" ||
+    normalized === "nibi-obsidian"
+  ) {
+    return normalized;
+  }
+  return "nibi-light";
+}
+
+export function resolveThemeSwatchMeta(theme: Theme): ThemeSwatchSpec {
+  return THEME_SWATCH_META[resolveCanonicalThemeMode(theme)];
+}
+
+/** 返回单层无嵌套的主色圆点属性（radial-gradient 点出强调色，system 为昼夜双拼）。 */
+export function getThemeSwatchDotProps(
+  theme: Theme,
+  className?: string,
+): {
+  "aria-hidden": true;
+  className: string;
+  style: CSSProperties;
+} {
+  const swatch = resolveThemeSwatchMeta(theme);
+  const background = swatch.splitDark
+    ? `linear-gradient(135deg, ${swatch.sheet} 0%, ${swatch.sheet} 49%, ${swatch.splitDark.sheet} 51%, ${swatch.splitDark.sheet} 100%)`
+    : `radial-gradient(circle at center, ${swatch.accent} 0%, ${swatch.accent} 38%, ${swatch.sheet} 44%, ${swatch.sheet} 100%)`;
+  return {
+    "aria-hidden": true as const,
+    className: ["inline-block size-3 shrink-0 rounded-full border", className]
+      .filter(Boolean)
+      .join(" "),
+    style: {
+      borderColor: swatch.border,
+      background,
+    },
+  };
 }

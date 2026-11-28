@@ -216,7 +216,7 @@ export function GitGraphPane({
                           cy={row.y}
                           r={isSelected ? SELECTED_NODE_RADIUS : NODE_RADIUS}
                           className={cn(
-                            "stroke-background stroke-[2] transition-all",
+                            "stroke-background stroke-[2] transition-[fill,stroke,opacity]",
                             getLaneFillClass(row.laneIndex),
                             highlightedHash && !isSelected && !isHovered && "opacity-80",
                           )}

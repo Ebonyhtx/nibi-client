@@ -1338,8 +1338,8 @@ function MarkdownTableEdgeShadow({
       className={cn(
         "pointer-events-none absolute inset-y-0 z-10 w-6",
         side === "left"
-          ? "left-0 rounded-l-xl shadow-[inset_12px_0_12px_-12px_color-mix(in_srgb,black_15%,transparent)]"
-          : "right-0 rounded-r-xl shadow-[inset_-12px_0_12px_-12px_color-mix(in_srgb,black_15%,transparent)]",
+          ? "left-0 rounded-l-xl shadow-[inset_12px_0_12px_-12px_color-mix(in_srgb,var(--color-foreground)_16%,transparent)]"
+          : "right-0 rounded-r-xl shadow-[inset_-12px_0_12px_-12px_color-mix(in_srgb,var(--color-foreground)_16%,transparent)]",
       )}
       data-markdown-table-edge-shadow={side}
     />
@@ -1397,7 +1397,7 @@ export function MarkdownTableHead({ className, node: _node, ...props }: Markdown
   return (
     <th
       className={cn(
-        "border-border border-b px-3 py-2 text-left font-normal text-foreground-subtlest min-w-16 max-w-md whitespace-normal break-words",
+        "border-border border-b bg-surface/55 px-3 py-2 text-left font-medium text-foreground-subtle min-w-16 max-w-md whitespace-normal break-words",
         className,
       )}
       {...props}

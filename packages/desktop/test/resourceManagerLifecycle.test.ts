@@ -17,6 +17,7 @@ vi.mock("electron", () => ({
     },
     { getAllWindows: () => [], fromWebContents: () => null },
   ),
+  nativeTheme: { shouldUseDarkColors: false },
   webContents: { getAllWebContents: () => [] },
 }));
 vi.mock("../src/main/logger.js", () => ({ logger: { info: vi.fn() } }));

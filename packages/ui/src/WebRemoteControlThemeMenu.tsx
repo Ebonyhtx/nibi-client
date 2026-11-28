@@ -9,12 +9,14 @@ import {
 } from "@/components/ui/dropdown-menu.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useNibiStore } from "@/store/StoreProvider.js";
-import type { Theme } from "@/useTheme.js";
+import { getThemeSwatchDotProps, type Theme } from "@/useTheme.js";
 
 const MOBILE_THEME_OPTIONS: Theme[] = [
   "system",
-  "nibi-dark",
   "nibi-light",
+  "nibi-mist",
+  "nibi-dark",
+  "nibi-obsidian",
 ];
 
 export function WebRemoteControlThemeMenu() {
@@ -45,9 +47,12 @@ export function WebRemoteControlThemeMenu() {
         >
           {MOBILE_THEME_OPTIONS.map((option) => (
             <DropdownMenuRadioItem key={option} value={option}>
-              {option === "system"
-                ? intl.formatMessage({ id: "sidebar.settings.systemDefault" })
-                : intl.formatMessage({ id: `sidebar.settings.theme.${option}` })}
+              <span className="flex items-center gap-2">
+                <span {...getThemeSwatchDotProps(option)} />
+                {option === "system"
+                  ? intl.formatMessage({ id: "sidebar.settings.systemDefault" })
+                  : intl.formatMessage({ id: `sidebar.settings.theme.${option}` })}
+              </span>
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

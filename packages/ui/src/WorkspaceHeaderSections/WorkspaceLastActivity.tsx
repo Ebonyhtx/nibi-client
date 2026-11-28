@@ -1,19 +1,15 @@
 import { Clock } from "lucide-react";
-import { useEffect, useState } from "react";
 import type { NibiTaskMeta } from "@nibi/shared";
+import { useMinuteClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { getTaskListRowActivity } from "@/v4/taskListRowActivity.js";
 
 export function WorkspaceLastActivity({ task }: { task: NibiTaskMeta | null }) {
   const { intl } = useNibiIntl();
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
   const timestamp = task
     ? (getTaskListRowActivity(task)?.lastActivityAt ?? task.updatedAt)
     : undefined;
+  const now = useMinuteClock(Boolean(timestamp && Number.isFinite(timestamp)));
   if (!timestamp || !Number.isFinite(timestamp)) return null;
   const minutes = Math.max(0, Math.floor((now - timestamp) / 60_000));
   const time =

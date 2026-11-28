@@ -24,7 +24,9 @@ export interface TestActions extends TaskListE2EActions {
   /** 获取当前主题 */
   getTheme: () => string;
   /** 设置主题 */
-  setTheme: (theme: "light" | "dark" | "nibi-light" | "nibi-dark" | "system") => void;
+  setTheme: (
+    theme: "light" | "dark" | "nibi-light" | "nibi-dark" | "nibi-obsidian" | "nibi-mist" | "system",
+  ) => void;
   /** 获取当前语言，仅供跨语言展示 E2E */
   getLocale: () => Locale;
   /** 设置当前语言，仅供跨语言展示 E2E */

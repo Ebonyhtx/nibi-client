@@ -58,11 +58,13 @@ import {
 import { ToolSnapshotFieldNotice } from "@/ToolCallBlocks/ToolSnapshotFieldNotice.js";
 import { ToolLayout } from "../ToolLayout.js";
 import type { ToolCallBlockRenderContext } from "../shared.js";
+import { setLruMapEntry } from "@/lib/memoryDiagnostics.js";
 
 /** 没有 display 时交给草稿槽位的空诊断：模块级常量，免得每次渲染一个新数组打穿记忆。 */
 const NO_DIAGNOSTICS: readonly never[] = [];
 
-/** 折叠状态按 toolId 记忆（与 ToolLayout 的 toolLayoutOpenState 同一模式）；默认展开。 */
+/** 折叠状态按 toolId 记忆（与 ToolLayout 的 toolLayoutOpenState 同一模式）；默认展开，带 LRU 上限。 */
+const MAX_WORKFLOW_CARD_OPEN_STATES = 1_000;
 const workflowCardOpenState = new Map<string, boolean>();
 
 /**
@@ -134,7 +136,12 @@ export function CreateWorkflowToolCallBlock(context: ToolCallBlockRenderContext)
   const expanded = forceOpen || !canToggle || isOpen;
   const handleToggle = useCallback(() => {
     setIsOpen((previous) => {
-      workflowCardOpenState.set(toolCall.toolId, !previous);
+      setLruMapEntry(
+        workflowCardOpenState,
+        toolCall.toolId,
+        !previous,
+        MAX_WORKFLOW_CARD_OPEN_STATES,
+      );
       return !previous;
     });
   }, [toolCall.toolId]);

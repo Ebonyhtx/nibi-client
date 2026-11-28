@@ -396,6 +396,7 @@ export function AnimatedSidePanePanel({
   showWindowControls,
   onCloseSidePane,
   toggleSidePaneShortcutLabel,
+  hideSidePaneToggle = false,
   fullViewToggle,
   fullView = null,
   fullViewSlotRef,
@@ -408,6 +409,7 @@ export function AnimatedSidePanePanel({
   showWindowControls?: boolean;
   onCloseSidePane?: () => void;
   toggleSidePaneShortcutLabel?: string;
+  hideSidePaneToggle?: boolean;
   /** 桌面端「进入 / 退出完整视图」按钮；缺省不渲染（Web、手机远控）。 */
   fullViewToggle?: { active: boolean; onToggle: () => void; shortcutLabel?: string };
   /** 完整视图生效时的 tab 栏状态（spec：docs/ui/side-pane-full-view.md）。 */
@@ -799,7 +801,7 @@ export function AnimatedSidePanePanel({
       type="button"
       variant="ghost"
       size="icon-md"
-      className="shrink-0"
+      className="shrink-0 rounded-lg text-foreground-subtle hover:bg-card/70 hover:text-foreground"
       data-side-pane-add-trigger
       data-side-pane-add-tab-trigger=""
       aria-label={intl.formatMessage({ id: "sidePane.addTab" })}
@@ -864,7 +866,9 @@ export function AnimatedSidePanePanel({
     .filter((itemId) => !isOfficeMode || (itemId !== "terminal" && itemId !== "review"))
     .map((itemId) => openTabLauncherItemById[itemId]);
   const closeSidePaneButton =
-    isVisible && !mobileOverlay && onCloseSidePane ? (
+    isVisible &&
+    !mobileOverlay &&
+    Boolean(fullViewToggle || (!hideSidePaneToggle && onCloseSidePane) || showWindowControls) ? (
       <div className="flex shrink-0 items-center gap-0.5 [app-region:no-drag]">
         {fullViewToggle ? (
           <SidePaneFullViewToggleButton
@@ -873,11 +877,13 @@ export function AnimatedSidePanePanel({
             shortcutLabel={fullViewToggle.shortcutLabel}
           />
         ) : null}
-        <WorkspaceSidePaneToggleButton
-          isSidePaneOpen
-          onToggleSidePane={onCloseSidePane}
-          shortcutLabel={toggleSidePaneShortcutLabel}
-        />
+        {!hideSidePaneToggle && onCloseSidePane ? (
+          <WorkspaceSidePaneToggleButton
+            isSidePaneOpen
+            onToggleSidePane={onCloseSidePane}
+            shortcutLabel={toggleSidePaneShortcutLabel}
+          />
+        ) : null}
         {showWindowControls ? <DesktopWindowControls /> : null}
       </div>
     ) : null;
@@ -886,10 +892,10 @@ export function AnimatedSidePanePanel({
       {/* 对齐原型：顶部对齐滚动、左对齐标题；内置应用与 UI 插件同为横向行，短分割线分区。 */}
       <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-          <h2 className="pl-2 text-ui-xl font-semibold tracking-[-0.015em] text-foreground">
+          <h2 className="font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.015em] text-foreground">
             {intl.formatMessage({ id: "sidePane.openTab" })}
           </h2>
-          <div className="grid min-w-0 grid-cols-1 gap-x-8 gap-y-1 @min-[36rem]/launcher:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-3 @min-[36rem]/launcher:grid-cols-2">
             {openTabLauncherItems.map((item) => (
               <SidePaneLauncherRow
                 key={item.id}
@@ -904,10 +910,10 @@ export function AnimatedSidePanePanel({
           {/* 空会话暂不支持应用插件，连同分区入口一起隐藏。 */}
           {activeTaskId ? (
             <>
-              <div aria-hidden="true" className="my-4 h-px w-24 self-center bg-border/75" />
+              <div aria-hidden="true" className="my-2 h-px w-full bg-border/55" />
               <section className="min-w-0" data-testid="side-pane-ui-recommendations">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-                  <h2 className="pl-2 text-ui-lg font-semibold tracking-[-0.015em] text-foreground">
+                  <h2 className="font-display text-ui-lg font-semibold leading-[1.35] tracking-[-0.015em] text-foreground">
                     {intl.formatMessage({ id: "settings.plugins.store.ui.title" })}
                   </h2>
                   <Button
@@ -930,7 +936,7 @@ export function AnimatedSidePanePanel({
                     <ChevronRightIcon className="size-3.5" aria-hidden="true" />
                   </Button>
                 </div>
-                <div className="mt-2 grid min-w-0 grid-cols-1 gap-x-8 gap-y-1 @min-[36rem]/launcher:grid-cols-2">
+                <div className="mt-2 grid min-w-0 grid-cols-1 gap-3 @min-[36rem]/launcher:grid-cols-2">
                   {onOpenPluginUi ? (
                     <PluginUiLauncherItems
                       workspacePath={workspaceAbsPath}
@@ -1060,7 +1066,7 @@ export function AnimatedSidePanePanel({
                 <TabsList
                   style={mobileOverlay ? undefined : captionControlsStyle}
                   className={cn(
-                    "flex justify-start w-full rounded-none p-0 border-0 border-b border-border/60 bg-header/82 supports-[backdrop-filter]:backdrop-blur-md shadow-none !h-12 overflow-hidden",
+                    "flex justify-start w-full rounded-none p-0 border-0 border-b border-border/55 bg-surface shadow-none !h-10 overflow-hidden",
                     fullView?.leadingInsetClassName,
                     // 独立面板将标签栏移至窗口顶部，需补充窗口拖拽区域；标签和按钮仍处理自身交互。
                     isDesktop &&
@@ -1069,10 +1075,11 @@ export function AnimatedSidePanePanel({
                   )}
                 >
                   <div className="flex items-center justify-start flex-1 min-w-0">
-                    {/* 与 WorkspaceHeader 的 p-2 对齐，避免切换面板后左右操作区跳动。 */}
-                    <div className="flex h-full shrink-0 items-center p-2">
+                    {/* 与 WorkspaceHeader 对齐，避免切换面板后左右操作区跳动。 */}
+                    <div className="flex h-full shrink-0 items-center px-2 py-1">
                       {sidePaneTabOverview}
                     </div>
+                    <div aria-hidden="true" className="mr-1.5 h-4 w-px shrink-0 bg-border/55" />
                     {fullView ? (
                       <div className="flex h-full shrink-0 items-center pr-1">
                         <SidePaneFullViewConversationTab
@@ -1092,7 +1099,7 @@ export function AnimatedSidePanePanel({
                         ref={tabsScrollViewportRef}
                         data-side-pane-tabs-viewport=""
                         className={cn(
-                          "min-w-0 flex-1 overflow-x-auto !scrollbar-hide h-12 items-center scroll-px-4",
+                          "min-w-0 flex-1 overflow-x-auto !scrollbar-hide h-10 items-center scroll-px-4",
                           tabsScrollMaskEdges.left &&
                             tabsScrollMaskEdges.right &&
                             "[mask-image:linear-gradient(to_right,transparent_0%,black_16px,black_calc(100%-16px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_16px,black_calc(100%-16px),transparent_100%)]",
@@ -1109,7 +1116,7 @@ export function AnimatedSidePanePanel({
                         <div
                           ref={tabsScrollContentRef}
                           data-side-pane-tabs-content=""
-                          className="flex w-full gap-1 py-2.5"
+                          className="flex w-full gap-1 py-1.5"
                         >
                           <SortableContext
                             items={visibleTabs.map((tab) => tab.id)}

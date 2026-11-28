@@ -298,7 +298,7 @@ export function OccupationOnboarding({
             <div className="mx-auto my-auto w-full max-w-lg shrink-0">
               <section className="flex w-full flex-col">
                 <div className="w-full">
-                  <h1 className="text-ui-xl font-semibold tracking-tight text-center">
+                  <h1 className="font-display text-ui-xl font-semibold leading-[1.35] tracking-tight text-center text-balance">
                     {t(preferences ? "preferences" : step === 1 ? "modeTitle" : "title")}
                   </h1>
                   <p className="mx-auto mt-3 max-w-md text-center text-ui-base leading-relaxed text-foreground-subtle">

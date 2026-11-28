@@ -17,10 +17,9 @@ const TOOLTIP_SELECTOR = '[data-slot="tooltip-content"]';
 const DRAFT_SUGGESTED_PROMPTS_SLOT_SELECTOR = '[data-v4-draft-suggested-prompts-slot="true"]';
 
 function expectedWorkspacePanelRadiusPx(): number {
-  if (process.platform === "win32") return 6;
-  // Darwin 25 起对应 Tahoe，Sequoia 及旧系统的工作区使用更小的内层圆角。
-  if (process.platform === "darwin") return Number.parseInt(release(), 10) >= 25 ? 12 : 6;
-  return 12;
+  // Folio Desk：Windows/Linux 与 macOS 26+ 统一 18px；macOS 26 以前保留 12px。
+  if (process.platform === "darwin") return Number.parseInt(release(), 10) >= 25 ? 18 : 12;
+  return 18;
 }
 
 interface TabStripMetrics {
@@ -270,12 +269,12 @@ describe("Side Pane Tab responsive interactions", () => {
     await sidePaneClose.waitForClickable({ timeout: 5000 });
     expect(panels?.headerInsideConversation).toBe(true);
     const expectedPanelRadiusPx = expectedWorkspacePanelRadiusPx();
-    if (expectedPanelRadiusPx === 6) {
+    {
       // Side Pane 展开时会话外框使用动态圆角变量，只有右侧 chrome 外框使用圆角 token。
       const framesUseRadiusToken = await browser.execute(() => {
         const frame = document.querySelector('[data-workspace-side-frame="true"]');
         return Boolean(
-          frame?.classList.contains("rounded-md") || frame?.classList.contains("rounded-l-md"),
+          frame?.classList.contains("rounded-[18px]") || frame?.classList.contains("rounded-xl"),
         );
       });
       expect(framesUseRadiusToken).toBe(true);
@@ -456,11 +455,11 @@ describe("Side Pane Tab responsive interactions", () => {
       const frame = document.querySelector('[data-workspace-conversation-frame="true"]')!;
       return {
         usesRadiusToken:
-          frame.classList.contains("rounded-md") || frame.classList.contains("rounded-l-md"),
+          frame.classList.contains("rounded-[18px]") || frame.classList.contains("rounded-xl"),
         leftRadius: getComputedStyle(frame).borderTopLeftRadius,
       };
     });
-    if (expectedPanelRadiusPx === 6) expect(closedFrame.usesRadiusToken).toBe(true);
+    expect(closedFrame.usesRadiusToken).toBe(true);
     expect(closedFrame.leftRadius).toBe(`${expectedPanelRadiusPx}px`);
   });
 

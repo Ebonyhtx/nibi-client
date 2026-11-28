@@ -37,6 +37,7 @@
 - [插件商店术语](../CONTEXT.md)
 - [UI Plugin 指南](../UI_PLUGIN.md)
 - [工作区独立面板](design/workspace-independent-panels.md)
+- [宣纸书案主题与排版](design/folio-desk-themes.md)：四套主题、三族字体、内联顶栏与工作指示器
 
 ## 插件
 

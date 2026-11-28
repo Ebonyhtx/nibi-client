@@ -56,6 +56,7 @@ export interface WorkspaceHeaderTitleSectionProps {
   simplifyForNarrowRemote?: boolean;
   selectedEditor: EditorInfo | null;
   compact?: boolean;
+  folioBar?: boolean;
 }
 
 export interface WorkspaceHeaderActionSectionProps {
@@ -78,5 +79,6 @@ export interface WorkspaceHeaderActionSectionProps {
   simplifyForNarrowRemote?: boolean;
   hideHelpMenu?: boolean;
   showWindowControls?: boolean;
+  keepRightControlsPinned?: boolean;
   useWindowsCaptionSpacing?: boolean;
 }

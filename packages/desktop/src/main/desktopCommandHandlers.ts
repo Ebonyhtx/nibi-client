@@ -20,7 +20,7 @@ import {
   type Locale,
 } from "@nibi/shared";
 import type { MessageBoxOptions } from "electron";
-import { app, BrowserWindow, dialog, session, shell } from "electron";
+import { app, BrowserWindow, dialog, nativeTheme, session, shell } from "electron";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { showAboutDialog } from "./about.js";
@@ -320,11 +320,21 @@ function buildNibiEndpointPromptHtml(currentValue: string): string {
     <meta charset="utf-8" />
     <title>NIBI Endpoint</title>
     <style>
-      :root { color-scheme: light dark; }
+      :root {
+        color-scheme: light dark;
+        background: #fcf9f2;
+        color: #1c2b42;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          background: #181714;
+          color: #e6e0d6;
+        }
+      }
       body { margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
       label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
       input { box-sizing: border-box; width: 100%; height: 34px; padding: 6px 8px; font: inherit; }
-      .hint { margin-top: 8px; color: #6b7280; font-size: 12px; }
+      .hint { margin-top: 8px; opacity: 0.72; font-size: 12px; }
       .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
       button { min-width: 78px; height: 30px; font: inherit; }
     </style>
@@ -370,6 +380,7 @@ function showNibiEndpointPromptWindow(options: {
       resizable: false,
       minimizable: false,
       maximizable: false,
+      backgroundColor: nativeTheme.shouldUseDarkColors ? "#181714" : "#fcf9f2",
       title: "NIBI Endpoint",
       webPreferences: {
         contextIsolation: true,

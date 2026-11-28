@@ -29,7 +29,7 @@ declare global {
   }
 }
 
-type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
+type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "nibi-obsidian" | "nibi-mist" | "system";
 
 function normalizeTheme(theme: Theme): Theme {
   if (theme === "dark") return "nibi-dark";
@@ -42,7 +42,9 @@ function resolveTheme(theme: Theme): "light" | "dark" {
   if (normalized === "system") {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
-  return normalized === "dark" || normalized === "nibi-dark" ? "dark" : "light";
+  return normalized === "dark" || normalized === "nibi-dark" || normalized === "nibi-obsidian"
+    ? "dark"
+    : "light";
 }
 
 function applyResourceManagerTheme(): void {
@@ -60,6 +62,8 @@ function applyResourceManagerTheme(): void {
   document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
   document.documentElement.classList.toggle("theme-nibi-light", appliedTheme === "nibi-light");
   document.documentElement.classList.toggle("theme-nibi-dark", appliedTheme === "nibi-dark");
+  document.documentElement.classList.toggle("theme-nibi-obsidian", appliedTheme === "nibi-obsidian");
+  document.documentElement.classList.toggle("theme-nibi-mist", appliedTheme === "nibi-mist");
 }
 
 applyResourceManagerTheme();

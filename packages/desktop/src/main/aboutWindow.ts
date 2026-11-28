@@ -32,10 +32,10 @@ export function createCustomAboutDialogHtml(input: CustomAboutDialogHtmlInput): 
       :root {
         color-scheme: light dark;
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-        --startup-page-bg: #f9f2e4;
-        --about-primary: #ae5413;
+        --startup-page-bg: #fcf9f2;
+        --about-primary: #a85014;
         --about-primary-foreground: #fff9ef;
-        --about-primary-active: #96470f;
+        --about-primary-active: #8f420f;
       }
 
       * {
@@ -77,7 +77,7 @@ export function createCustomAboutDialogHtml(input: CustomAboutDialogHtmlInput): 
         border: 0;
         border-radius: 0;
         background: transparent;
-        color: #1c2f4e;
+        color: #1c2b42;
         box-shadow: none;
         -webkit-app-region: drag;
       }
@@ -147,9 +147,9 @@ export function createCustomAboutDialogHtml(input: CustomAboutDialogHtmlInput): 
 
       @media (prefers-color-scheme: dark) {
         :root {
-          --startup-page-bg: #171614;
-          --about-primary: #e8c491;
-          --about-primary-foreground: #171614;
+          --startup-page-bg: #181714;
+          --about-primary: #e6c28e;
+          --about-primary-foreground: #1c1308;
           --about-primary-active: #d9b078;
         }
 

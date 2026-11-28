@@ -261,7 +261,7 @@ export function ChatErrorBanner({
         data-testid={TID_CHAT_ERROR_BANNER}
         data-error-code={error.code}
         className={cn(
-          "w-full flex flex-wrap items-center gap-2 rounded-xl border border-border/80 bg-card/94 px-3 py-2 shadow-[var(--nibi-shadow-card)] supports-[backdrop-filter]:backdrop-blur-md",
+          "w-full flex flex-wrap items-center gap-2 rounded-xl border border-border/80 bg-card px-3 py-2 shadow-[var(--nibi-shadow-card)]",
         )}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2 text-ui-base text-foreground">

@@ -9,8 +9,50 @@
       body {
         padding: 0;
         margin: 0;
+        background: #fcf9f2;
+      }
+      html.dark,
+      html.dark body {
+        background: #181714;
+      }
+      html.theme-nibi-mist,
+      html.theme-nibi-mist body {
+        background: #fafbfc;
+      }
+      html.theme-nibi-obsidian,
+      html.theme-nibi-obsidian body {
+        background: #11161e;
       }
     </style>
+    <script>
+      (() => {
+        try {
+          const prefs = JSON.parse(localStorage.getItem("nibi:prefs") || "null");
+          const saved = prefs && typeof prefs === "object" ? prefs.theme : null;
+          const resolvedDark =
+            saved === "dark" ||
+            saved === "nibi-dark" ||
+            saved === "nibi-obsidian" ||
+            (saved === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          const appliedTheme =
+            saved === "nibi-obsidian" ||
+            saved === "nibi-mist" ||
+            saved === "nibi-dark" ||
+            saved === "nibi-light"
+              ? saved
+              : resolvedDark
+                ? "nibi-dark"
+                : "nibi-light";
+          document.documentElement.classList.toggle("dark", resolvedDark);
+          document.documentElement.classList.toggle("theme-nibi-light", appliedTheme === "nibi-light");
+          document.documentElement.classList.toggle("theme-nibi-dark", appliedTheme === "nibi-dark");
+          document.documentElement.classList.toggle("theme-nibi-obsidian", appliedTheme === "nibi-obsidian");
+          document.documentElement.classList.toggle("theme-nibi-mist", appliedTheme === "nibi-mist");
+        } catch {
+          // 忽略读取异常，保留浅色底
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

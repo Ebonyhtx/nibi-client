@@ -1552,7 +1552,7 @@ export function PreviewPane({
     <div
       className={cn(
         "flex h-10 min-w-0 shrink-0 items-center gap-2",
-        !headerContainer && "bg-surface/65 supports-[backdrop-filter]:backdrop-blur-sm",
+        !headerContainer && "bg-surface",
         !headerContainer && showDocumentHeaderDivider && "border-b border-border/65",
       )}
     >

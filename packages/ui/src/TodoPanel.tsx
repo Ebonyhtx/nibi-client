@@ -86,7 +86,7 @@ export function TodoPanel({
 
   return (
     <Plan
-      className="gap-0 overflow-hidden rounded-none border-0 bg-card/94 py-0 supports-[backdrop-filter]:backdrop-blur-md"
+      className="gap-0 overflow-hidden rounded-none border-0 bg-card py-0"
       open={isOpen}
       onOpenChange={setIsOpen}
       isStreaming={isStreaming}

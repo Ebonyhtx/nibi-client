@@ -234,8 +234,8 @@ describe("useAppChromeState desktop chrome state", () => {
   });
 
   it.each([
-    [15, 6],
-    [26, 12],
+    [15, 12],
+    [26, 18],
   ])("loads macOS %i from the platform before resolving radius %i", async (version, radius) => {
     const { useAppChromeState } = await import("@/app-shell/useAppChromeState.js");
     const { resolveWorkspaceShellPanelRadiusPx } = await import("@/app-shell/workspaceShellWindowChrome.js");

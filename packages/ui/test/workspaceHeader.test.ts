@@ -142,4 +142,23 @@ describe("WorkspaceHeader", () => {
     expect(html).toContain('data-window-controls="true"');
     expect(html).not.toContain('data-testid="linux-window-controls"');
   });
+
+  it("moves topoverlayer container query out of collapsed folioBar leading slot to avoid zero-width overlap", async () => {
+    const collapsedHtml = await renderWorkspaceHeader({
+      folioBar: true,
+      isSidebarVisible: false,
+      leadingSlot: createElement("div", { "data-testid": "top-controls" }),
+    });
+    expect(collapsedHtml).toContain('data-folio-top-leading=""');
+    expect(collapsedHtml).not.toContain("@container/topoverlayer");
+    expect(collapsedHtml).toContain("w-px");
+
+    const expandedHtml = await renderWorkspaceHeader({
+      folioBar: true,
+      isSidebarVisible: true,
+      leadingSlot: createElement("div", { "data-testid": "top-controls" }),
+    });
+    expect(expandedHtml).toContain('data-folio-top-leading=""');
+    expect(expandedHtml).toContain("@container/topoverlayer");
+  });
 });

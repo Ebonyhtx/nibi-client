@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useMinuteClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import { ChevronsDownIcon, XIcon } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
@@ -53,7 +54,7 @@ export function SidePaneTabOverview({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const currentTime = useMinuteClock(open);
   const queryParts = useMemo(() => normalizeSearchQuery(query), [query]);
   const tabItems = useMemo(
     () =>
@@ -121,15 +122,7 @@ export function SidePaneTabOverview({
   );
   const hasAnySearchResult = filteredTabItems.length > 0 || filteredRecentClosedItems.length > 0;
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
 
-    setCurrentTime(Date.now());
-    const interval = window.setInterval(() => setCurrentTime(Date.now()), 60_000);
-    return () => window.clearInterval(interval);
-  }, [open]);
 
   return (
     <Popover
@@ -146,13 +139,16 @@ export function SidePaneTabOverview({
           type="button"
           variant="ghost"
           size="icon-md"
-          className="shrink-0"
+          className="shrink-0 rounded-lg text-foreground-subtle hover:bg-card/70 hover:text-foreground"
           aria-label={labels.title}
         >
           <ChevronsDownIcon className="size-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 gap-0 bg-menu p-0">
+      <PopoverContent
+        align="start"
+        className="w-76 gap-0 rounded-xl border border-popover-border bg-menu/96 p-0 shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-lg"
+      >
         <Command
           // 旧搜索菜单手写输入框、标题和列表项，和模型选择菜单的 Command 视觉体系不一致。
           // 这里复用 Command 容器统一搜索框、分组标题、hover 和键盘选中态，同时保留现有 ranking 逻辑。
@@ -169,7 +165,7 @@ export function SidePaneTabOverview({
             {!hasAnySearchResult ? (
               <CommandGroup
                 heading={labels.openTabs}
-                className="border-border border-b p-1 last:border-b-0 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-ui-base **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-foreground-subtle"
+                className="border-border border-b p-1 last:border-b-0 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-ui-xs **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:tracking-wider **:[[cmdk-group-heading]]:text-foreground-subtlest"
               >
                 <CommandEmpty className="px-4 py-5 text-foreground-subtle">
                   {labels.noResults}
@@ -180,7 +176,7 @@ export function SidePaneTabOverview({
             {filteredTabItems.length > 0 ? (
               <CommandGroup
                 heading={labels.openTabs}
-                className="border-border border-b p-1 last:border-b-0 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-ui-base **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-foreground-subtle"
+                className="border-border border-b p-1 last:border-b-0 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-ui-xs **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:tracking-wider **:[[cmdk-group-heading]]:text-foreground-subtlest"
               >
                 {filteredTabItems.map(({ tab, title, openedAtLabel }) => {
                   const isActive = tab.id === activeTabId;
@@ -190,7 +186,7 @@ export function SidePaneTabOverview({
                       value={title}
                       className={cn(
                         "mb-0.5 min-h-8 cursor-pointer gap-2 px-2 text-ui-base last:mb-0",
-                        isActive && "bg-selected data-selected:bg-selected",
+                        isActive && "bg-card font-medium shadow-2xs ring-1 ring-border/60 data-selected:bg-card",
                       )}
                       onSelect={() => {
                         onActivateTab(tab.id);
@@ -233,7 +229,7 @@ export function SidePaneTabOverview({
             {filteredRecentClosedItems.length > 0 ? (
               <CommandGroup
                 heading={labels.recentlyClosedTabs}
-                className="border-border border-b p-1 last:border-b-0 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-ui-base **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-foreground-subtle"
+                className="border-border border-b p-1 last:border-b-0 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-ui-xs **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:tracking-wider **:[[cmdk-group-heading]]:text-foreground-subtlest"
               >
                 {filteredRecentClosedItems.map(({ item, title, closedAtLabel }) => (
                   <CommandItem

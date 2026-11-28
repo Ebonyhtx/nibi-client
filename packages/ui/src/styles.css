@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "tailwind-scrollbar-hide/v4";
 @import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/noto-serif-sc";
 @source "../../../node_modules/streamdown/dist/*.js"; /* 感觉这行也是不好使呢*/
 
 @plugin "@tailwindcss/typography";
@@ -89,35 +93,40 @@ body,
   --color-remote-continuity-panel-surface: #2c2d30;
   --color-remote-continuity-panel-foreground: #f8f8f8;
   --color-remote-continuity-panel-subtle: #a7a7ad;
-  /* 纸墨工坊：桌面浅色器物层级、高光与暖纸光晕 */
+  /* 纸墨工坊 · 宣纸书案：立体器物层级、高光与静谧墨影 */
+  --nibi-user-inset: color-mix(in oklab, #1c2b42 6%, #f8f1e2);
   --nibi-shadow-panel:
-    inset 0 1px 0 rgba(255, 253, 249, 0.9), 0 1px 2px rgba(20, 45, 82, 0.045),
-    0 8px 22px -12px rgba(20, 45, 82, 0.08);
+    0 1px 2px color-mix(in oklab, #1c2b42 4%, transparent),
+    0 10px 30px -14px color-mix(in oklab, #1c2b42 12%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
   --nibi-shadow-card:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(20, 45, 82, 0.045),
-    0 3px 10px -4px rgba(20, 45, 82, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 1px 2px color-mix(in oklab, #1c2b42 4.5%, transparent),
+    0 4px 12px -6px color-mix(in oklab, #1c2b42 8%, transparent);
   --nibi-shadow-card-hover:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 2px 6px -1px rgba(20, 45, 82, 0.08),
-    0 10px 22px -8px rgba(20, 45, 82, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.94), 0 2px 6px -1px color-mix(in oklab, #1c2b42 7%, transparent),
+    0 12px 24px -10px color-mix(in oklab, #1c2b42 12%, transparent);
   --nibi-shadow-composer:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 2px 6px rgba(20, 45, 82, 0.05),
-    0 12px 28px -12px rgba(20, 45, 82, 0.12);
+    0 2px 6px color-mix(in oklab, #1c2b42 4%, transparent),
+    0 14px 36px -14px color-mix(in oklab, #1c2b42 13%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
   --nibi-shadow-composer-focus:
-    inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 0 0 3px rgba(174, 84, 19, 0.12),
-    0 6px 16px -4px rgba(20, 45, 82, 0.09), 0 16px 34px -12px rgba(174, 84, 19, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 0 0 3px color-mix(in oklab, #a85014 11%, transparent),
+    0 14px 36px -14px color-mix(in oklab, #1c2b42 14%, transparent);
   --nibi-shadow-popover:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 4px 12px -2px rgba(20, 45, 82, 0.08),
-    0 18px 40px -10px rgba(20, 45, 82, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 12px -2px color-mix(in oklab, #1c2b42 8%, transparent),
+    0 20px 44px -12px color-mix(in oklab, #1c2b42 18%, transparent);
   --nibi-shadow-primary-btn:
     inset 0 1px 0 rgba(255, 246, 232, 0.28), 0 1px 2px rgba(120, 52, 8, 0.24),
-    0 4px 10px -4px rgba(174, 84, 19, 0.34);
+    0 4px 10px -4px rgba(168, 80, 20, 0.32);
   --nibi-shadow-input-inset:
-    inset 0 1px 2px rgba(20, 45, 82, 0.045), 0 1px 0 rgba(255, 255, 255, 0.65);
+    inset 0 1px 2px color-mix(in oklab, #1c2b42 4.5%, transparent), 0 1px 0 rgba(255, 255, 255, 0.7);
   --nibi-shadow-input-focus:
-    inset 0 1px 2px rgba(20, 45, 82, 0.04), 0 0 0 3px rgba(74, 121, 184, 0.14);
+    inset 0 1px 2px color-mix(in oklab, #1c2b42 4%, transparent),
+    0 0 0 3px color-mix(in oklab, #a85014 14%, transparent);
   --nibi-shadow-active-row:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 1px 3px rgba(20, 45, 82, 0.07),
-    0 4px 10px -6px rgba(20, 45, 82, 0.12);
+    0 1px 3px color-mix(in oklab, #1c2b42 6%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --nibi-paper-wash: radial-gradient(
     ellipse 85% 42% at 50% 0%,
     rgba(255, 253, 247, 0.72),
@@ -128,9 +137,10 @@ body,
 
 :is(.dark, .theme-nibi-dark) {
   color-scheme: dark;
+  --nibi-user-inset: color-mix(in oklab, #f0e4d2 7.5%, #181714);
   --nibi-shadow-panel:
-    inset 0 1px 0 rgba(255, 244, 224, 0.06), 0 1px 2px rgba(0, 0, 0, 0.36),
-    0 10px 26px -12px rgba(0, 0, 0, 0.52);
+    0 2px 6px rgba(0, 0, 0, 0.28), 0 16px 38px -16px rgba(0, 0, 0, 0.56),
+    inset 0 1px 0 rgba(255, 245, 228, 0.065);
   --nibi-shadow-card:
     inset 0 1px 0 rgba(255, 244, 224, 0.055), 0 1px 3px rgba(0, 0, 0, 0.32),
     0 4px 12px -6px rgba(0, 0, 0, 0.44);
@@ -138,26 +148,25 @@ body,
     inset 0 1px 0 rgba(255, 244, 224, 0.09), 0 4px 10px -2px rgba(0, 0, 0, 0.42),
     0 12px 24px -8px rgba(0, 0, 0, 0.56);
   --nibi-shadow-composer:
-    inset 0 1px 0 rgba(255, 244, 224, 0.075), 0 4px 12px rgba(0, 0, 0, 0.36),
-    0 16px 34px -12px rgba(0, 0, 0, 0.58);
+    0 4px 12px rgba(0, 0, 0, 0.34), 0 18px 42px -14px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 245, 228, 0.08);
   --nibi-shadow-composer-focus:
-    inset 0 1px 0 rgba(232, 196, 145, 0.14), 0 0 0 3px rgba(232, 196, 145, 0.13),
-    0 8px 20px -4px rgba(0, 0, 0, 0.48), 0 18px 38px -10px rgba(0, 0, 0, 0.64);
+    inset 0 1px 0 rgba(255, 245, 228, 0.12), 0 0 0 3px color-mix(in oklab, #e6c28e 13%, transparent),
+    0 18px 42px -14px rgba(0, 0, 0, 0.64);
   --nibi-shadow-popover:
     inset 0 1px 0 rgba(255, 244, 224, 0.08), 0 6px 16px -2px rgba(0, 0, 0, 0.48),
     0 22px 48px -10px rgba(0, 0, 0, 0.72);
   --nibi-shadow-primary-btn:
     inset 0 1px 0 rgba(255, 250, 240, 0.34), 0 1px 2px rgba(0, 0, 0, 0.38),
-    0 4px 12px -4px rgba(232, 196, 145, 0.24);
+    0 4px 12px -4px rgba(230, 194, 142, 0.24);
   --nibi-shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.34), 0 1px 0 rgba(255, 244, 224, 0.04);
   --nibi-shadow-input-focus:
-    inset 0 1px 2px rgba(0, 0, 0, 0.28), 0 0 0 3px rgba(207, 168, 126, 0.18);
+    inset 0 1px 2px rgba(0, 0, 0, 0.28), 0 0 0 3px rgba(201, 162, 118, 0.18);
   --nibi-shadow-active-row:
-    inset 0 1px 0 rgba(255, 244, 224, 0.07), 0 1px 3px rgba(0, 0, 0, 0.36),
-    0 6px 14px -8px rgba(0, 0, 0, 0.56);
+    0 1px 3px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 245, 228, 0.06);
   --nibi-paper-wash: radial-gradient(
     ellipse 85% 38% at 50% 0%,
-    rgba(232, 196, 145, 0.055),
+    rgba(230, 194, 142, 0.05),
     transparent 68%
   );
   --nibi-paper-grain-opacity: 0.03;
@@ -186,6 +195,10 @@ body,
 body {
   margin: 0;
   overflow: hidden;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* Bug 根因：窗口 hidden 时 CSS 动画无法结算，DocumentTimeline 会持有期间被移除的元素及整棵子树，
@@ -273,22 +286,36 @@ html[data-document-hidden] *::after {
   }
 }
 
-/* 正文选中：浅色钢蓝、深色沙褐；与主题 token 同步，不再是浏览器默认蓝。 */
-::selection {
-  background: rgba(74, 121, 184, 0.28);
+/* 正文选中：四套主题各自映射为暖陶土 / 暖墨金 / 石青 / 海沫青半透明高光。 */
+::selection,
+.theme-nibi-light ::selection {
+  background: rgba(168, 80, 20, 0.2);
 }
 :is(.dark, .theme-nibi-dark) ::selection {
-  background: rgba(232, 196, 145, 0.28);
+  background: rgba(230, 194, 142, 0.26);
+}
+.theme-nibi-mist ::selection {
+  background: rgba(38, 97, 97, 0.18);
+}
+.theme-nibi-obsidian ::selection {
+  background: rgba(94, 194, 182, 0.24);
 }
 
 /* === 主题变量 === */
 
 @theme {
+  --font-sans:
+    "Inter Variable", "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI",
+    "Microsoft YaHei", "Noto Sans CJK SC", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display:
+    "Newsreader Variable", "Newsreader", "Iowan Old Style", Georgia, "Noto Serif SC Variable",
+    "Noto Serif SC", "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", serif;
   /* 修复原因：Windows 的 Consolas 不含中文字形，Tailwind 默认栈最终会让中文落到宋体。
    * 保留各平台西文等宽字体，并在通用 monospace 前显式加入各平台 CJK 无衬线字体。 */
   --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-    "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", monospace;
+    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", "Microsoft YaHei UI", "Microsoft YaHei",
+    "PingFang SC", "Noto Sans CJK SC", monospace;
   /* 设置页直接恢复通用大字号会绕过 UI 字号体系；专用 token 保留默认 24px / 30px，并跟随界面字号缩放。 */
   --text-ui-settings-title: calc(var(--ui-font-size) + 10px);
   --text-ui-settings-title--line-height: calc(4 / 3);
@@ -307,13 +334,13 @@ html[data-document-hidden] *::after {
   --tracking-wf-label: 0.09em;
   /* iOS Safari 会缩放小于 16px 的聚焦输入；该平台下限不能跟随界面字号降低。 */
   --text-mobile-input-safe: 16px;
-  --animated-gradient-text-strong: #142d52;
-  --animated-gradient-text-soft: rgba(20, 45, 82, 0.22);
-  --color-background: #f9f2e4;
-  --color-background-win-alt: #efe5d1;
-  --color-background-alt: color-mix(in oklab, var(--color-background) 70%, transparent);
-  --color-brand: #e08a3e;
-  --color-resize-handle: #4a79b8;
+  --animated-gradient-text-strong: #1c2b42;
+  --animated-gradient-text-soft: color-mix(in oklab, #1c2b42 22%, transparent);
+  --color-background: #fcf9f2;
+  --color-background-win-alt: #efe6d5;
+  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 78%, transparent);
+  --color-brand: #d9843b;
+  --color-resize-handle: #a85014;
   --color-icon-blue: #82aade;
   --color-icon-purple: #b79ade;
   --color-trajectory-user: #4a79b8;
@@ -321,34 +348,34 @@ html[data-document-hidden] *::after {
   --color-trajectory-reasoning: #8a6fb0;
   --color-trajectory-tool-call: #c98a2c;
   --color-trajectory-tool-result: #6a8fa8;
-  --color-workflow-rule: rgba(20, 45, 82, 0.055);
-  --color-workflow-trace: rgba(20, 45, 82, 0.3);
-  --color-workflow-trace-strong: rgba(20, 45, 82, 0.55);
-  --color-accent: #f3ead8;
+  --color-workflow-rule: rgba(28, 43, 66, 0.055);
+  --color-workflow-trace: rgba(28, 43, 66, 0.3);
+  --color-workflow-trace-strong: rgba(28, 43, 66, 0.55);
+  --color-accent: #f3ecdf;
   --color-find-highlight: #fff4eb;
   --color-find-highlight-active: #ffb26b;
-  --color-border: rgba(20, 45, 82, 0.12);
-  --color-border-hover: rgba(20, 45, 82, 0.22);
-  --color-hover: rgba(20, 45, 82, 0.05);
-  --color-selected: rgba(74, 121, 184, 0.14);
-  --color-header: #fdfaf3;
-  --color-panel: #f2e8d5;
-  --color-sidebar: #f2e8d5;
-  --color-surface: rgba(20, 45, 82, 0.035);
-  --color-surface-hover: rgba(20, 45, 82, 0.06);
-  --color-card: #fffdf9;
-  --color-card-selected: #f7eeda;
+  --color-border: color-mix(in oklab, #1c2b42 8%, transparent);
+  --color-border-hover: color-mix(in oklab, #1c2b42 15%, transparent);
+  --color-hover: color-mix(in oklab, #1c2b42 5%, transparent);
+  --color-selected: color-mix(in oklab, #a85014 11%, transparent);
+  --color-header: #fcf9f2;
+  --color-panel: #efe6d5;
+  --color-sidebar: #efe6d5;
+  --color-surface: color-mix(in oklab, #1c2b42 3.5%, transparent);
+  --color-surface-hover: color-mix(in oklab, #1c2b42 6%, transparent);
+  --color-card: #fffefa;
+  --color-card-selected: #f6efe2;
   --color-card-border: var(--color-border);
-  --color-popover: #fffdf9;
+  --color-popover: #fffefa;
   --color-popover-foreground: var(--color-foreground);
-  --color-popover-header: #f3ead8;
+  --color-popover-header: #f4eee1;
   --color-popover-border: var(--color-border);
-  --color-input: #fffdf9;
-  --color-input-focused: #fffdf9;
+  --color-input: #fffefa;
+  --color-input-focused: #fffefa;
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
-  --color-input-border-focused: #4a79b8;
-  --color-ring: #4a79b8;
+  --color-input-border-focused: #a85014;
+  --color-ring: #a85014;
   --color-terminal-bg: #1c1a17;
   --color-terminal-fg: #e5dfd5;
   --color-terminal-cursor: #e8c491;
@@ -394,29 +421,30 @@ html[data-document-hidden] *::after {
   --color-tab-border: var(--color-border);
   --color-menu: #fffdf9;
   --color-menu-hover: #f3ead8;
-  --color-primary: #ae5413;
-  --color-primary-foreground: #fff9ef;
+  --color-primary: #a85014;
+  --color-primary-foreground: #fffaf2;
   --color-secondary: #ece1cf;
   --color-secondary-foreground: var(--color-foreground);
-  --color-muted: #f3ead8;
+  --color-muted: #f4eee1;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #1c2f4e 52%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #4a3f32 22%, transparent);
+  --color-scrollbar-thumb-hover: color-mix(in oklab, #4a3f32 42%, transparent);
   --color-scrollbar-track: transparent;
-  --color-interaction-ask-surface: rgba(74, 121, 184, 0.12);
-  --color-interaction-ask-foreground: #4a79b8;
+  --color-interaction-ask-surface: rgba(168, 80, 20, 0.1);
+  --color-interaction-ask-foreground: #8f420f;
   --color-interaction-ask-fill: rgba(63, 143, 95, 0.2);
   --color-interaction-confirmation-surface: rgba(63, 143, 95, 0.14);
   --color-interaction-confirmation-foreground: #3f8f5f;
   --color-success-surface: rgba(63, 143, 95, 0.14);
   --color-success-surface-foreground: #2c6442;
-  --color-progress-surface: rgba(74, 121, 184, 0.12);
-  --color-progress-surface-foreground: #375c8d;
-  --color-foreground: #1c2f4e;
-  --color-foreground-subtle: color-mix(in oklab, #1c2f4e 70%, transparent);
+  --color-progress-surface: rgba(168, 80, 20, 0.1);
+  --color-progress-surface-foreground: #8f420f;
+  --color-foreground: #1c2b42;
+  --color-foreground-subtle: color-mix(in oklab, #1c2b42 68%, transparent);
   --color-remote-foreground-muted: #56647a;
-  --color-foreground-subtlest: color-mix(in oklab, #1c2f4e 52%, transparent);
+  --color-foreground-subtlest: color-mix(in oklab, #1c2b42 60%, transparent);
   --lucide-subtlest-opacity: 0.4;
-  --color-foreground-inverse: #fffdf9;
+  --color-foreground-inverse: #fffefa;
   --color-success: #3f8f5f;
   --color-success-foreground: #ffffff;
   --color-idle-task: #8a6fb0;
@@ -426,9 +454,9 @@ html[data-document-hidden] *::after {
   --color-warning: #c98a2c;
   --color-feedback-privacy-hint: #b07a3a;
   --color-warning-foreground: #ffffff;
-  --color-warning-surface: color-mix(in srgb, #c98a2c 12%, transparent);
+  --color-warning-surface: color-mix(in oklab, #c98a2c 12%, transparent);
   --color-warning-surface-foreground: #805416;
-  --color-destructive-surface: color-mix(in srgb, #c25b4e 12%, transparent);
+  --color-destructive-surface: color-mix(in oklab, #c25b4e 12%, transparent);
   --color-destructive-surface-foreground: #983d33;
   --color-diff-added: #3f8f5f;
   --color-diff-added-foreground: #ffffff;
@@ -477,7 +505,23 @@ html[data-document-hidden] *::after {
   --color-plugin-node-foreground: #b87a1a;
   --color-plugin-paid-plan-badge: #ffe3c8;
   --color-plugin-paid-plan-badge-foreground: #4b280f;
+  --color-feedback-info: #a85014;
   --color-markdown-inline-code: var(--color-tag);
+  --nibi-feather-1: #d9843b;
+  --nibi-feather-2: #a85014;
+  --nibi-feather-3: #6f8f5f;
+  --nibi-feather-4: #8c6a4a;
+  --nibi-rail-border: color-mix(in oklab, var(--color-primary) 24%, var(--color-border-hover));
+  --nibi-rail-track-bg: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-primary) 5%, transparent),
+    color-mix(in oklab, var(--color-brand) 6%, transparent) 48%,
+    color-mix(in oklab, #6f8f5f 4.5%, transparent)
+  );
+  --nibi-rail-fill-start: color-mix(in oklab, #8c6a4a 72%, transparent);
+  --nibi-rail-fill-mid: color-mix(in oklab, var(--color-primary) 64%, transparent);
+  --nibi-rail-fill-end: color-mix(in oklab, var(--color-brand) 74%, transparent);
+  --nibi-rail-stop-bg: color-mix(in oklab, #fffefa 82%, var(--color-primary) 18%);
   --radius-sm: 8px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -486,13 +530,13 @@ html[data-document-hidden] *::after {
 }
 
 .dark {
-  --animated-gradient-text-strong: #f2ece2;
-  --animated-gradient-text-soft: rgba(242, 236, 226, 0.22);
-  --color-background: #171614;
+  --animated-gradient-text-strong: #e6e0d6;
+  --animated-gradient-text-soft: rgba(230, 224, 214, 0.22);
+  --color-background: #181714;
   --color-background-win-alt: #100f0d;
-  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 60%, transparent);
-  --color-brand: #e8c491;
-  --color-resize-handle: #cfa87e;
+  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 72%, transparent);
+  --color-brand: #e6c28e;
+  --color-resize-handle: #c9a276;
   --color-icon-blue: #d8b088;
   --color-icon-purple: #c39ad9;
   --color-trajectory-user: #8fb3e0;
@@ -500,39 +544,39 @@ html[data-document-hidden] *::after {
   --color-trajectory-reasoning: #b79ade;
   --color-trajectory-tool-call: #d9a24a;
   --color-trajectory-tool-result: #a8c8e8;
-  --color-workflow-rule: rgba(238, 226, 208, 0.065);
-  --color-workflow-trace: rgba(238, 226, 208, 0.35);
-  --color-workflow-trace-strong: rgba(238, 226, 208, 0.6);
-  --color-accent: #282420;
+  --color-workflow-rule: rgba(240, 228, 210, 0.065);
+  --color-workflow-trace: rgba(240, 228, 210, 0.35);
+  --color-workflow-trace-strong: rgba(240, 228, 210, 0.6);
+  --color-accent: #27241f;
   --color-find-highlight: #4a3520;
   --color-find-highlight-active: #e0a35c;
-  --color-border: rgba(238, 226, 208, 0.11);
-  --color-border-hover: rgba(238, 226, 208, 0.22);
-  --color-hover: rgba(238, 226, 208, 0.065);
-  --color-selected: rgba(232, 196, 145, 0.16);
-  --color-header: #1b1917;
+  --color-border: color-mix(in oklab, #f0e4d2 8%, transparent);
+  --color-border-hover: color-mix(in oklab, #f0e4d2 16%, transparent);
+  --color-hover: color-mix(in oklab, #f0e4d2 5.5%, transparent);
+  --color-selected: rgba(230, 194, 142, 0.16);
+  --color-header: #181714;
   --color-panel: #100f0d;
   --color-sidebar: #100f0d;
-  --color-surface: rgba(238, 226, 208, 0.045);
-  --color-surface-hover: rgba(238, 226, 208, 0.085);
-  --color-card: #201e1b;
-  --color-card-selected: #292622;
+  --color-surface: rgba(240, 228, 210, 0.042);
+  --color-surface-hover: rgba(240, 228, 210, 0.08);
+  --color-card: #211f1b;
+  --color-card-selected: #282520;
   --color-card-border: var(--color-border);
-  --color-popover: #211f1c;
+  --color-popover: #22201c;
   --color-popover-foreground: var(--color-foreground);
-  --color-popover-header: #292622;
+  --color-popover-header: #282520;
   --color-popover-border: var(--color-border);
-  --color-input: #1f1d1a;
+  --color-input: #211f1b;
   --color-input-focused: #26231f;
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
-  --color-input-border-focused: #cfa87e;
-  --color-ring: #cfa87e;
+  --color-input-border-focused: #c9a276;
+  --color-ring: #c9a276;
   --color-terminal-bg: #131210;
   --color-terminal-fg: #ddd7cd;
-  --color-terminal-cursor: #e8c491;
+  --color-terminal-cursor: #e6c28e;
   --color-terminal-cursor-accent: #131210;
-  --color-terminal-selection: rgba(232, 196, 145, 0.3);
+  --color-terminal-selection: rgba(230, 194, 142, 0.3);
   --color-terminal-selection-inactive: rgba(224, 218, 208, 0.16);
   --color-terminal-black: #3a3733;
   --color-terminal-red: #d97e6e;
@@ -546,56 +590,57 @@ html[data-document-hidden] *::after {
   --color-terminal-bright-red: #e89a8c;
   --color-terminal-bright-green: #a6d8b2;
   --color-terminal-bright-yellow: #f0c98a;
-  --color-terminal-bright-blue: #e8c491;
+  --color-terminal-bright-blue: #e6c28e;
   --color-terminal-bright-magenta: #d8b6ea;
   --color-terminal-bright-cyan: #a9ded8;
   --color-terminal-bright-white: #f4f0e8;
-  --color-usage-chart-1: #e8c491;
+  --color-usage-chart-1: #e6c28e;
   --color-usage-chart-2: #8fb3e0;
   --color-usage-chart-3: #8fc79c;
   --color-usage-chart-4: #d97e6e;
   --color-usage-chart-5: #d9a24a;
   --color-usage-chart-6: #a9a196;
-  --color-context-breakdown-1: #e8c491;
+  --color-context-breakdown-1: #e6c28e;
   --color-context-breakdown-2: #d8b088;
-  --color-context-breakdown-3: #c9a077;
+  --color-context-breakdown-3: #c9a276;
   --color-context-breakdown-4: #b08a63;
   --color-context-breakdown-5: #8f7052;
   --color-context-breakdown-6: #6a5542;
   --color-context-breakdown-7: #453b31;
-  --color-usage-heatmap-0: color-mix(in oklab, #e8c491 0%, var(--color-surface));
-  --color-usage-heatmap-1: color-mix(in oklab, #e8c491 18%, var(--color-surface));
-  --color-usage-heatmap-2: color-mix(in oklab, #e8c491 34%, var(--color-surface));
-  --color-usage-heatmap-3: color-mix(in oklab, #e8c491 54%, var(--color-surface));
+  --color-usage-heatmap-0: color-mix(in oklab, #e6c28e 0%, var(--color-surface));
+  --color-usage-heatmap-1: color-mix(in oklab, #e6c28e 18%, var(--color-surface));
+  --color-usage-heatmap-2: color-mix(in oklab, #e6c28e 34%, var(--color-surface));
+  --color-usage-heatmap-3: color-mix(in oklab, #e6c28e 54%, var(--color-surface));
   --color-usage-heatmap-4: color-mix(in oklab, #f0d2a4 74%, var(--color-surface));
-  --color-tab: #1f1d1a;
+  --color-tab: #1f1d19;
   --color-tab-active: #100f0d;
   --color-tab-border: var(--color-border);
-  --color-menu: #211f1c;
-  --color-menu-hover: #2b2723;
-  --color-primary: #e8c491;
-  --color-primary-foreground: #2a1d0a;
-  --color-secondary: #2b2723;
+  --color-menu: #22201c;
+  --color-menu-hover: #2c2823;
+  --color-primary: #e6c28e;
+  --color-primary-foreground: #1c1308;
+  --color-secondary: #2a2621;
   --color-secondary-foreground: var(--color-foreground);
-  --color-muted: #24211e;
+  --color-muted: #24211d;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #e0dad0 46%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #e6dfd4 24%, transparent);
+  --color-scrollbar-thumb-hover: color-mix(in oklab, #e6dfd4 44%, transparent);
   --color-scrollbar-track: transparent;
-  --color-interaction-ask-surface: rgba(207, 168, 126, 0.16);
-  --color-interaction-ask-foreground: #cfa87e;
+  --color-interaction-ask-surface: rgba(230, 194, 142, 0.16);
+  --color-interaction-ask-foreground: #e6c28e;
   --color-interaction-ask-fill: rgba(116, 185, 138, 0.24);
   --color-interaction-confirmation-surface: rgba(116, 185, 138, 0.16);
   --color-interaction-confirmation-foreground: #8fc79c;
   --color-success-surface: rgba(116, 185, 138, 0.16);
   --color-success-surface-foreground: #8fc79c;
-  --color-progress-surface: rgba(207, 168, 126, 0.14);
-  --color-progress-surface-foreground: #d8b088;
-  --color-foreground: #e0dad0;
-  --color-foreground-subtle: color-mix(in oklab, #e0dad0 68%, transparent);
-  --color-remote-foreground-muted: #a9a196;
-  --color-foreground-subtlest: color-mix(in oklab, #e0dad0 48%, transparent);
+  --color-progress-surface: rgba(201, 162, 118, 0.14);
+  --color-progress-surface-foreground: #e6c28e;
+  --color-foreground: #e6e0d6;
+  --color-foreground-subtle: color-mix(in oklab, #e6e0d6 70%, transparent);
+  --color-remote-foreground-muted: #a89e90;
+  --color-foreground-subtlest: color-mix(in oklab, #e6e0d6 54%, transparent);
   --lucide-subtlest-opacity: 0.48;
-  --color-foreground-inverse: #171614;
+  --color-foreground-inverse: #181714;
   --color-success: #74b98a;
   --color-success-foreground: #171614;
   --color-idle-task: #b79ade;
@@ -604,10 +649,10 @@ html[data-document-hidden] *::after {
   --color-destructive-foreground: #ffffff;
   --color-warning: #d9a24a;
   --color-feedback-privacy-hint: #e0b36a;
-  --color-warning-foreground: #171614;
-  --color-warning-surface: color-mix(in srgb, #d9a24a 16%, transparent);
+  --color-warning-foreground: #100f0d;
+  --color-warning-surface: color-mix(in oklab, #d9a24a 16%, transparent);
   --color-warning-surface-foreground: #e8b968;
-  --color-destructive-surface: color-mix(in srgb, #d97e6e 16%, transparent);
+  --color-destructive-surface: color-mix(in oklab, #d97e6e 16%, transparent);
   --color-destructive-surface-foreground: #eaa295;
   --color-diff-added: #74b98a;
   --color-diff-added-foreground: #171614;
@@ -654,18 +699,32 @@ html[data-document-hidden] *::after {
   --color-plugin-node: rgba(224, 174, 112, 0.16);
   --color-plugin-node-hover: rgba(224, 174, 112, 0.22);
   --color-plugin-node-foreground: #efc58f;
-  --color-plugin-paid-plan-badge: #5a341b;
-  --color-plugin-paid-plan-badge-foreground: #ffd8b8;
+  --color-feedback-info: #e6c28e;
+  --nibi-feather-1: #e6c28e;
+  --nibi-feather-2: #c9a276;
+  --nibi-feather-3: #8fc79c;
+  --nibi-feather-4: #9da8b6;
+  --nibi-rail-border: color-mix(in oklab, #e6c28e 26%, var(--color-border-hover));
+  --nibi-rail-track-bg: linear-gradient(
+    180deg,
+    rgba(230, 194, 142, 0.08),
+    rgba(201, 162, 118, 0.06) 48%,
+    rgba(143, 199, 156, 0.06)
+  );
+  --nibi-rail-fill-start: rgba(157, 168, 182, 0.58);
+  --nibi-rail-fill-mid: rgba(201, 162, 118, 0.62);
+  --nibi-rail-fill-end: rgba(230, 194, 142, 0.72);
+  --nibi-rail-stop-bg: color-mix(in oklab, #f0e4d2 62%, #2c2720);
 }
 
 .theme-nibi-light {
-  --animated-gradient-text-strong: #142d52;
-  --animated-gradient-text-soft: rgba(20, 45, 82, 0.22);
-  --color-background: #f9f2e4;
-  --color-background-win-alt: #efe5d1;
-  --color-background-alt: color-mix(in oklab, var(--color-background) 70%, transparent);
-  --color-brand: #e08a3e;
-  --color-resize-handle: #4a79b8;
+  --animated-gradient-text-strong: #1c2b42;
+  --animated-gradient-text-soft: color-mix(in oklab, #1c2b42 22%, transparent);
+  --color-background: #fcf9f2;
+  --color-background-win-alt: #efe6d5;
+  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 78%, transparent);
+  --color-brand: #d9843b;
+  --color-resize-handle: #a85014;
   --color-icon-blue: #82aade;
   --color-icon-purple: #b79ade;
   --color-trajectory-user: #4a79b8;
@@ -673,34 +732,35 @@ html[data-document-hidden] *::after {
   --color-trajectory-reasoning: #8a6fb0;
   --color-trajectory-tool-call: #c98a2c;
   --color-trajectory-tool-result: #6a8fa8;
-  --color-workflow-rule: rgba(20, 45, 82, 0.055);
-  --color-workflow-trace: rgba(20, 45, 82, 0.3);
-  --color-workflow-trace-strong: rgba(20, 45, 82, 0.55);
-  --color-accent: #f3ead8;
+  --color-workflow-rule: rgba(28, 43, 66, 0.055);
+  --color-workflow-trace: rgba(28, 43, 66, 0.3);
+  --color-workflow-trace-strong: rgba(28, 43, 66, 0.55);
+  --color-accent: #f3ecdf;
   --color-find-highlight: #fff4eb;
   --color-find-highlight-active: #ffb26b;
-  --color-border: rgba(20, 45, 82, 0.12);
-  --color-border-hover: rgba(20, 45, 82, 0.22);
-  --color-hover: rgba(20, 45, 82, 0.05);
-  --color-selected: rgba(74, 121, 184, 0.14);
-  --color-header: #fdfaf3;
-  --color-panel: #f2e8d5;
-  --color-sidebar: #f2e8d5;
-  --color-surface: rgba(20, 45, 82, 0.035);
-  --color-surface-hover: rgba(20, 45, 82, 0.06);
-  --color-card: #fffdf9;
-  --color-card-selected: #f7eeda;
+  --color-border: color-mix(in oklab, #1c2b42 8%, transparent);
+  --color-border-hover: color-mix(in oklab, #1c2b42 15%, transparent);
+  --color-hover: color-mix(in oklab, #1c2b42 5%, transparent);
+  --color-selected: color-mix(in oklab, #a85014 11%, transparent);
+  --color-header: #fcf9f2;
+  --color-panel: #efe6d5;
+  --color-sidebar: #efe6d5;
+  --color-surface: color-mix(in oklab, #1c2b42 3.5%, transparent);
+  --color-surface-hover: color-mix(in oklab, #1c2b42 6%, transparent);
+  --color-card: #fffefa;
+  --color-card-selected: #f6efe2;
   --color-card-border: var(--color-border);
-  --color-popover: #fffdf9;
+  --color-popover: #fffefa;
   --color-popover-foreground: var(--color-foreground);
-  --color-popover-header: #f3ead8;
+  --color-popover-header: #f4eee1;
   --color-popover-border: var(--color-border);
-  --color-input: #fffdf9;
-  --color-input-focused: #fffdf9;
+  --color-input: #fffefa;
+  --color-input-focused: #fffefa;
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
-  --color-input-border-focused: #4a79b8;
-  --color-ring: #4a79b8;
+  --color-input-border-focused: #a85014;
+  --color-ring: #a85014;
+  --nibi-user-inset: color-mix(in oklab, #1c2b42 6%, #f8f1e2);
   --color-terminal-bg: #1c1a17;
   --color-terminal-fg: #e5dfd5;
   --color-terminal-cursor: #e8c491;
@@ -741,34 +801,35 @@ html[data-document-hidden] *::after {
   --color-usage-heatmap-2: color-mix(in oklab, #c96b27 42%, var(--color-surface));
   --color-usage-heatmap-3: color-mix(in oklab, #b85c1b 66%, var(--color-surface));
   --color-usage-heatmap-4: color-mix(in oklab, #94440d 88%, var(--color-surface));
-  --color-tab: #f3ead8;
-  --color-tab-active: #fffdf9;
+  --color-tab: #f3ecdf;
+  --color-tab-active: #fffefa;
   --color-tab-border: var(--color-border);
-  --color-menu: #fffdf9;
-  --color-menu-hover: #f3ead8;
-  --color-primary: #ae5413;
-  --color-primary-foreground: #fff9ef;
-  --color-secondary: #ece1cf;
+  --color-menu: #fffefa;
+  --color-menu-hover: #f3ecdf;
+  --color-primary: #a85014;
+  --color-primary-foreground: #fffaf2;
+  --color-secondary: #ebe2d2;
   --color-secondary-foreground: var(--color-foreground);
-  --color-muted: #f3ead8;
+  --color-muted: #f4eee1;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #1c2f4e 52%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #4a3f32 22%, transparent);
+  --color-scrollbar-thumb-hover: color-mix(in oklab, #4a3f32 42%, transparent);
   --color-scrollbar-track: transparent;
-  --color-interaction-ask-surface: rgba(74, 121, 184, 0.12);
-  --color-interaction-ask-foreground: #4a79b8;
+  --color-interaction-ask-surface: rgba(168, 80, 20, 0.1);
+  --color-interaction-ask-foreground: #8f420f;
   --color-interaction-ask-fill: rgba(63, 143, 95, 0.2);
   --color-interaction-confirmation-surface: rgba(63, 143, 95, 0.14);
   --color-interaction-confirmation-foreground: #3f8f5f;
   --color-success-surface: rgba(63, 143, 95, 0.14);
   --color-success-surface-foreground: #2c6442;
-  --color-progress-surface: rgba(74, 121, 184, 0.12);
-  --color-progress-surface-foreground: #375c8d;
-  --color-foreground: #1c2f4e;
-  --color-foreground-subtle: color-mix(in oklab, #1c2f4e 70%, transparent);
+  --color-progress-surface: rgba(168, 80, 20, 0.1);
+  --color-progress-surface-foreground: #8f420f;
+  --color-foreground: #1c2b42;
+  --color-foreground-subtle: color-mix(in oklab, #1c2b42 68%, transparent);
   --color-remote-foreground-muted: #56647a;
-  --color-foreground-subtlest: color-mix(in oklab, #1c2f4e 52%, transparent);
+  --color-foreground-subtlest: color-mix(in oklab, #1c2b42 60%, transparent);
   --lucide-subtlest-opacity: 0.4;
-  --color-foreground-inverse: #fffdf9;
+  --color-foreground-inverse: #fffefa;
   --color-success: #3f8f5f;
   --color-success-foreground: #ffffff;
   --color-idle-task: #8a6fb0;
@@ -778,9 +839,9 @@ html[data-document-hidden] *::after {
   --color-warning: #c98a2c;
   --color-feedback-privacy-hint: #b07a3a;
   --color-warning-foreground: #ffffff;
-  --color-warning-surface: color-mix(in srgb, #c98a2c 12%, transparent);
+  --color-warning-surface: color-mix(in oklab, #c98a2c 12%, transparent);
   --color-warning-surface-foreground: #805416;
-  --color-destructive-surface: color-mix(in srgb, #c25b4e 12%, transparent);
+  --color-destructive-surface: color-mix(in oklab, #c25b4e 12%, transparent);
   --color-destructive-surface-foreground: #983d33;
   --color-diff-added: #3f8f5f;
   --color-diff-added-foreground: #ffffff;
@@ -829,16 +890,32 @@ html[data-document-hidden] *::after {
   --color-plugin-node-foreground: #b87a1a;
   --color-plugin-paid-plan-badge: #ffe3c8;
   --color-plugin-paid-plan-badge-foreground: #4b280f;
+  --color-feedback-info: #a85014;
+  --nibi-feather-1: #d9843b;
+  --nibi-feather-2: #a85014;
+  --nibi-feather-3: #6f8f5f;
+  --nibi-feather-4: #8c6a4a;
+  --nibi-rail-border: color-mix(in oklab, var(--color-primary) 24%, var(--color-border-hover));
+  --nibi-rail-track-bg: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-primary) 5%, transparent),
+    color-mix(in oklab, var(--color-brand) 6%, transparent) 48%,
+    color-mix(in oklab, #6f8f5f 4.5%, transparent)
+  );
+  --nibi-rail-fill-start: color-mix(in oklab, #8c6a4a 72%, transparent);
+  --nibi-rail-fill-mid: color-mix(in oklab, var(--color-primary) 64%, transparent);
+  --nibi-rail-fill-end: color-mix(in oklab, var(--color-brand) 74%, transparent);
+  --nibi-rail-stop-bg: color-mix(in oklab, #fffefa 82%, var(--color-primary) 18%);
 }
 
 .theme-nibi-dark {
-  --animated-gradient-text-strong: #f2ece2;
-  --animated-gradient-text-soft: rgba(242, 236, 226, 0.22);
-  --color-background: #171614;
+  --animated-gradient-text-strong: #e6e0d6;
+  --animated-gradient-text-soft: rgba(230, 224, 214, 0.22);
+  --color-background: #181714;
   --color-background-win-alt: #100f0d;
-  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 60%, transparent);
-  --color-brand: #e8c491;
-  --color-resize-handle: #cfa87e;
+  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 72%, transparent);
+  --color-brand: #e6c28e;
+  --color-resize-handle: #c9a276;
   --color-icon-blue: #d8b088;
   --color-icon-purple: #c39ad9;
   --color-trajectory-user: #8fb3e0;
@@ -846,39 +923,40 @@ html[data-document-hidden] *::after {
   --color-trajectory-reasoning: #b79ade;
   --color-trajectory-tool-call: #d9a24a;
   --color-trajectory-tool-result: #a8c8e8;
-  --color-workflow-rule: rgba(238, 226, 208, 0.065);
-  --color-workflow-trace: rgba(238, 226, 208, 0.35);
-  --color-workflow-trace-strong: rgba(238, 226, 208, 0.6);
-  --color-accent: #282420;
+  --color-workflow-rule: rgba(240, 228, 210, 0.065);
+  --color-workflow-trace: rgba(240, 228, 210, 0.35);
+  --color-workflow-trace-strong: rgba(240, 228, 210, 0.6);
+  --color-accent: #27241f;
   --color-find-highlight: #4a3520;
   --color-find-highlight-active: #e0a35c;
-  --color-border: rgba(238, 226, 208, 0.11);
-  --color-border-hover: rgba(238, 226, 208, 0.22);
-  --color-hover: rgba(238, 226, 208, 0.065);
-  --color-selected: rgba(232, 196, 145, 0.16);
-  --color-header: #1b1917;
+  --color-border: color-mix(in oklab, #f0e4d2 8%, transparent);
+  --color-border-hover: color-mix(in oklab, #f0e4d2 16%, transparent);
+  --color-hover: color-mix(in oklab, #f0e4d2 5.5%, transparent);
+  --color-selected: rgba(230, 194, 142, 0.16);
+  --color-header: #181714;
   --color-panel: #100f0d;
   --color-sidebar: #100f0d;
-  --color-surface: rgba(238, 226, 208, 0.045);
-  --color-surface-hover: rgba(238, 226, 208, 0.085);
-  --color-card: #201e1b;
-  --color-card-selected: #292622;
+  --color-surface: rgba(240, 228, 210, 0.042);
+  --color-surface-hover: rgba(240, 228, 210, 0.08);
+  --color-card: #211f1b;
+  --color-card-selected: #282520;
   --color-card-border: var(--color-border);
-  --color-popover: #211f1c;
+  --color-popover: #22201c;
   --color-popover-foreground: var(--color-foreground);
-  --color-popover-header: #292622;
+  --color-popover-header: #282520;
   --color-popover-border: var(--color-border);
-  --color-input: #1f1d1a;
+  --color-input: #211f1b;
   --color-input-focused: #26231f;
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
-  --color-input-border-focused: #cfa87e;
-  --color-ring: #cfa87e;
+  --color-input-border-focused: #c9a276;
+  --color-ring: #c9a276;
+  --nibi-user-inset: color-mix(in oklab, #f0e4d2 7.5%, #181714);
   --color-terminal-bg: #131210;
   --color-terminal-fg: #ddd7cd;
-  --color-terminal-cursor: #e8c491;
+  --color-terminal-cursor: #e6c28e;
   --color-terminal-cursor-accent: #131210;
-  --color-terminal-selection: rgba(232, 196, 145, 0.3);
+  --color-terminal-selection: rgba(230, 194, 142, 0.3);
   --color-terminal-selection-inactive: rgba(224, 218, 208, 0.16);
   --color-terminal-black: #3a3733;
   --color-terminal-red: #d97e6e;
@@ -892,56 +970,57 @@ html[data-document-hidden] *::after {
   --color-terminal-bright-red: #e89a8c;
   --color-terminal-bright-green: #a6d8b2;
   --color-terminal-bright-yellow: #f0c98a;
-  --color-terminal-bright-blue: #e8c491;
+  --color-terminal-bright-blue: #e6c28e;
   --color-terminal-bright-magenta: #d8b6ea;
   --color-terminal-bright-cyan: #a9ded8;
   --color-terminal-bright-white: #f4f0e8;
-  --color-usage-chart-1: #e8c491;
+  --color-usage-chart-1: #e6c28e;
   --color-usage-chart-2: #8fb3e0;
   --color-usage-chart-3: #8fc79c;
   --color-usage-chart-4: #d97e6e;
   --color-usage-chart-5: #d9a24a;
   --color-usage-chart-6: #a9a196;
-  --color-context-breakdown-1: #e8c491;
+  --color-context-breakdown-1: #e6c28e;
   --color-context-breakdown-2: #d8b088;
-  --color-context-breakdown-3: #c9a077;
+  --color-context-breakdown-3: #c9a276;
   --color-context-breakdown-4: #b08a63;
   --color-context-breakdown-5: #8f7052;
   --color-context-breakdown-6: #6a5542;
   --color-context-breakdown-7: #453b31;
-  --color-usage-heatmap-0: color-mix(in oklab, #e8c491 0%, var(--color-surface));
-  --color-usage-heatmap-1: color-mix(in oklab, #e8c491 18%, var(--color-surface));
-  --color-usage-heatmap-2: color-mix(in oklab, #e8c491 34%, var(--color-surface));
-  --color-usage-heatmap-3: color-mix(in oklab, #e8c491 54%, var(--color-surface));
+  --color-usage-heatmap-0: color-mix(in oklab, #e6c28e 0%, var(--color-surface));
+  --color-usage-heatmap-1: color-mix(in oklab, #e6c28e 18%, var(--color-surface));
+  --color-usage-heatmap-2: color-mix(in oklab, #e6c28e 34%, var(--color-surface));
+  --color-usage-heatmap-3: color-mix(in oklab, #e6c28e 54%, var(--color-surface));
   --color-usage-heatmap-4: color-mix(in oklab, #f0d2a4 74%, var(--color-surface));
-  --color-tab: #1f1d1a;
+  --color-tab: #1f1d19;
   --color-tab-active: #100f0d;
   --color-tab-border: var(--color-border);
-  --color-menu: #211f1c;
-  --color-menu-hover: #2b2723;
-  --color-primary: #e8c491;
-  --color-primary-foreground: #2a1d0a;
-  --color-secondary: #2b2723;
+  --color-menu: #22201c;
+  --color-menu-hover: #2c2823;
+  --color-primary: #e6c28e;
+  --color-primary-foreground: #1c1308;
+  --color-secondary: #2a2621;
   --color-secondary-foreground: var(--color-foreground);
-  --color-muted: #24211e;
+  --color-muted: #24211d;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #e0dad0 46%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #e6dfd4 24%, transparent);
+  --color-scrollbar-thumb-hover: color-mix(in oklab, #e6dfd4 44%, transparent);
   --color-scrollbar-track: transparent;
-  --color-interaction-ask-surface: rgba(207, 168, 126, 0.16);
-  --color-interaction-ask-foreground: #cfa87e;
+  --color-interaction-ask-surface: rgba(230, 194, 142, 0.16);
+  --color-interaction-ask-foreground: #e6c28e;
   --color-interaction-ask-fill: rgba(116, 185, 138, 0.24);
   --color-interaction-confirmation-surface: rgba(116, 185, 138, 0.16);
   --color-interaction-confirmation-foreground: #8fc79c;
   --color-success-surface: rgba(116, 185, 138, 0.16);
   --color-success-surface-foreground: #8fc79c;
-  --color-progress-surface: rgba(207, 168, 126, 0.14);
-  --color-progress-surface-foreground: #d8b088;
-  --color-foreground: #e0dad0;
-  --color-foreground-subtle: color-mix(in oklab, #e0dad0 68%, transparent);
-  --color-remote-foreground-muted: #a9a196;
-  --color-foreground-subtlest: color-mix(in oklab, #e0dad0 48%, transparent);
+  --color-progress-surface: rgba(201, 162, 118, 0.14);
+  --color-progress-surface-foreground: #e6c28e;
+  --color-foreground: #e6e0d6;
+  --color-foreground-subtle: color-mix(in oklab, #e6e0d6 70%, transparent);
+  --color-remote-foreground-muted: #a89e90;
+  --color-foreground-subtlest: color-mix(in oklab, #e6e0d6 54%, transparent);
   --lucide-subtlest-opacity: 0.48;
-  --color-foreground-inverse: #171614;
+  --color-foreground-inverse: #181714;
   --color-success: #74b98a;
   --color-success-foreground: #171614;
   --color-idle-task: #b79ade;
@@ -950,10 +1029,10 @@ html[data-document-hidden] *::after {
   --color-destructive-foreground: #ffffff;
   --color-warning: #d9a24a;
   --color-feedback-privacy-hint: #e0b36a;
-  --color-warning-foreground: #171614;
-  --color-warning-surface: color-mix(in srgb, #d9a24a 16%, transparent);
+  --color-warning-foreground: #100f0d;
+  --color-warning-surface: color-mix(in oklab, #d9a24a 16%, transparent);
   --color-warning-surface-foreground: #e8b968;
-  --color-destructive-surface: color-mix(in srgb, #d97e6e 16%, transparent);
+  --color-destructive-surface: color-mix(in oklab, #d97e6e 16%, transparent);
   --color-destructive-surface-foreground: #eaa295;
   --color-diff-added: #74b98a;
   --color-diff-added-foreground: #171614;
@@ -1002,18 +1081,325 @@ html[data-document-hidden] *::after {
   --color-plugin-node-foreground: #efc58f;
   --color-plugin-paid-plan-badge: #5a341b;
   --color-plugin-paid-plan-badge-foreground: #ffd8b8;
+  --color-feedback-info: #e6c28e;
+  --nibi-feather-1: #e6c28e;
+  --nibi-feather-2: #c9a276;
+  --nibi-feather-3: #8fc79c;
+  --nibi-feather-4: #9da8b6;
+  --nibi-rail-border: color-mix(in oklab, #e6c28e 26%, var(--color-border-hover));
+  --nibi-rail-track-bg: linear-gradient(
+    180deg,
+    rgba(230, 194, 142, 0.08),
+    rgba(201, 162, 118, 0.06) 48%,
+    rgba(143, 199, 156, 0.06)
+  );
+  --nibi-rail-fill-start: rgba(157, 168, 182, 0.58);
+  --nibi-rail-fill-mid: rgba(201, 162, 118, 0.62);
+  --nibi-rail-fill-end: rgba(230, 194, 142, 0.72);
+  --nibi-rail-stop-bg: color-mix(in oklab, #f0e4d2 62%, #2c2720);
+}
+
+.theme-nibi-obsidian {
+  --animated-gradient-text-strong: #e4ebf3;
+  --animated-gradient-text-soft: color-mix(in oklab, #e4ebf3 22%, transparent);
+  --color-background: #11161e;
+  --color-background-win-alt: #0a0d12;
+  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 74%, transparent);
+  --color-brand: #5ec2b6;
+  --color-resize-handle: #5ec2b6;
+  --color-accent: #1b2330;
+  --color-border: color-mix(in oklab, #d8e6f5 8%, transparent);
+  --color-border-hover: color-mix(in oklab, #d8e6f5 16%, transparent);
+  --color-hover: color-mix(in oklab, #d8e6f5 5.5%, transparent);
+  --color-selected: rgba(94, 194, 182, 0.16);
+  --color-header: #11161e;
+  --color-panel: #0a0d12;
+  --color-sidebar: #0a0d12;
+  --color-surface: rgba(216, 230, 245, 0.042);
+  --color-surface-hover: rgba(216, 230, 245, 0.08);
+  --color-card: #171d27;
+  --color-card-selected: #1c2432;
+  --color-card-border: var(--color-border);
+  --color-popover: #171d27;
+  --color-popover-header: #1c2432;
+  --color-popover-border: var(--color-border);
+  --color-input: #171d27;
+  --color-input-focused: #1c2432;
+  --color-input-border: var(--color-border);
+  --color-input-border-hover: var(--color-border-hover);
+  --color-input-border-focused: #5ec2b6;
+  --color-ring: #5ec2b6;
+  --color-tab: #141a23;
+  --color-tab-active: #0a0d12;
+  --color-menu: #171d27;
+  --color-menu-hover: #1c2432;
+  --color-primary: #5ec2b6;
+  --color-primary-foreground: #061c19;
+  --color-secondary: #1b2330;
+  --color-muted: #171d27;
+  --color-scrollbar-thumb: color-mix(in oklab, #d8e3f0 24%, transparent);
+  --color-scrollbar-thumb-hover: color-mix(in oklab, #d8e3f0 44%, transparent);
+  --color-scrollbar-track: transparent;
+  --color-interaction-ask-surface: rgba(94, 194, 182, 0.16);
+  --color-interaction-ask-foreground: #8edbd1;
+  --color-progress-surface: rgba(94, 194, 182, 0.16);
+  --color-progress-surface-foreground: #8edbd1;
+  --color-foreground: #e4ebf3;
+  --color-foreground-subtle: color-mix(in oklab, #e4ebf3 70%, transparent);
+  --color-remote-foreground-muted: #8ca4be;
+  --color-foreground-subtlest: color-mix(in oklab, #e4ebf3 54%, transparent);
+  --color-foreground-inverse: #0a0d12;
+  --color-feedback-info: #5ec2b6;
+  --color-icon-blue: #7ab8df;
+  --color-workflow-rule: rgba(216, 230, 245, 0.065);
+  --color-workflow-trace: rgba(216, 230, 245, 0.34);
+  --color-workflow-trace-strong: rgba(216, 230, 245, 0.6);
+  --color-find-highlight: #163738;
+  --color-find-highlight-active: #5ec2b6;
+  --color-usage-heatmap-0: color-mix(in oklab, #5ec2b6 0%, var(--color-surface));
+  --color-usage-heatmap-1: color-mix(in oklab, #5ec2b6 18%, var(--color-surface));
+  --color-usage-heatmap-2: color-mix(in oklab, #5ec2b6 36%, var(--color-surface));
+  --color-usage-heatmap-3: color-mix(in oklab, #5ec2b6 56%, var(--color-surface));
+  --color-usage-heatmap-4: color-mix(in oklab, #8edbd1 76%, var(--color-surface));
+  --color-usage-chart-1: #5ec2b6;
+  --color-usage-chart-2: #7ab8df;
+  --color-usage-chart-3: #74b98a;
+  --color-usage-chart-4: #d98276;
+  --color-usage-chart-5: #d9a85c;
+  --color-usage-chart-6: #8ca4be;
+  --color-context-breakdown-1: #5ec2b6;
+  --color-context-breakdown-2: #74cfc4;
+  --color-context-breakdown-3: #7ab8df;
+  --color-context-breakdown-4: #5a87a6;
+  --color-context-breakdown-5: #42647e;
+  --color-context-breakdown-6: #2d4558;
+  --color-context-breakdown-7: #1d2c3a;
+  --color-terminal-bg: #0b0f15;
+  --color-terminal-fg: #dce5f0;
+  --color-terminal-cursor: #5ec2b6;
+  --color-terminal-cursor-accent: #0b0f15;
+  --color-terminal-selection: rgba(94, 194, 182, 0.28);
+  --color-terminal-selection-inactive: rgba(216, 230, 245, 0.16);
+  --color-toast: #171d27;
+  --color-tooltip: #1c2432;
+  --color-tooltip-foreground: #e4ebf3;
+  --color-tooltip-tag: #242e3f;
+  --color-tooltip-tag-foreground: #9cb2c9;
+  --color-tag: #1e2736;
+  --color-markdown-inline-code: var(--color-tag);
+  --color-git-renamed: #7ab8df;
+  --color-remote-ssh-surface: rgba(94, 194, 182, 0.14);
+  --color-remote-ssh-foreground: #8edbd1;
+  --color-remote-ssh-border: rgba(94, 194, 182, 0.34);
+  --nibi-user-inset: color-mix(in oklab, #d8e6f5 7.5%, #11161e);
+  --nibi-shadow-panel:
+    0 2px 6px rgba(0, 0, 0, 0.34), 0 16px 38px -16px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(216, 230, 245, 0.065);
+  --nibi-shadow-card:
+    inset 0 1px 0 rgba(216, 230, 245, 0.055), 0 1px 3px rgba(0, 0, 0, 0.36),
+    0 4px 12px -6px rgba(0, 0, 0, 0.48);
+  --nibi-shadow-card-hover:
+    inset 0 1px 0 rgba(216, 230, 245, 0.09), 0 4px 10px -2px rgba(0, 0, 0, 0.46),
+    0 12px 24px -8px rgba(0, 0, 0, 0.6);
+  --nibi-shadow-composer:
+    0 4px 12px rgba(0, 0, 0, 0.38), 0 18px 42px -14px rgba(0, 0, 0, 0.68),
+    inset 0 1px 0 rgba(216, 230, 245, 0.08);
+  --nibi-shadow-composer-focus:
+    inset 0 1px 0 rgba(216, 230, 245, 0.12), 0 0 0 3px rgba(94, 194, 182, 0.14),
+    0 18px 42px -14px rgba(0, 0, 0, 0.72);
+  --nibi-shadow-popover:
+    inset 0 1px 0 rgba(216, 230, 245, 0.08), 0 6px 16px -2px rgba(0, 0, 0, 0.52),
+    0 22px 48px -10px rgba(0, 0, 0, 0.76);
+  --nibi-shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.38), 0 1px 0 rgba(216, 230, 245, 0.04);
+  --nibi-shadow-input-focus:
+    inset 0 1px 2px rgba(0, 0, 0, 0.32), 0 0 0 3px rgba(94, 194, 182, 0.18);
+  --nibi-shadow-active-row:
+    0 1px 3px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(216, 230, 245, 0.06);
+  --nibi-shadow-primary-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 4px 12px -4px rgba(94, 194, 182, 0.28);
+  --nibi-paper-wash: radial-gradient(
+    ellipse 85% 36% at 50% 0%,
+    rgba(94, 194, 182, 0.05),
+    transparent 68%
+  );
+  --nibi-paper-grain-opacity: 0.022;
+  --nibi-feather-1: #5ec2b6;
+  --nibi-feather-2: #7ab8df;
+  --nibi-feather-3: #74b98a;
+  --nibi-feather-4: #8ca4be;
+  --nibi-rail-border: color-mix(in oklab, #5ec2b6 26%, var(--color-border-hover));
+  --nibi-rail-track-bg: linear-gradient(
+    180deg,
+    rgba(94, 194, 182, 0.08),
+    rgba(122, 184, 223, 0.06) 48%,
+    rgba(116, 185, 138, 0.06)
+  );
+  --nibi-rail-fill-start: rgba(140, 164, 190, 0.56);
+  --nibi-rail-fill-mid: rgba(122, 184, 223, 0.6);
+  --nibi-rail-fill-end: rgba(94, 194, 182, 0.72);
+  --nibi-rail-stop-bg: color-mix(in oklab, #e4ebf3 58%, #1c2432);
+}
+
+.theme-nibi-mist {
+  --animated-gradient-text-strong: #171c24;
+  --animated-gradient-text-soft: color-mix(in oklab, #171c24 22%, transparent);
+  --color-background: #fafbfc;
+  --color-background-win-alt: #e8ebef;
+  --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 78%, transparent);
+  --color-brand: #266161;
+  --color-resize-handle: #266161;
+  --color-accent: #edf0f4;
+  --color-border: color-mix(in oklab, #171c24 7.5%, transparent);
+  --color-border-hover: color-mix(in oklab, #171c24 15%, transparent);
+  --color-hover: color-mix(in oklab, #171c24 4.8%, transparent);
+  --color-selected: rgba(38, 97, 97, 0.11);
+  --color-header: #fafbfc;
+  --color-panel: #e8ebef;
+  --color-sidebar: #e8ebef;
+  --color-surface: color-mix(in oklab, #171c24 3.2%, transparent);
+  --color-surface-hover: color-mix(in oklab, #171c24 5.8%, transparent);
+  --color-card: #ffffff;
+  --color-card-selected: #eef1f5;
+  --color-card-border: var(--color-border);
+  --color-popover: #ffffff;
+  --color-popover-header: #f3f5f8;
+  --color-popover-border: var(--color-border);
+  --color-input: #ffffff;
+  --color-input-focused: #ffffff;
+  --color-input-border: var(--color-border);
+  --color-input-border-hover: var(--color-border-hover);
+  --color-input-border-focused: #266161;
+  --color-ring: #266161;
+  --color-tab: #edf0f4;
+  --color-tab-active: #ffffff;
+  --color-menu: #ffffff;
+  --color-menu-hover: #edf0f4;
+  --color-primary: #266161;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #e4e8ee;
+  --color-muted: #edf0f4;
+  --color-scrollbar-thumb: color-mix(in oklab, #2d3848 22%, transparent);
+  --color-scrollbar-thumb-hover: color-mix(in oklab, #2d3848 42%, transparent);
+  --color-scrollbar-track: transparent;
+  --color-interaction-ask-surface: rgba(38, 97, 97, 0.1);
+  --color-interaction-ask-foreground: #266161;
+  --color-progress-surface: rgba(38, 97, 97, 0.1);
+  --color-progress-surface-foreground: #266161;
+  --color-foreground: #171c24;
+  --color-foreground-subtle: color-mix(in oklab, #171c24 68%, transparent);
+  --color-remote-foreground-muted: #526d7a;
+  --color-foreground-subtlest: color-mix(in oklab, #171c24 58%, transparent);
+  --color-foreground-inverse: #ffffff;
+  --color-feedback-info: #266161;
+  --color-icon-blue: #4a799c;
+  --color-workflow-rule: rgba(23, 28, 36, 0.055);
+  --color-workflow-trace: rgba(23, 28, 36, 0.28);
+  --color-workflow-trace-strong: rgba(23, 28, 36, 0.52);
+  --color-find-highlight: #e3f1ef;
+  --color-find-highlight-active: #74b8b0;
+  --color-usage-heatmap-0: color-mix(in oklab, #266161 0%, var(--color-surface));
+  --color-usage-heatmap-1: color-mix(in oklab, #266161 20%, var(--color-surface));
+  --color-usage-heatmap-2: color-mix(in oklab, #266161 42%, var(--color-surface));
+  --color-usage-heatmap-3: color-mix(in oklab, #266161 66%, var(--color-surface));
+  --color-usage-heatmap-4: color-mix(in oklab, #1a4747 88%, var(--color-surface));
+  --color-usage-chart-1: #266161;
+  --color-usage-chart-2: #4a799c;
+  --color-usage-chart-3: #4d8c68;
+  --color-usage-chart-4: #b25a68;
+  --color-usage-chart-5: #b07a3a;
+  --color-usage-chart-6: #6f7e8f;
+  --color-context-breakdown-1: #266161;
+  --color-context-breakdown-2: #3b7d7d;
+  --color-context-breakdown-3: #529898;
+  --color-context-breakdown-4: #76b2b2;
+  --color-context-breakdown-5: #9cc9c9;
+  --color-context-breakdown-6: #c5dfdf;
+  --color-context-breakdown-7: #e6f2f2;
+  --color-terminal-bg: #161b22;
+  --color-terminal-fg: #e2e7ee;
+  --color-terminal-cursor: #5ec2b6;
+  --color-terminal-cursor-accent: #161b22;
+  --color-terminal-selection: rgba(94, 194, 182, 0.28);
+  --color-terminal-selection-inactive: rgba(226, 231, 238, 0.16);
+  --color-toast: #ffffff;
+  --color-tooltip: #f0f3f6;
+  --color-tooltip-foreground: #171c24;
+  --color-tooltip-tag: #e3e8ee;
+  --color-tooltip-tag-foreground: #4c5b6e;
+  --color-tag: #eaeef3;
+  --color-markdown-inline-code: var(--color-tag);
+  --color-git-renamed: #4a799c;
+  --color-remote-ssh-surface: rgba(38, 97, 97, 0.1);
+  --color-remote-ssh-foreground: #266161;
+  --color-remote-ssh-border: rgba(38, 97, 97, 0.28);
+  --nibi-user-inset: color-mix(in oklab, #171c24 5.5%, #f0f3f6);
+  --nibi-shadow-panel:
+    0 1px 2px color-mix(in oklab, #171c24 4%, transparent),
+    0 10px 30px -14px color-mix(in oklab, #171c24 10%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --nibi-shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 1px 2px color-mix(in oklab, #171c24 4.5%, transparent),
+    0 4px 12px -6px color-mix(in oklab, #171c24 8%, transparent);
+  --nibi-shadow-card-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 2px 6px -1px color-mix(in oklab, #171c24 6.5%, transparent),
+    0 12px 24px -10px color-mix(in oklab, #171c24 11%, transparent);
+  --nibi-shadow-composer:
+    0 2px 6px color-mix(in oklab, #171c24 4%, transparent),
+    0 14px 36px -14px color-mix(in oklab, #171c24 11%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  --nibi-shadow-composer-focus:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 0 0 3px color-mix(in oklab, #266161 12%, transparent),
+    0 14px 36px -14px color-mix(in oklab, #171c24 12%, transparent);
+  --nibi-shadow-popover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94), 0 4px 12px -2px color-mix(in oklab, #171c24 7.5%, transparent),
+    0 20px 44px -12px color-mix(in oklab, #171c24 15%, transparent);
+  --nibi-shadow-input-inset:
+    inset 0 1px 2px color-mix(in oklab, #171c24 4.5%, transparent), 0 1px 0 rgba(255, 255, 255, 0.72);
+  --nibi-shadow-input-focus:
+    inset 0 1px 2px color-mix(in oklab, #171c24 4%, transparent),
+    0 0 0 3px color-mix(in oklab, #266161 14%, transparent);
+  --nibi-shadow-active-row:
+    0 1px 3px color-mix(in oklab, #171c24 5%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --nibi-shadow-primary-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(0, 0, 0, 0.16),
+    0 4px 10px -4px rgba(38, 97, 97, 0.26);
+  --nibi-paper-wash: radial-gradient(
+    ellipse 85% 36% at 50% 0%,
+    rgba(255, 255, 255, 0.8),
+    transparent 70%
+  );
+  --nibi-paper-grain-opacity: 0.018;
+  --nibi-feather-1: #266161;
+  --nibi-feather-2: #4b8c8c;
+  --nibi-feather-3: #4d8c68;
+  --nibi-feather-4: #5e7788;
+  --nibi-rail-border: color-mix(in oklab, #266161 24%, var(--color-border-hover));
+  --nibi-rail-track-bg: linear-gradient(
+    180deg,
+    rgba(38, 97, 97, 0.045),
+    rgba(75, 140, 140, 0.055) 48%,
+    rgba(77, 140, 104, 0.04)
+  );
+  --nibi-rail-fill-start: rgba(94, 119, 136, 0.64);
+  --nibi-rail-fill-mid: rgba(75, 140, 140, 0.64);
+  --nibi-rail-fill-end: rgba(38, 97, 97, 0.72);
+  --nibi-rail-stop-bg: color-mix(in oklab, #ffffff 82%, #266161 18%);
 }
 
 /*
- * 同步浅色 / Warm Sumi 暗色主题到 `:root` / 主题容器的原生 `color-scheme`，
+ * 同步浅色 / 暗色主题到 `:root` / 主题容器的原生 `color-scheme`，
  * 确保 Electron 与浏览器下的原生控件和滚动区域随主题一起切换。
  */
 :root,
-.theme-nibi-light {
+.theme-nibi-light,
+.theme-nibi-mist {
   color-scheme: light;
 }
 
-:is(.dark, .theme-nibi-dark) {
+:is(.dark, .theme-nibi-dark, .theme-nibi-obsidian) {
   color-scheme: dark;
 }
 
@@ -1023,13 +1409,27 @@ html[data-document-hidden] *::after {
 @media (prefers-contrast: more) {
   :root,
   .theme-nibi-light {
-    --color-scrollbar-thumb: #142d52;
-    --color-scrollbar-track: #f9f2e4;
+    --color-scrollbar-thumb: #1c2b42;
+    --color-scrollbar-thumb-hover: #0e213d;
+    --color-scrollbar-track: #fcf9f2;
+  }
+
+  .theme-nibi-mist {
+    --color-scrollbar-thumb: #171c24;
+    --color-scrollbar-thumb-hover: #0b0e14;
+    --color-scrollbar-track: #fafbfc;
   }
 
   :is(.dark, .theme-nibi-dark) {
-    --color-scrollbar-thumb: #e0dad0;
-    --color-scrollbar-track: #171614;
+    --color-scrollbar-thumb: #e6e0d6;
+    --color-scrollbar-thumb-hover: #ffffff;
+    --color-scrollbar-track: #181714;
+  }
+
+  .theme-nibi-obsidian {
+    --color-scrollbar-thumb: #e4ebf3;
+    --color-scrollbar-thumb-hover: #ffffff;
+    --color-scrollbar-track: #11161e;
   }
 }
 
@@ -1062,7 +1462,7 @@ html[data-document-hidden] *::after {
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: var(--color-border-hover);
+    background: var(--color-scrollbar-thumb-hover);
     background-clip: padding-box;
   }
 
@@ -2897,6 +3297,10 @@ html[data-document-hidden] *::after {
   filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.6))
     drop-shadow(0 0 26px rgba(232, 196, 145, 0.16));
 }
+.theme-nibi-obsidian .nibi-hero-creature--dark .nibi-hero-perched {
+  filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.64))
+    drop-shadow(0 0 26px rgba(94, 194, 182, 0.14));
+}
 .nibi-hero-feather {
   position: absolute;
   width: clamp(20px, 2.6vw, 40px);
@@ -2974,15 +3378,29 @@ html[data-document-hidden] *::after {
     90deg,
     transparent 0%,
     transparent 34%,
-    color-mix(in srgb, #e08a3e 22%, transparent) 44%,
-    color-mix(in srgb, #f5c378 38%, transparent) 50%,
-    color-mix(in srgb, #4a79b8 16%, transparent) 56%,
+    color-mix(in oklab, #e08a3e 22%, transparent) 44%,
+    color-mix(in oklab, #f5c378 38%, transparent) 50%,
+    color-mix(in oklab, #4a79b8 16%, transparent) 56%,
     transparent 66%,
     transparent 100%
   );
   background-size: 260% 100%;
   pointer-events: none;
   animation: composer-model-sweep 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.theme-nibi-mist .composer-model-sweep {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 34%,
+    color-mix(in oklab, #4a799c 18%, transparent) 44%,
+    color-mix(in oklab, #5ec2b6 30%, transparent) 50%,
+    color-mix(in oklab, #266161 18%, transparent) 56%,
+    transparent 66%,
+    transparent 100%
+  );
+  background-size: 260% 100%;
 }
 
 :is(.dark, .theme-nibi-dark) .composer-model-sweep {
@@ -2993,6 +3411,21 @@ html[data-document-hidden] *::after {
     rgba(232, 196, 145, 0.12) 44%,
     rgba(246, 214, 162, 0.28) 50%,
     rgba(207, 152, 92, 0.14) 56%,
+    transparent 68%,
+    transparent 100%
+  );
+  background-size: 260% 100%;
+  mix-blend-mode: screen;
+}
+
+.theme-nibi-obsidian .composer-model-sweep {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 32%,
+    rgba(122, 184, 223, 0.12) 44%,
+    rgba(94, 194, 182, 0.26) 50%,
+    rgba(142, 219, 209, 0.14) 56%,
     transparent 68%,
     transparent 100%
   );
@@ -3040,10 +3473,10 @@ html[data-document-hidden] *::after {
 .nibi-footer-avatar-dark {
   display: none;
 }
-:is(.dark, .theme-nibi-dark) .nibi-footer-avatar-light {
+:is(.dark, .theme-nibi-dark, .theme-nibi-obsidian) .nibi-footer-avatar-light {
   display: none;
 }
-:is(.dark, .theme-nibi-dark) .nibi-footer-avatar-dark {
+:is(.dark, .theme-nibi-dark, .theme-nibi-obsidian) .nibi-footer-avatar-dark {
   display: block;
 }
 
@@ -3084,9 +3517,17 @@ html[data-nibi-motion="off"] .composer-thinking-leaf.is-active {
   position: absolute;
   inset: -5px;
   border-radius: inherit;
-  background: color-mix(in srgb, var(--color-brand) 24%, transparent);
+  background: color-mix(in oklab, var(--color-brand) 24%, transparent);
   opacity: 0.45;
   animation: running-status-halo 1.8s ease-in-out infinite;
+}
+.running-status-dot--row {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+}
+.running-status-dot--row::after {
+  inset: -3.5px;
 }
 @keyframes running-status-breathe {
   0%,
@@ -3121,6 +3562,283 @@ html[data-nibi-motion="off"] .running-status-dot::after {
   animation: none !important;
 }
 
+/* ── 羽汐掠墨：消息流运行态「五瓣斜锋羽阵 + 灵羽暖晕 + 人文衬线流光」工作指示器 ─── */
+.nibi-working-indicator {
+  --nibi-working-indigo: #3a5066;
+  --_nibi-tempo: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 22px;
+  padding-block: 2px;
+}
+
+:is(.dark, .theme-nibi-dark) .nibi-working-indicator {
+  --nibi-working-indigo: #8ba1b7;
+}
+
+.theme-nibi-mist .nibi-working-indicator {
+  --nibi-working-indigo: #526d7a;
+}
+
+.theme-nibi-obsidian .nibi-working-indicator {
+  --nibi-working-indigo: #8ca4be;
+}
+
+.nibi-working-indicator[data-working-phase="starting"] {
+  --_nibi-tempo: 0.92;
+}
+.nibi-working-indicator[data-working-phase="thinking"] {
+  --_nibi-tempo: 1.08;
+}
+.nibi-working-indicator[data-working-phase="tooling"] {
+  --_nibi-tempo: 0.84;
+}
+.nibi-working-indicator[data-working-phase="generating"] {
+  --_nibi-tempo: 1;
+}
+
+.nibi-working-indicator--compact {
+  gap: 6px;
+  min-height: 18px;
+  padding-block: 0;
+}
+
+.nibi-working-indicator--compact .nibi-working-emblem {
+  width: 22px;
+  height: 18px;
+  flex: 0 0 22px;
+  transform: scale(0.84);
+  transform-origin: center;
+}
+
+.nibi-working-emblem {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 22px;
+  flex: 0 0 28px;
+  isolation: isolate;
+}
+
+.nibi-working-glow {
+  position: absolute;
+  inset: -2px -3px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    ellipse 72% 68% at 50% 54%,
+    color-mix(in oklab, var(--color-brand) 22%, transparent) 0%,
+    transparent 74%
+  );
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.nibi-working-lattice {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 20px;
+  gap: 2.2px;
+  overflow: visible;
+}
+
+.nibi-working-vane {
+  display: block;
+  width: 3.2px;
+  border-radius: 2px;
+  clip-path: polygon(50% 0%, 100% 34%, 72% 100%, 28% 100%, 0% 34%);
+  transform-origin: center 75%;
+  transform: translate3d(0, var(--_y, 0px), 0) rotate(var(--_tilt, 0deg));
+  opacity: 0.88;
+  will-change: transform, opacity;
+}
+
+.nibi-working-vane--1 {
+  height: 10px;
+  --_tilt: -11deg;
+  --_y: 2px;
+  background: var(--nibi-working-indigo);
+}
+
+.nibi-working-vane--2 {
+  height: 14px;
+  --_tilt: -5deg;
+  --_y: 0.5px;
+  background: color-mix(in oklab, var(--color-primary) 58%, var(--nibi-working-indigo));
+}
+
+.nibi-working-vane--3 {
+  height: 17px;
+  --_tilt: 0deg;
+  --_y: -0.5px;
+  background: var(--color-primary);
+}
+
+.nibi-working-vane--4 {
+  height: 14px;
+  --_tilt: 5deg;
+  --_y: 0.5px;
+  background: color-mix(in oklab, var(--color-brand) 68%, var(--color-primary));
+}
+
+.nibi-working-vane--5 {
+  height: 10px;
+  --_tilt: 11deg;
+  --_y: 2px;
+  background: var(--nibi-working-indigo);
+}
+
+.nibi-working-label {
+  display: inline-block;
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  line-height: 1.35;
+  background-image: linear-gradient(
+    102deg,
+    var(--color-foreground-subtle) 0%,
+    var(--color-foreground-subtle) 35%,
+    var(--color-primary) 48%,
+    var(--color-foreground) 54%,
+    var(--color-foreground-subtle) 68%,
+    var(--color-foreground-subtle) 100%
+  );
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  will-change: background-position;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nibi-working-glow {
+    animation: nibi-working-glow-breathe calc(2.6s * var(--_nibi-tempo, 1)) ease-in-out infinite;
+  }
+  .nibi-working-vane {
+    animation: nibi-working-vane-tide calc(1.75s * var(--_nibi-tempo, 1))
+      cubic-bezier(0.45, 0.05, 0.35, 0.95) infinite;
+  }
+  [data-working-phase="starting"] .nibi-working-vane--1 { animation-delay: 0ms; }
+  [data-working-phase="starting"] .nibi-working-vane--2 { animation-delay: 90ms; }
+  [data-working-phase="starting"] .nibi-working-vane--3 { animation-delay: 180ms; }
+  [data-working-phase="starting"] .nibi-working-vane--4 { animation-delay: 90ms; }
+  [data-working-phase="starting"] .nibi-working-vane--5 { animation-delay: 0ms; }
+
+  [data-working-phase="thinking"] .nibi-working-vane--3 { animation-delay: 0ms; }
+  [data-working-phase="thinking"] .nibi-working-vane--2,
+  [data-working-phase="thinking"] .nibi-working-vane--4 { animation-delay: 150ms; }
+  [data-working-phase="thinking"] .nibi-working-vane--1,
+  [data-working-phase="thinking"] .nibi-working-vane--5 { animation-delay: 300ms; }
+
+  [data-working-phase="tooling"] .nibi-working-vane--1 { animation-delay: 0ms; }
+  [data-working-phase="tooling"] .nibi-working-vane--2 { animation-delay: 110ms; }
+  [data-working-phase="tooling"] .nibi-working-vane--3 { animation-delay: 220ms; }
+  [data-working-phase="tooling"] .nibi-working-vane--4 { animation-delay: 330ms; }
+  [data-working-phase="tooling"] .nibi-working-vane--5 { animation-delay: 440ms; }
+
+  [data-working-phase="generating"] .nibi-working-vane--1 { animation-delay: 0ms; }
+  [data-working-phase="generating"] .nibi-working-vane--2 { animation-delay: 135ms; }
+  [data-working-phase="generating"] .nibi-working-vane--3 { animation-delay: 270ms; }
+  [data-working-phase="generating"] .nibi-working-vane--4 { animation-delay: 405ms; }
+  [data-working-phase="generating"] .nibi-working-vane--5 { animation-delay: 540ms; }
+
+  .nibi-working-label {
+    animation: nibi-working-label-glint calc(2.7s * var(--_nibi-tempo, 1))
+      cubic-bezier(0.36, 0.08, 0.24, 1) infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nibi-working-glow {
+    animation: none;
+    opacity: 0.45;
+  }
+  .nibi-working-vane {
+    animation: nibi-working-vane-tide 6.4s ease-in-out infinite;
+  }
+  .nibi-working-vane--2 { animation-delay: 280ms; }
+  .nibi-working-vane--3 { animation-delay: 560ms; }
+  .nibi-working-vane--4 { animation-delay: 840ms; }
+  .nibi-working-vane--5 { animation-delay: 1120ms; }
+  .nibi-working-label {
+    animation: nibi-working-label-glint 7.5s linear infinite;
+  }
+}
+
+html[data-nibi-motion="off"] .nibi-working-glow,
+html[data-nibi-motion="off"] .nibi-working-vane,
+html[data-nibi-motion="off"] .nibi-working-label {
+  animation: none !important;
+}
+
+html[data-nibi-motion="off"] .nibi-working-label {
+  background: none;
+  background-clip: border-box;
+  -webkit-background-clip: border-box;
+  color: var(--color-foreground-subtle);
+  -webkit-text-fill-color: var(--color-foreground-subtle);
+}
+
+@media (forced-colors: active) {
+  .nibi-working-vane {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+  .nibi-working-glow {
+    display: none;
+  }
+  .nibi-working-label {
+    background: none;
+    background-clip: border-box;
+    -webkit-background-clip: border-box;
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+  }
+}
+
+@keyframes nibi-working-glow-breathe {
+  0%,
+  100% {
+    transform: scale(0.84);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.95;
+  }
+}
+
+@keyframes nibi-working-vane-tide {
+  0%,
+  100% {
+    transform: translate3d(0, calc(var(--_y, 0px) + 1.2px), 0) rotate(var(--_tilt, 0deg))
+      scaleY(0.76);
+    opacity: 0.36;
+  }
+  45% {
+    transform: translate3d(0, calc(var(--_y, 0px) - 1.8px), 0)
+      rotate(calc(var(--_tilt, 0deg) * 0.65)) scaleY(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes nibi-working-label-glint {
+  0% {
+    background-position: 110% 0;
+  }
+  58%,
+  100% {
+    background-position: -55% 0;
+  }
+}
+
 /* ── 纸墨工坊 · 立体器物材质、输入舱与编辑级排版 ─────────────────── */
 .nibi-atelier-panel {
   isolation: isolate;
@@ -3128,14 +3846,13 @@ html[data-nibi-motion="off"] .running-status-dot::after {
   background-image: var(--nibi-paper-wash);
 }
 
-.nibi-atelier-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: var(--nibi-paper-grain-opacity);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+.nibi-sheet-top-feather {
+  background: linear-gradient(
+    to bottom,
+    var(--color-background) 28%,
+    color-mix(in oklab, var(--color-background) 80%, transparent) 66%,
+    transparent 100%
+  );
 }
 
 .nibi-atelier-composer {
@@ -3158,29 +3875,146 @@ html[data-nibi-motion="off"] .running-status-dot::after {
   }
 }
 
-[data-v4-user-input-bubble="true"] {
-  box-shadow: var(--nibi-shadow-card);
+.nibi-new-task-hero {
+  background-color: var(--color-card);
+  border-color: color-mix(in oklab, var(--color-foreground) 11%, transparent);
+  box-shadow:
+    0 1px 2px color-mix(in oklab, var(--color-foreground) 5%, transparent),
+    0 4px 10px -6px color-mix(in oklab, var(--color-foreground) 9%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--color-card) 94%, transparent);
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    box-shadow 180ms ease-out,
+    transform 120ms ease-out;
+}
+
+.nibi-new-task-hero:hover {
+  border-color: color-mix(in oklab, var(--color-primary) 34%, var(--color-border));
+  box-shadow:
+    0 2px 5px color-mix(in oklab, var(--color-foreground) 7%, transparent),
+    0 6px 14px -6px color-mix(in oklab, var(--color-primary) 16%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--color-card) 98%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nibi-new-task-hero {
+    transition:
+      background-color 150ms ease-out,
+      border-color 150ms ease-out;
+  }
+}
+
+.nibi-bento-tile {
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-card) 70%, transparent);
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out,
+    box-shadow 180ms ease-out,
+    transform 120ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nibi-bento-tile {
+    transition:
+      background-color 160ms ease-out,
+      border-color 160ms ease-out;
+  }
+}
+
+/* 原因：Newsreader Variable 含深拉丁降部，使紧邻图标的中文衬线字墨在 flex 居中时整体偏高约 3.5px。
+ * 使用 text-box 裁掉字体幽灵行距，并用 overflow-x: clip + overflow-y: visible 防止 truncate 竖向裁切上下延字形。 */
+.nibi-serif-icon-align {
+  text-box: trim-both cap alphabetic;
+  padding-block: 0.1875rem;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+@supports not (text-box: trim-both cap alphabetic) {
+  .nibi-serif-icon-align {
+    padding-block: 0;
+    transform: translateY(1.5px);
+  }
+}
+
+[data-v4-draft-greeting="true"] {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
 }
 
 [data-streamdown="heading-1"] {
+  font-family: var(--font-display);
+  font-size: calc(var(--ui-font-size) + 8px);
+  line-height: 1.3;
+  font-weight: 600;
   letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 [data-streamdown="heading-2"] {
+  font-family: var(--font-display);
+  font-size: calc(var(--ui-font-size) + 5px);
+  line-height: 1.35;
+  font-weight: 600;
   letter-spacing: -0.015em;
+  text-wrap: balance;
   padding-bottom: 0.35rem;
   border-bottom: 1px solid color-mix(in oklab, var(--color-border) 72%, transparent);
 }
 
 [data-streamdown="heading-3"] {
+  font-family: var(--font-display);
+  font-size: calc(var(--ui-font-size) + 2px);
+  line-height: 1.4;
+  font-weight: 600;
   letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+[data-streamdown="heading-4"] {
+  font-family: var(--font-display);
+  font-size: calc(var(--ui-font-size) + 1px);
+  line-height: 1.45;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+:is([data-streamdown="blockquote"], [data-markdown-blockquote]) {
+  font-family: var(--font-display);
+  font-weight: 450;
+  line-height: 1.72;
+  text-wrap: pretty;
+  color: var(--color-foreground-subtle);
+  border-top-width: 0;
+  border-right-width: 0;
+  border-bottom-width: 0;
+  border-left: 2.5px solid color-mix(in oklab, var(--color-primary) 52%, transparent);
+  background: color-mix(in oklab, var(--nibi-user-inset) 60%, transparent);
+  padding: 0.6rem 0.95rem;
+  border-radius: 0 0.65rem 0.65rem 0;
 }
 
 [data-streamdown="table"] thead th {
   background-color: var(--color-surface);
-  font-size: var(--text-ui-sm);
+  font-family: var(--font-display);
+  font-size: var(--text-ui-caption);
+  line-height: 1.4;
   font-weight: 600;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
   color: var(--color-foreground-subtle);
+}
+
+[data-streamdown="table"] caption {
+  font-family: var(--font-display);
+  font-size: var(--text-ui-caption);
+  line-height: 1.45;
+  color: var(--color-foreground-subtle);
+  caption-side: bottom;
+  padding-top: 0.5rem;
 }
 
 [data-streamdown="table"] tbody tr:hover td {

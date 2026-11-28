@@ -157,8 +157,8 @@ export const TestResultsProgress = ({
       {children ?? (
         <>
           <div className="flex h-2 overflow-hidden rounded-full bg-muted">
-            <div className="bg-green-500 transition-all" style={{ width: `${passedPercent}%` }} />
-            <div className="bg-red-500 transition-all" style={{ width: `${failedPercent}%` }} />
+            <div className="bg-green-500 transition-[width]" style={{ width: `${passedPercent}%` }} />
+            <div className="bg-red-500 transition-[width]" style={{ width: `${failedPercent}%` }} />
           </div>
           <div className="flex justify-between text-muted-foreground text-ui-base">
             <span>
@@ -193,7 +193,7 @@ const TestSuiteContext = createContext<TestSuiteContextType>({
 const statusStyles: Record<TestStatus, string> = {
   failed: "text-red-600 dark:text-red-400",
   passed: "text-green-600 dark:text-green-400",
-  running: "text-blue-600 dark:text-blue-400",
+  running: "text-primary",
   skipped: "text-yellow-600 dark:text-yellow-400",
 };
 

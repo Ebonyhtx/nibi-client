@@ -21,33 +21,57 @@ interface ThemeHeroPalette {
 
 function getThemeHeroPalette(theme: Theme): ThemeHeroPalette {
   switch (theme) {
+    case "nibi-obsidian":
+      return {
+        isDark: true,
+        meshBase: "#0a0d12",
+        meshLight: "#5ec2b6",
+        panel:
+          "bg-[linear-gradient(180deg,#151b25_0%,#11161e_48%,#0a0d12_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_18%,rgba(228,235,243,0.06),transparent_32%),radial-gradient(circle_at_82%_14%,rgba(94,194,182,0.12),transparent_36%),radial-gradient(circle_at_68%_84%,rgba(140,164,190,0.08),transparent_36%)]",
+        glowPrimary: "bg-[#5ec2b6]/14 mix-blend-screen",
+        glowSecondary: "bg-[#8ca4be]/10 mix-blend-screen",
+        heading: "text-[#e4ebf3]",
+        description: "text-[#8ca4be]",
+      };
     case "nibi-dark":
     case "dark":
     case "system":
     default:
       return {
         isDark: true,
-        meshBase: "#171614",
-        meshLight: "#e8c491",
+        meshBase: "#100f0d",
+        meshLight: "#e6c28e",
         panel:
-          "bg-[linear-gradient(180deg,#1b1917_0%,#171614_48%,#131210_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_18%,rgba(243,234,216,0.05),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(207,168,126,0.1),transparent_34%),radial-gradient(circle_at_68%_84%,rgba(235,154,82,0.08),transparent_36%)]",
-        glowPrimary: "bg-[#e8c491]/10 mix-blend-screen",
+          "bg-[linear-gradient(180deg,#1d1b18_0%,#181714_48%,#100f0d_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_18%,rgba(243,234,216,0.05),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(230,194,142,0.11),transparent_34%),radial-gradient(circle_at_68%_84%,rgba(201,162,118,0.08),transparent_36%)]",
+        glowPrimary: "bg-[#e6c28e]/12 mix-blend-screen",
         glowSecondary: "bg-[#d97e6e]/8 mix-blend-screen",
-        heading: "text-[#f3ede2]",
-        description: "text-[#b9ad9a]",
+        heading: "text-[#e6e0d6]",
+        description: "text-[#9c9284]",
+      };
+    case "nibi-mist":
+      return {
+        isDark: false,
+        meshBase: "#e8ebef",
+        meshLight: "#266161",
+        panel:
+          "bg-[linear-gradient(180deg,#ffffff_0%,#fafbfc_48%,#e8ebef_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,0.96),transparent_30%),radial-gradient(circle_at_84%_12%,rgba(38,97,97,0.1),transparent_32%),radial-gradient(circle_at_70%_88%,rgba(82,109,122,0.08),transparent_36%)]",
+        glowPrimary: "bg-[#266161]/10 mix-blend-multiply",
+        glowSecondary: "bg-[#526d7a]/8 mix-blend-multiply",
+        heading: "text-[#171c24]",
+        description: "text-[#526d7a]",
       };
     case "nibi-light":
     case "light":
       return {
         isDark: false,
-        meshBase: "#f9f2e4",
-        meshLight: "#e08a3e",
+        meshBase: "#efe6d5",
+        meshLight: "#a85014",
         panel:
-          "bg-[linear-gradient(180deg,#fdf9f0_0%,#f9f2e4_46%,#f3ead8_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_16%,rgba(255,253,247,0.95),transparent_30%),radial-gradient(circle_at_84%_12%,rgba(74,121,184,0.13),transparent_32%),radial-gradient(circle_at_70%_88%,rgba(224,138,62,0.11),transparent_36%)]",
-        glowPrimary: "bg-[#e08a3e]/14 mix-blend-multiply",
-        glowSecondary: "bg-[#4a79b8]/12 mix-blend-multiply",
-        heading: "text-[#142d52]",
-        description: "text-[#5d6c84]",
+          "bg-[linear-gradient(180deg,#fffefa_0%,#fcf9f2_48%,#efe6d5_100%)] before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_18%_16%,rgba(255,254,250,0.95),transparent_30%),radial-gradient(circle_at_84%_12%,rgba(56,98,153,0.12),transparent_32%),radial-gradient(circle_at_70%_88%,rgba(168,80,20,0.11),transparent_36%)]",
+        glowPrimary: "bg-[#a85014]/12 mix-blend-multiply",
+        glowSecondary: "bg-[#386299]/10 mix-blend-multiply",
+        heading: "text-[#1c2b42]",
+        description: "text-[#56647a]",
       };
   }
 }

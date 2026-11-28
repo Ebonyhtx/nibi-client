@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, LoaderIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { type WebRemoteControlMobileNavigationIntent } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
+import { NibiWorkingIndicator } from "@/components/mobile-ui/NibiWorkingIndicator.js";
 import { WebRemoteControlThemeMenu } from "@/WebRemoteControlThemeMenu.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { subscribeWebRemoteControlMobileChatNavigation } from "@/lib/webRemoteControlMobileNavigation.js";
@@ -103,6 +104,7 @@ export function WebRemoteControlMobileShell({
   const terminalTransportState = useWebRemoteControlTerminalTransportState(
     webRemoteControlTerminalTransportState,
   );
+  const isReconnecting = terminalTransportState === "reconnecting";
   const shouldInertChatSurface = Boolean(sidePaneContent) && isSidePaneOpen;
 
   const navigateToChat = useCallback(() => {
@@ -175,16 +177,49 @@ export function WebRemoteControlMobileShell({
       />
       {isMobileViewport ? (
         <div className="relative flex h-full min-h-0 min-w-0 flex-col bg-background">
+          {isReconnecting ? (
+            <div
+              className={[
+                "flex shrink-0 justify-center border-b border-border/60 px-3 py-1.5 pt-[calc(env(safe-area-inset-top)+0.375rem)]",
+                currentPage === "home" ? "bg-sidebar" : "bg-header",
+              ].join(" ")}
+              aria-live="polite"
+              aria-busy="true"
+              data-web-remote-control-reconnect-notice="true"
+            >
+              <div className="flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-popover-border bg-popover/96 px-3 py-1 text-ui-xs font-medium text-foreground shadow-[var(--nibi-shadow-card)]">
+                <NibiWorkingIndicator compact phase="starting" />
+                <span className="min-w-0 whitespace-nowrap">
+                  {intl.formatMessage({ id: "webRemoteControl.mobileShell.reconnecting" })}
+                </span>
+              </div>
+            </div>
+          ) : null}
           {currentPage === "home" ? (
-            <section className="flex h-full min-h-0 min-w-0 flex-col" data-mobile-page="home">
+            <section
+              className={[
+                "flex min-h-0 min-w-0 flex-1 flex-col bg-sidebar pb-[env(safe-area-inset-bottom)]",
+                isReconnecting ? "" : "pt-[env(safe-area-inset-top)]",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              data-mobile-page="home"
+            >
               {renderTaskHome({ navigateToChat, setSwitching: setSwitchingWorkspace })}
             </section>
           ) : (
             <section
-              className="flex h-full min-h-0 min-w-0 flex-col bg-background text-foreground"
+              className="flex min-h-0 min-w-0 flex-1 flex-col bg-background text-foreground"
               data-mobile-page="chat"
             >
-              <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-header px-2">
+              <div
+                className={[
+                  "flex min-h-11 shrink-0 items-center gap-2 border-b border-border/75 bg-header px-2",
+                  isReconnecting ? "" : "pt-[env(safe-area-inset-top)]",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
                 <Button
                   type="button"
                   variant="ghost"
@@ -196,7 +231,7 @@ export function WebRemoteControlMobileShell({
                 >
                   <ArrowLeft className="size-4" />
                 </Button>
-                <span className="min-w-0 flex-1 truncate text-ui-base font-medium">
+                <span className="min-w-0 flex-1 truncate font-display text-ui-base font-semibold leading-[1.4]">
                   {intl.formatMessage({ id: "webRemoteControl.mobileShell.chatTitle" })}
                 </span>
                 <WebRemoteControlThemeMenu />
@@ -226,13 +261,13 @@ export function WebRemoteControlMobileShell({
                   >
                     <button
                       type="button"
-                      className="absolute inset-0 bg-background/60 backdrop-blur-[1px]"
+                      className="absolute inset-0 bg-background/72"
                       aria-label={intl.formatMessage({ id: "sidePane.collapse" })}
                       onClick={onCloseSidePane}
                     />
                     <div
                       className={[
-                        "absolute top-0 right-0 h-full w-[min(88vw,28rem)] max-w-full border-l border-border bg-background shadow-2xl transition-transform duration-200 ease-out",
+                        "absolute top-0 right-0 h-full w-[min(88vw,28rem)] max-w-full border-l border-border bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-[var(--nibi-shadow-popover)] transition-transform duration-200 ease-out",
                         isSidePaneOpen ? "translate-x-0" : "translate-x-full",
                       ].join(" ")}
                     >
@@ -259,28 +294,13 @@ export function WebRemoteControlMobileShell({
 
           {switchingWorkspace ? (
             <div
-              className="absolute inset-0 z-40 flex items-center justify-center bg-background/72 backdrop-blur-[1px]"
+              className="absolute inset-0 z-40 flex items-center justify-center bg-background/82"
               aria-live="polite"
               aria-busy="true"
             >
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-ui-base text-foreground-subtle shadow-sm">
-                <LoaderIcon className="size-4 animate-spin" />
+              <div className="flex items-center gap-2 rounded-xl border border-popover-border bg-popover/96 px-3.5 py-2 text-ui-base text-foreground-subtle shadow-[var(--nibi-shadow-popover)]">
+                <NibiWorkingIndicator compact phase="starting" />
                 {intl.formatMessage({ id: "common.loading" })}
-              </div>
-            </div>
-          ) : null}
-          {terminalTransportState === "reconnecting" ? (
-            <div
-              className="pointer-events-none absolute top-3 left-1/2 z-50 flex -translate-x-1/2 justify-center px-3"
-              aria-live="polite"
-              aria-busy="true"
-              data-web-remote-control-reconnect-notice="true"
-            >
-              <div className="flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-lg border border-border bg-toast px-3 py-2 text-ui-base text-foreground shadow-lg">
-                <LoaderIcon className="size-4 shrink-0 animate-spin text-foreground-subtle" />
-                <span className="min-w-0 whitespace-nowrap">
-                  {intl.formatMessage({ id: "webRemoteControl.mobileShell.reconnecting" })}
-                </span>
               </div>
             </div>
           ) : null}

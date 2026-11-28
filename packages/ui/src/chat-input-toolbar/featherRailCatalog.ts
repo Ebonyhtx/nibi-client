@@ -15,28 +15,28 @@ export interface FeatherLeaf {
   color: string;
 }
 
-// 逐字取自 NIBI AGENT 原型 Feather Current（20 羽、5 条轨迹、20 色）。
+// 四组羽色绑定到主题 CSS 变量，使思考强度「羽迹气流」随四套主题协同变色。
 const FEATHER_PALETTE = [
-  "#d97538",
-  "#766ee8",
-  "#719477",
-  "#59728d",
-  "#c98742",
-  "#8d83ed",
-  "#7b9d83",
-  "#66809a",
-  "#d98248",
-  "#746bdc",
-  "#73927c",
-  "#5b7891",
-  "#cf8b4d",
-  "#9188e4",
-  "#718a78",
-  "#627d98",
-  "#d77c3d",
-  "#8179e5",
-  "#78967c",
-  "#5f7890",
+  "var(--nibi-feather-1)",
+  "var(--nibi-feather-2)",
+  "var(--nibi-feather-3)",
+  "var(--nibi-feather-4)",
+  "var(--nibi-feather-1)",
+  "var(--nibi-feather-2)",
+  "var(--nibi-feather-3)",
+  "var(--nibi-feather-4)",
+  "var(--nibi-feather-1)",
+  "var(--nibi-feather-2)",
+  "var(--nibi-feather-3)",
+  "var(--nibi-feather-4)",
+  "var(--nibi-feather-1)",
+  "var(--nibi-feather-2)",
+  "var(--nibi-feather-3)",
+  "var(--nibi-feather-4)",
+  "var(--nibi-feather-1)",
+  "var(--nibi-feather-2)",
+  "var(--nibi-feather-3)",
+  "var(--nibi-feather-4)",
 ];
 
 export const FEATHER_LEAVES: readonly FeatherLeaf[] = Array.from(

@@ -7,6 +7,7 @@ import {
 import {
   highlightCode,
   shouldUseSyntaxHighlighting,
+  unsubscribeHighlightCode,
   type TokenizedCode,
 } from "@/lib/shikiHighlighter.js";
 import { logger } from "@/logger.js";
@@ -59,7 +60,7 @@ function useHighlightedLightweightDiffTokens({
       });
     }
 
-    const tokenized = highlightCode(code, language, theme, (result) => {
+    const onTokenized = (result: TokenizedCode) => {
       if (cancelled) {
         return;
       }
@@ -74,7 +75,8 @@ function useHighlightedLightweightDiffTokens({
       }
 
       setTokenizedCode(result);
-    });
+    };
+    const tokenized = highlightCode(code, language, theme, onTokenized);
 
     if (tokenized) {
       setTokenizedCode(tokenized);
@@ -82,6 +84,7 @@ function useHighlightedLightweightDiffTokens({
 
     return () => {
       cancelled = true;
+      unsubscribeHighlightCode(code, language, theme, onTokenized);
     };
   }, [code, language, path, theme]);
 

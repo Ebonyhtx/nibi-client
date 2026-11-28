@@ -53,7 +53,7 @@ function ArchiveManagementContent() {
   return (
     <section data-testid="archive-management" className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-ui-xl font-medium">{msg("title")}</h2>
+        <h2 className="font-display text-ui-xl font-semibold leading-[1.35] tracking-[-0.015em]">{msg("title")}</h2>
         <Button
           data-testid="archive-delete-all"
           variant="ghost"

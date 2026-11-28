@@ -45,6 +45,7 @@ interface DesktopTopOverlayProps {
   onGoForward: () => void;
   hideTaskNavigationButtons?: boolean;
   newTaskDisabledReason?: string;
+  inline?: boolean;
 }
 
 export function DesktopTopOverlay({
@@ -75,6 +76,7 @@ export function DesktopTopOverlay({
   onGoForward,
   hideTaskNavigationButtons = false,
   newTaskDisabledReason,
+  inline = false,
 }: DesktopTopOverlayProps) {
   const { intl } = useNibiIntl();
   const SidebarToggleIcon = isSidebarVisible ? PanelLeftClose : PanelLeftOpen;
@@ -97,34 +99,49 @@ export function DesktopTopOverlay({
         paddingRight: WINDOWS_CAPTION_CONTROLS_RIGHT_INSET_VAR,
       }
     : undefined;
-  const topOverlayWidthStyle = isSidebarVisible
+  const topOverlayWidthStyle = !inline && isSidebarVisible
     ? { width: "var(--workspace-sidebar-panel-width)" }
     : undefined;
 
   return (
     <SidebarTooltipProvider>
       <div
+        data-desktop-top-overlay-root=""
         style={topOverlayWidthStyle}
         className={cn(
-          "@container/topoverlayer pointer-events-none absolute h-14 flex left-0 top-0 z-20 w-fit",
+          inline
+            ? // 内联顶栏收起态没有显式宽度；@container 的 inline-size containment 会把固有宽度压成 0 导致重叠。
+              "relative flex h-8 w-fit shrink-0 items-center"
+            : "@container/topoverlayer pointer-events-none absolute h-14 flex left-0 top-0 z-20 w-fit",
           // 工具组计入各平台顶部留白和 1px 边框，与 Header 中心线对齐。
-          usesCustomCaptionArea && "mt-px",
-          isWindowsDesktop ? "top-1.5" : isLinuxDesktop && "top-1",
+          !inline && usesCustomCaptionArea && "mt-px",
+          !inline && (isWindowsDesktop ? "top-1.5" : isLinuxDesktop && "top-1"),
         )}
       >
         <div
-          style={{
-            ...macTopOverlayPaddingStyle,
-            ...windowsTopOverlayPaddingStyle,
-          }}
+          style={
+            inline
+              ? macTopOverlayPaddingStyle
+              : {
+                  ...macTopOverlayPaddingStyle,
+                  ...windowsTopOverlayPaddingStyle,
+                }
+          }
           className={cn(
             "flex items-center",
-            isMacDesktop && "h-14",
-            usesCustomCaptionArea && "h-12",
-            // Windows/Linux 工具组计入 4px 外沿留白和 1px 边框，较 8px 左边距右移 5px。
-            usesCustomCaptionArea && "pl-3 ml-px",
-            isMacDesktop &&
-              (isMacFullscreen ? (!isSidebarVisible ? "pl-5 pt-1" : "pl-3 pt-1") : "pt-1"),
+            inline ? "h-8" : isMacDesktop ? "h-14" : usesCustomCaptionArea && "h-12",
+            inline
+              ? isMacDesktop
+                ? isMacFullscreen || !macTopOverlayPaddingStyle
+                  ? "pl-2"
+                  : undefined
+                : "pl-0.5"
+              : cn(
+                  // Windows/Linux 工具组计入 4px 外沿留白和 1px 边框，较 8px 左边距右移 5px。
+                  usesCustomCaptionArea && "pl-3 ml-px",
+                  isMacDesktop &&
+                    (isMacFullscreen ? (!isSidebarVisible ? "pl-5 pt-1" : "pl-3 pt-1") : "pt-1"),
+                ),
           )}
         >
           <div
@@ -132,7 +149,8 @@ export function DesktopTopOverlay({
               // 顶部浮层按钮虽然单个按钮打了 no-drag，但外层容器本身仍悬在窗口标题区上方。
               // Electron 在这类覆盖层上会优先按父级命中拖拽区域，导致点击被窗口拖动吞掉。
               // 这里把整块交互容器一起标成 no-drag，确保展开/收起和新建 task 都能稳定点击。
-              "pointer-events-auto flex items-center gap-1 shrink-0 [app-region:no-drag]",
+              "pointer-events-auto flex items-center shrink-0 [app-region:no-drag]",
+              inline ? "gap-0.5" : "gap-1",
             )}
           >
             {usesCustomCaptionArea && (
@@ -177,7 +195,7 @@ export function DesktopTopOverlay({
                   disabled={!canTaskNavBack}
                   onClick={onGoBack}
                 >
-                  <ArrowLeftIcon className="size-4" />
+                  <ArrowLeftIcon className={inline ? "size-3.5 text-foreground-subtle" : "size-4"} />
                 </DesktopTopOverlayActionButton>
                 <DesktopTopOverlayActionButton
                   title={taskForwardTitle}
@@ -186,7 +204,7 @@ export function DesktopTopOverlay({
                   disabled={!canTaskNavForward}
                   onClick={onGoForward}
                 >
-                  <ArrowRightIcon className="size-4" />
+                  <ArrowRightIcon className={inline ? "size-3.5 text-foreground-subtle" : "size-4"} />
                 </DesktopTopOverlayActionButton>
               </>
             )}

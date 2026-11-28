@@ -133,7 +133,7 @@ export function UpdateStatusButton({
         // 自动下载不会主动打开更新窗口；下载态入口必须保持可点，用户才能进入窗口取消下载。
         // xs button 的固定 h-5 和展开态固定宽度只适配默认字号，UI 字号调大后会裁切文案。
         // 改用最小高度配合内容宽度，默认仍保持紧凑，较大字号则由文字自然撑开按钮。
-        "h-auto min-h-5 gap-1 rounded-full py-0.5 font-medium leading-none text-ui-xs w-6 border-transparent bg-success text-success-foreground hover:bg-success/80 transition-all",
+        "h-auto min-h-5 gap-1 rounded-full py-0.5 font-medium leading-none text-ui-xs w-6 border-transparent bg-success text-success-foreground hover:bg-success/80 transition-[width,background-color,color,opacity]",
         dialogPhase !== "downloading" && expandWidthClass,
         className,
       )}
@@ -149,7 +149,7 @@ export function UpdateStatusButton({
       {dialogPhase !== "downloading" ? (
         <span
           className={cn(
-            "w-0 overflow-hidden absolute opacity-0 transition-all",
+            "w-0 overflow-hidden absolute opacity-0 transition-[width,opacity]",
             ...revealTextClass,
           )}
         >

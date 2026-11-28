@@ -49,7 +49,7 @@ import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useShortcutCommandLabel } from "@/shortcuts/useShortcutBindings.js";
 import { useNibiStore } from "@/store/StoreProvider.js";
 import { normalizeInterfaceMode } from "@/lib/interfaceMode.js";
-import type { Theme } from "@/useTheme.js";
+import { getThemeSwatchDotProps, type Theme } from "@/useTheme.js";
 import { WorkspaceWebRemoteControlTrigger } from "@/WorkspaceWebRemoteControlTrigger.js";
 import { WorkspaceSidebarFooterUsageSummaryContent } from "@/WorkspaceSidebarFooterUsageSummary.js";
 import { NibiCompanion } from "@/companion/NibiCompanion.js";
@@ -224,7 +224,12 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
 
   return (
     // footer 被 Settings 复用，页面专属边距由调用方传入，避免修改共享默认样式。
-    <footer className={cn("flex shrink-0 flex-col gap-2.5 px-4 pt-2 pb-4", className)}>
+    <footer
+      className={cn(
+        "flex shrink-0 flex-col gap-2.5 border-t border-border/45 px-4 pt-2 pb-4",
+        className,
+      )}
+    >
       {banner}
       {showCompanion ? (
         <NibiCompanion workspacePath={workspacePath} workspaceIdentity={workspaceIdentity} />
@@ -257,7 +262,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
               <>
                 <div
                   data-testid="profile-menu-header"
-                  className="mb-1 flex max-w-80 items-center gap-2 rounded-lg bg-surface/55 px-2.5 py-2"
+                  className="mb-1 flex max-w-80 items-center gap-2.5 rounded-lg border border-border/45 bg-surface/65 px-2.5 py-2"
                 >
                   <Avatar key={avatarKey} size="default">
                     {user.avatarUrl ? (
@@ -271,13 +276,13 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
                     <div className="flex min-w-0 items-center gap-1.5">
                       <span
                         data-testid="profile-menu-name"
-                        className="truncate text-ui-base font-medium"
+                        className="truncate text-ui-base font-semibold text-foreground"
                       >
                         {profileBadge}
                       </span>
                     </div>
                     {user.id ? (
-                      <div className="flex min-w-0 items-center gap-1 text-ui-sm text-foreground-subtle">
+                      <div className="flex min-w-0 items-center gap-1 font-mono text-ui-xs text-foreground-subtle">
                         <span data-testid="profile-menu-id" className="min-w-0 truncate">
                           {intl.formatMessage({ id: "sidebar.profile.accountId" }, { id: user.id })}
                         </span>
@@ -339,19 +344,44 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
               <DropdownMenuSubContent className="w-48">
                 <DropdownMenuRadioGroup value={theme} onValueChange={onThemeChange}>
                   <DropdownMenuRadioItem value="system">
-                    {intl.formatMessage({
-                      id: "sidebar.settings.systemDefault",
-                    })}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="nibi-dark">
-                    {intl.formatMessage({
-                      id: "sidebar.settings.theme.nibi-dark",
-                    })}
+                    <span className="flex items-center gap-2">
+                      <span {...getThemeSwatchDotProps("system")} />
+                      {intl.formatMessage({
+                        id: "sidebar.settings.systemDefault",
+                      })}
+                    </span>
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="nibi-light">
-                    {intl.formatMessage({
-                      id: "sidebar.settings.theme.nibi-light",
-                    })}
+                    <span className="flex items-center gap-2">
+                      <span {...getThemeSwatchDotProps("nibi-light")} />
+                      {intl.formatMessage({
+                        id: "sidebar.settings.theme.nibi-light",
+                      })}
+                    </span>
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="nibi-mist">
+                    <span className="flex items-center gap-2">
+                      <span {...getThemeSwatchDotProps("nibi-mist")} />
+                      {intl.formatMessage({
+                        id: "sidebar.settings.theme.nibi-mist",
+                      })}
+                    </span>
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="nibi-dark">
+                    <span className="flex items-center gap-2">
+                      <span {...getThemeSwatchDotProps("nibi-dark")} />
+                      {intl.formatMessage({
+                        id: "sidebar.settings.theme.nibi-dark",
+                      })}
+                    </span>
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="nibi-obsidian">
+                    <span className="flex items-center gap-2">
+                      <span {...getThemeSwatchDotProps("nibi-obsidian")} />
+                      {intl.formatMessage({
+                        id: "sidebar.settings.theme.nibi-obsidian",
+                      })}
+                    </span>
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
@@ -415,6 +445,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             ) : null}
+            <DropdownMenuSeparator />
             {/* Bugfix: 升级入口状态不再以菜单开关为生命周期边界。 */}
             <WorkspaceSidebarFooterUsageSummaryContent onUsageClick={usageButtonClick} />
             {/* 与上游一致：升级/会员入口放在左下角账户菜单，而不是市场顶部常驻促销条。 */}
@@ -470,6 +501,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
               type="button"
               variant="ghost"
               size="icon-lg"
+              className="rounded-xl text-foreground-subtle hover:bg-card/80 hover:text-foreground hover:shadow-2xs"
               data-testid={TID_TASK_SETTINGS_BUTTON}
               aria-label={settingsButtonLabel}
               disabled={!onSettingsButtonClick}

@@ -22,7 +22,7 @@ export function SidePaneFullViewConversationTab({
         data-state={isActive ? "active" : "inactive"}
         className={cn(
           "group relative inline-flex shrink-0 items-center gap-1.5",
-          "!h-7 max-w-60 justify-start overflow-hidden rounded-lg border px-1.5 pr-2 text-ui-base font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring",
+          "!h-7 max-w-60 justify-start overflow-hidden rounded-lg border px-1.5 pr-2 text-ui-base font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring",
           "!border-transparent !bg-transparent text-foreground-subtle hover:text-foreground",
           !isActive && "hover:!bg-hover",
           "data-active:!bg-selected data-active:text-foreground",

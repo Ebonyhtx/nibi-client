@@ -14,6 +14,7 @@ import { TID_CHAT_REASONING_CONTENT, TID_CHAT_REASONING_TRIGGER } from "@nibi/sh
 import { BrainIcon, ChevronRightIcon } from "lucide-react";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { QueuedSummaryContent } from "@/ToolCallBlocks/QueuedSummaryContent.js";
+import { useSecondClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import {
   EMPTY_SCROLL_MASK_STATE,
@@ -128,6 +129,8 @@ export const Reasoning = memo(
       [setIsOpen],
     );
 
+    const sharedNowMs = useSecondClock(isStreaming && isOpen);
+
     useEffect(() => {
       if (!isStreaming) {
         if (startTimeRef.current !== null) {
@@ -142,22 +145,13 @@ export const Reasoning = memo(
       }
 
       // 收起态展示流式摘要，不需要为了隐藏的耗时每秒触发整块 reasoning 重渲染；
-      // 展开时再按同一个开始时间补算并持续更新时间。
+      // 展开时接入进程共享秒钟时钟，页面隐藏自动暂停。
       if (!isOpen) {
         return;
       }
 
-      const updateDuration = () => {
-        if (startTimeRef.current === null) {
-          return;
-        }
-        setDuration(Math.max(1, Math.ceil((Date.now() - startTimeRef.current) / MS_IN_S)));
-      };
-
-      updateDuration();
-      const durationTimer = window.setInterval(updateDuration, MS_IN_S);
-      return () => window.clearInterval(durationTimer);
-    }, [isOpen, isStreaming, setDuration]);
+      setDuration(Math.max(1, Math.ceil((sharedNowMs - startTimeRef.current) / MS_IN_S)));
+    }, [isOpen, isStreaming, setDuration, sharedNowMs]);
 
     useEffect(() => {
       const previousAutoCollapseKey = previousAutoCollapseKeyRef.current;

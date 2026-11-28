@@ -29,12 +29,12 @@ export function ProjectSidebarListHeader({
   const { intl } = useNibiIntl();
   return (
     <div
-      className="flex min-w-0 shrink-0 items-center gap-1 px-2 pb-2"
+      className="flex min-w-0 shrink-0 items-center gap-1 px-2 pb-1.5"
       data-testid="sidebar-search-toolbar"
     >
       <span
         data-testid="sidebar-list-title"
-        className="min-w-0 flex-1 truncate px-2.5 text-ui-base font-medium text-foreground-subtle"
+        className="min-w-0 flex-1 truncate px-2.5 text-ui-sm font-medium tracking-[0.02em] text-foreground-subtlest"
       >
         {intl.formatMessage({ id: "taskList.title" })}
       </span>
@@ -50,7 +50,7 @@ export function ProjectSidebarListHeader({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="shrink-0 text-foreground-subtle hover:text-foreground"
+          className="shrink-0 rounded-lg text-foreground-subtle hover:bg-card/70 hover:text-foreground"
           data-testid="sidebar-search-open"
           aria-label={intl.formatMessage({ id: "commandCenter.open" })}
           onClick={onOpenCommandCenter}
@@ -64,7 +64,7 @@ export function ProjectSidebarListHeader({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="shrink-0 text-foreground-subtle hover:text-foreground"
+              className="shrink-0 rounded-lg text-foreground-subtle hover:bg-card/70 hover:text-foreground"
               data-testid="sidebar-view-menu"
               aria-label={intl.formatMessage({ id: "project.view" })}
             >

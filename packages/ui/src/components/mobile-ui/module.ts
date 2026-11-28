@@ -8,6 +8,7 @@ export const mobileUiModule = {
     "contract.ts",
     "DevicePlatformIcon.tsx",
     "NibiAppLogo.tsx",
+    "NibiWorkingIndicator.tsx",
     "bottom-sheet.tsx",
   ],
 } as const;

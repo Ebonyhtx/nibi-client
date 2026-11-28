@@ -1,5 +1,6 @@
 import { Hourglass, MessageCircleQuestion, Workflow } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useHalfMinuteClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import type {
   BackgroundResultOriginMeta,
   WorkflowBlockedMeta,
@@ -172,12 +173,14 @@ function WorkflowNotificationBaseRow({
 }) {
   const { intl } = useNibiIntl();
 
-  // 等待时长要在没有事件流时也照走（停驻的 run 恰恰不发事件），按固定间隔喂新的"现在"。
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
+  const isEscalation = notification.kind === "escalation";
+  const isStall = notification.kind === "stall";
+  const isBlocked = notification.kind === "blocked";
+
+  // kindLabel + primaryText + 展开体，按三类通知分别铸造。
+  const escalationView = isEscalation ? escalationState(pendingQids, notification.qid) : undefined;
+  // 等待时长仅在处于 waiting 的升级提示时激活共享 30 秒时钟；终态/已关闭行零订阅不空转。
+  const now = useHalfMinuteClock(isEscalation && escalationView === "waiting");
 
   const openRunLink = onOpenRun ? (
     <button
@@ -188,13 +191,6 @@ function WorkflowNotificationBaseRow({
       {intl.formatMessage({ id: "chat.toolCall.workflow.openRunDetails" })}
     </button>
   ) : null;
-
-  const isEscalation = notification.kind === "escalation";
-  const isStall = notification.kind === "stall";
-  const isBlocked = notification.kind === "blocked";
-
-  // kindLabel + primaryText + 展开体，按三类通知分别铸造。
-  const escalationView = isEscalation ? escalationState(pendingQids, notification.qid) : undefined;
 
   // stopped 的原因词跟在 kindLabel 后。
   const stopReason =

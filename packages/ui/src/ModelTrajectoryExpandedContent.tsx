@@ -147,7 +147,7 @@ export function TrajectoryExpandedContent({
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-full bg-surface/90 px-2 text-ui-sm shadow-sm supports-[backdrop-filter]:bg-surface/70 supports-[backdrop-filter]:backdrop-blur-md"
+            className="rounded-full bg-surface/96 px-2 text-ui-sm shadow-sm"
             onClick={() => setShowAll((current) => !current)}
           >
             {showAll ? (

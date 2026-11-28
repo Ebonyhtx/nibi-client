@@ -25,6 +25,7 @@ import {
 import { BotsDialog } from "@/BotsDialog.js";
 import { ProviderIcon } from "@/BotsDialog/shared.js";
 import { Button } from "@/components/ui/button.js";
+import { NibiWorkingIndicator } from "@/components/mobile-ui/NibiWorkingIndicator.js";
 import {
   Dialog,
   DialogContent,
@@ -538,7 +539,7 @@ export const WebRemoteControlDialog = memo(function WebRemoteControlDialogCompon
 
                     <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border bg-surface/50 px-4 py-4">
                       {qrDataUrl ? (
-                        <div className="relative rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-black/8">
+                        <div className="relative rounded-2xl bg-white p-3.5 shadow-[var(--nibi-shadow-card)] ring-1 ring-black/8">
                           <span
                             aria-hidden="true"
                             className="pointer-events-none absolute -top-1 -left-1 size-4 rounded-tl-md border-t-2 border-l-2 border-primary/45"
@@ -563,12 +564,12 @@ export const WebRemoteControlDialog = memo(function WebRemoteControlDialogCompon
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-3 py-8 text-center text-ui-sm text-foreground-subtle">
-                          <LoaderCircle className="size-5 animate-spin text-primary motion-reduce:animate-none" />
-                          <span>
-                            {intl.formatMessage({
+                          <NibiWorkingIndicator
+                            phase="starting"
+                            label={intl.formatMessage({
                               id: "webRemoteControl.generating",
                             })}
-                          </span>
+                          />
                         </div>
                       )}
                     </div>

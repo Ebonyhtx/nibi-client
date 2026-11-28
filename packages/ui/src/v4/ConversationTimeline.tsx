@@ -118,7 +118,7 @@ const EMPTY_PENDING_GUIDES: readonly QueueItem[] = [];
 // 虚拟单位是一整轮（user + assistant/tool 全量）。overscan 前后各两轮即可覆盖
 // 滚动一屏的挂载需求；更大的值会把长正文放大成大量不可见 Markdown/测高工作。
 const ROW_OVERSCAN = 2;
-const COMPOSER_MESSAGE_MASK_FADE_PX = 24;
+const COMPOSER_MESSAGE_MASK_FADE_PX = 40;
 const COMPOSER_MESSAGE_MASK_TRANSPARENT_HEIGHT_PX = 96;
 const USER_SCROLL_INTENT_TTL_MS = 1200;
 const LAYOUT_SCROLL_GUARD_MS = 250;
@@ -163,7 +163,10 @@ function ConversationBackToBottomButton({
       type="button"
       size="icon"
       variant="outline"
-      className={cn("rounded-full bg-card hover:bg-card-selected", className)}
+      className={cn(
+        "rounded-full border-border/80 bg-card shadow-[var(--nibi-shadow-card-hover)] transition-[transform,background-color,box-shadow] duration-150 hover:-translate-y-0.5 hover:bg-card-selected",
+        className,
+      )}
       data-testid={TID_V4_TIMELINE_BOTTOM}
       onClick={() =>
         runUserAction({
@@ -820,6 +823,7 @@ function ConversationTimelineImpl({
         containerWidthPx: turnNavigatorContainerWidthPx,
         hasLoadHandler: Boolean(onLoadAllOlder),
         loadingOlder,
+        totalRowCount: totalCount,
       })
     ) {
       return;
@@ -2295,6 +2299,13 @@ function ConversationTimelineImpl({
                       : "sticky bottom-0",
               )}
             >
+              {!centeredEmptyLayout && !floatingComposerDock ? (
+                <div
+                  aria-hidden="true"
+                  data-v4-composer-bottom-feather="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 bg-gradient-to-t from-background via-background/85 to-transparent"
+                />
+              ) : null}
               <div
                 data-v4-composer-dock-content="true"
                 className={cn(
@@ -2303,7 +2314,9 @@ function ConversationTimelineImpl({
                   "pointer-events-auto relative z-10 w-full shrink-0 transition-[width,max-width,transform] duration-150 ease-out @min-[1280px]/conversation:transition-[transform]",
                   contentWidthClassName,
                   // 浮窗形态下输入框外壳就是浮窗最外层，不留内边距。
-                  !centeredEmptyLayout && !floatingComposerDock && "px-4 pb-4",
+                  !centeredEmptyLayout &&
+                    !floatingComposerDock &&
+                    "px-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
                   !centeredEmptyLayout && summaryPanelInlineOffsetClassName,
                 )}
               >

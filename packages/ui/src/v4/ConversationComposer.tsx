@@ -2556,7 +2556,7 @@ function ConversationComposerImpl({
               onClick={handleSendButtonClick}
               data-testid={TID_V4_COMPOSER_SEND}
               aria-label={resolvedSendTooltipTitle}
-              className="cursor-pointer gap-1 rounded-lg bg-primary text-ui-base text-primary-foreground hover:bg-primary/90"
+              className="cursor-pointer gap-1 rounded-full bg-primary text-ui-base text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] hover:bg-primary/90 active:scale-[0.95]"
             >
               {pending ? <Spinner className="size-4" /> : <ArrowUpIcon className="size-4" />}
               <span className="sr-only">{resolvedSendTooltipTitle}</span>
@@ -2746,16 +2746,10 @@ function ConversationComposerImpl({
           ) : null}
         </div>
       ) : null}
-      <div
-        className={cn(
-          "chat-composer-input-surface relative w-full",
-          contextHeader &&
-            "rounded-[1.125rem] border border-border/70 bg-surface/85 p-1 shadow-[var(--nibi-shadow-card)]",
-        )}
-      >
+      <div className="chat-composer-input-surface relative w-full">
         {modelSweepKey > 0 ? (
           <span
-            className="pointer-events-none absolute inset-0 z-[6] overflow-hidden rounded-2xl"
+            className="pointer-events-none absolute inset-0 z-[6] overflow-hidden rounded-[22px]"
             aria-hidden="true"
           >
             <span
@@ -2769,8 +2763,7 @@ function ConversationComposerImpl({
           </span>
         ) : null}
         {contextHeader ? (
-          // 旧 ChatViewComposer contextHeaderContent 同款包装（workspace 菜单 + Git 分支）。
-          <div className="relative z-10 p-1.5 flex min-w-0 flex-wrap items-center gap-0">
+          <div className="relative z-10 mb-1.5 flex min-w-0 flex-wrap items-center gap-1 px-1">
             <ComposerSubmissionPendingContext.Provider value={updateTargetSelectionPending}>
               {contextHeader}
             </ComposerSubmissionPendingContext.Provider>

@@ -21,6 +21,7 @@ import {
   testId,
 } from "@nibi/shared/test-ids";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
+import { useSecondClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import {
   Select,
   SelectContent,
@@ -137,37 +138,55 @@ export function ChatApiRetryStatus({
   apiRetry,
   intl,
   locale,
+  nextRetryAt,
 }: {
   apiRetry: NibiApiRetryStatus | null;
   intl: ReturnType<typeof useNibiIntl>["intl"];
   locale: string;
+  nextRetryAt?: number;
 }) {
-  const retryLabel = useMemo(() => {
+  const hasCountdownTarget =
+    typeof nextRetryAt === "number" && Number.isFinite(nextRetryAt) && nextRetryAt > 0;
+  const now = useSecondClock(hasCountdownTarget);
+  const remainingSeconds = hasCountdownTarget
+    ? Math.max(0, Math.ceil((nextRetryAt - now) / 1000))
+    : 0;
+
+  const { baseLabel, retryLabel } = useMemo(() => {
     if (!apiRetry) {
-      return null;
+      return { baseLabel: null, retryLabel: null };
     }
 
-    // 当前 Nibi Agent 只会推送某一刻的 retryDelayMs 快照，不会每秒递减。
-    // 继续把这个值渲染成“X 秒后继续”会给用户造成倒计时在卡住的错觉。
-    // 这里先收敛成稳定的重试状态文案，只展示第几次重试。
+    // 接入 v4 快照的 nextRetryAt 后，通过共享秒级时钟实时递减剩余等待秒数。
     const formatter = new Intl.NumberFormat(locale);
-    return intl.formatMessage(
+    const formattedBase = intl.formatMessage(
       { id: "chat.apiRetryStatus" },
       {
         attempt: formatter.format(apiRetry.attempt),
         maxRetries: formatter.format(apiRetry.maxRetries),
       },
     );
-  }, [apiRetry, intl, locale]);
+    return {
+      baseLabel: formattedBase,
+      retryLabel:
+        remainingSeconds > 0
+          ? `${formattedBase} · ${formatter.format(remainingSeconds)}s`
+          : formattedBase,
+    };
+  }, [apiRetry, intl, locale, remainingSeconds]);
 
-  if (!apiRetry || !retryLabel) {
+  if (!apiRetry || !retryLabel || !baseLabel) {
     return null;
   }
 
-  const retryTitle =
-    apiRetry.errorStatus == null
-      ? retryLabel
-      : `${retryLabel} · HTTP ${apiRetry.errorStatus}`;
+  const titleParts = [retryLabel];
+  if (apiRetry.errorStatus != null) {
+    titleParts.push(`HTTP ${apiRetry.errorStatus}`);
+  }
+  if (apiRetry.error?.trim()) {
+    titleParts.push(apiRetry.error.trim());
+  }
+  const retryTitle = titleParts.join(" · ");
 
   return (
     <span

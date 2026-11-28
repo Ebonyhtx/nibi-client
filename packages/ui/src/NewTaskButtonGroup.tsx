@@ -30,15 +30,17 @@ export function NewTaskButtonGroup({
         }
       }}
       className={cn(
-        "group w-full h-8 rounded-lg inline-flex shrink-0 items-center justify-stretch gap-2 overflow-hidden pl-2.5 pr-2.5 hover:bg-surface-hover hover:text-foreground active:translate-y-0 cursor-pointer",
+        "nibi-new-task-hero group inline-flex h-9.5 w-full shrink-0 cursor-pointer items-center justify-stretch gap-2.5 overflow-hidden rounded-xl border px-3 text-foreground active:scale-[0.985]",
         disabled &&
-          "cursor-not-allowed text-foreground-subtlest hover:bg-transparent hover:text-foreground-subtlest",
+          "cursor-not-allowed opacity-55 shadow-none active:scale-100",
       )}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2 text-ui-base">
-        <MessageCirclePlus className="h-4 w-4 shrink-0" />
-        <span className="truncate">{intl.formatMessage({ id: "taskList.newThread" })}</span>
-        <span className="ml-auto hidden shrink-0 text-ui-xs font-normal text-foreground-subtlest sm:inline">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <MessageCirclePlus className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        <span className="nibi-serif-icon-align truncate font-display text-[14px] font-semibold leading-[1.4] tracking-[0.01em]">
+          {intl.formatMessage({ id: "taskList.newThread" })}
+        </span>
+        <span className="ml-auto hidden shrink-0 font-mono text-[11px] font-normal text-foreground-subtlest sm:inline">
           {newTaskShortcutLabel}
         </span>
       </div>

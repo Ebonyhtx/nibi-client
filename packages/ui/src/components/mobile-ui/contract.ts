@@ -10,3 +10,10 @@ export interface NibiAppLogoProps {
 }
 export type BottomSheetProps = ComponentProps<typeof Dialog.Root>;
 export type BottomSheetContentProps = ComponentProps<typeof Dialog.Content>;
+export type NibiWorkingPhase = "starting" | "thinking" | "tooling" | "generating";
+export interface NibiWorkingIndicatorProps {
+  label?: string;
+  phase?: NibiWorkingPhase;
+  compact?: boolean;
+  className?: string;
+}

@@ -160,15 +160,15 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f9f2e4;
-      color: #1c2f4e;
+      background: #fcf9f2;
+      color: #1c2b42;
       user-select: none;
     }
     .window {
       width: 100vw;
       height: 100vh;
       padding: 0;
-      background: #f9f2e4;
+      background: #fcf9f2;
       display: flex;
     }
     /* Bugfix: 强更截图范围就是完整 BrowserWindow；外层留白加内层圆角会把宿主底色显示成黑框。 */
@@ -206,12 +206,12 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       align-items: center;
       justify-content: center;
       flex: 0 0 auto;
-      color: #ae5413;
+      color: #a85014;
       font-size: 12px;
       font-weight: 600;
     }
     .brand-icon img { width: 100%; height: 100%; border-radius: 6px; }
-    .brand-title { font-size: 13px; font-weight: 500; color: #142d52; }
+    .brand-title { font-size: 13px; font-weight: 500; color: #1c2b42; }
     .close {
       position: absolute;
       right: 0;
@@ -243,7 +243,7 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     }
     .close::before { transform: rotate(45deg); }
     .close::after { transform: rotate(-45deg); }
-    .close:hover { background: #f3ead8; color: #142d52; }
+    .close:hover { background: #f3ead8; color: #1c2b42; }
     .content {
       padding: 18px 20px 20px;
       display: flex;
@@ -258,21 +258,21 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       border-radius: 10px;
       background: rgba(174, 84, 19, 0.12);
       border: 1px solid rgba(20, 45, 82, 0.12);
-      color: #ae5413;
+      color: #a85014;
       display: flex;
       align-items: center;
       justify-content: center;
       flex: 0 0 auto;
     }
     .status-icon svg { width: 20px; height: 20px; }
-    h1 { margin: 0; font-size: 15px; line-height: 1.45; font-weight: 600; color: #142d52; }
+    h1 { margin: 0; font-size: 15px; line-height: 1.45; font-weight: 600; color: #1c2b42; }
     .message { margin: 6px 0 0; color: rgba(20, 45, 82, 0.62); font-size: 13px; line-height: 1.6; }
     .version-card {
       border: 1px solid rgba(20, 45, 82, 0.12);
       background: #f3ead8;
       border-radius: 14px;
       padding: 12px 14px;
-      color: #142d52;
+      color: #1c2b42;
       font-size: 13px;
       line-height: 1.7;
     }
@@ -281,7 +281,7 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     .progress { display: none; gap: 8px; flex-direction: column; }
     .progress.visible { display: flex; }
     .progress-track { height: 6px; border-radius: 999px; background: rgba(20, 45, 82, 0.1); overflow: hidden; }
-    .progress-bar { width: 0%; height: 100%; border-radius: inherit; background: #ae5413; transition: width 160ms ease; }
+    .progress-bar { width: 0%; height: 100%; border-radius: inherit; background: #a85014; transition: width 160ms ease; }
     .progress-text { color: rgba(20, 45, 82, 0.62); font-size: 12px; }
     .actions {
       margin-top: auto;
@@ -295,7 +295,7 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       height: 28px;
       border: 1px solid rgba(20, 45, 82, 0.12);
       background: #fffdf9;
-      color: #142d52;
+      color: #1c2b42;
       border-radius: 10px;
       padding: 0 12px;
       font-size: 13px;
@@ -304,28 +304,28 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     }
     button:hover { background: #f3ead8; border-color: rgba(20, 45, 82, 0.22); }
     button:disabled { cursor: default; opacity: 0.58; }
-    button.primary { border-color: transparent; background: #ae5413; color: #fff9ef; }
-    button.primary:hover { background: #96470f; }
+    button.primary { border-color: transparent; background: #a85014; color: #fff9ef; }
+    button.primary:hover { background: #8f420f; }
     button.secondary { background: #ece1cf; }
     button.secondary:hover { background: #f3ead8; }
     @media (prefers-color-scheme: dark) {
-      body { background: #171614; color: #e0dad0; }
-      .window { background: #171614; }
+      body { background: #181714; color: #e6e0d6; }
+      .window { background: #181714; }
       .panel { background: #201e1b; border-color: transparent; }
       .titlebar { background: #141210; border-bottom-color: rgba(243, 234, 216, 0.12); }
       .brand-title, h1 { color: #f3ede2; }
-      .brand-icon { background: rgba(232, 196, 145, 0.14); border-color: rgba(243, 234, 216, 0.12); color: #e8c491; }
+      .brand-icon { background: rgba(232, 196, 145, 0.14); border-color: rgba(243, 234, 216, 0.12); color: #e6c28e; }
       .close { color: rgba(224, 218, 208, 0.64); }
       .close:hover { background: #2b2824; border-color: rgba(243, 234, 216, 0.24); color: #f3ede2; }
       .message { color: rgba(224, 218, 208, 0.72); }
-      .status-icon { background: color-mix(in oklab, #e8c491 14%, transparent); border-color: rgba(243, 234, 216, 0.12); color: #e8c491; }
-      .version-card { border-color: rgba(243, 234, 216, 0.12); background: #1b1917; color: #e0dad0; }
+      .status-icon { background: color-mix(in oklab, #e6c28e 14%, transparent); border-color: rgba(243, 234, 216, 0.12); color: #e6c28e; }
+      .version-card { border-color: rgba(243, 234, 216, 0.12); background: #1b1917; color: #e6e0d6; }
       .progress-track { background: rgba(243, 234, 216, 0.12); }
-      .progress-bar { background: #e8c491; }
+      .progress-bar { background: #e6c28e; }
       .progress-text { color: rgba(224, 218, 208, 0.68); }
-      button { border-color: rgba(243, 234, 216, 0.14); background: #201e1b; color: #e0dad0; }
+      button { border-color: rgba(243, 234, 216, 0.14); background: #201e1b; color: #e6e0d6; }
       button:hover { background: #2b2824; border-color: rgba(243, 234, 216, 0.24); }
-      button.primary { border-color: transparent; background: #e8c491; color: #171614; }
+      button.primary { border-color: transparent; background: #e6c28e; color: #181714; }
       button.primary:hover { background: #f0d2a4; }
       button.secondary { background: #2b2824; }
       button.secondary:hover { background: #34302b; }
@@ -629,7 +629,7 @@ export async function showForceUpdatePrompt(
       skipTaskbar: false,
       paintWhenInitiallyHidden: true,
       title: text.title,
-      backgroundColor: nativeTheme.shouldUseDarkColors ? "#2b2b2b" : "#f8f8f8",
+      backgroundColor: nativeTheme.shouldUseDarkColors ? "#181714" : "#fcf9f2",
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

@@ -152,7 +152,7 @@ export function BrowserViewportToolbar({
 
   return (
     <div
-      className="flex h-8 shrink-0 items-center justify-center gap-1 overflow-x-auto border-y border-border/80 bg-header/90 px-2 backdrop-blur-sm"
+      className="flex h-8 shrink-0 items-center justify-center gap-1 overflow-x-auto border-y border-border/80 bg-header px-2"
       data-testid={TID_BROWSER_RESPONSIVE_TOOLBAR}
     >
       <Select value={presetSelection} onValueChange={handlePresetChange}>

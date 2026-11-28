@@ -202,7 +202,7 @@ function createMermaidConfig(resolvedTheme: "light" | "dark", cacheKey?: string)
 
 function resolveBrowserTheme(theme: Theme): "light" | "dark" {
   if (typeof window === "undefined") {
-    return theme === "dark" || theme === "nibi-dark" ? "dark" : "light";
+    return theme === "dark" || theme === "nibi-dark" || theme === "nibi-obsidian" ? "dark" : "light";
   }
 
   return resolveTheme(theme);

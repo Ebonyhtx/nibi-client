@@ -160,4 +160,5 @@ export interface ProjectSidebarProps {
   onFileTreeOpenChange?: (open: boolean) => void;
   onWebRemoteTaskOpen?: (options: { crossWorkspace: boolean }) => void;
   onWebRemoteTaskSwitchingChange?: (switching: boolean) => void;
+  hideTopSpacer?: boolean;
 }

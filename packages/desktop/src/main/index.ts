@@ -47,6 +47,7 @@ import {
   ipcMain,
   MessageChannelMain,
   nativeImage,
+  nativeTheme,
   net,
   protocol,
   session,
@@ -158,7 +159,11 @@ import {
   resolveSystemApplicationLocale,
   updateNibiStdioTapDevMenuState,
 } from "./desktopApplicationMenu.js";
-import { applyAppIcon } from "./desktopWindowChrome.js";
+import {
+  applyAppIcon,
+  applyWindowsTitleBarTheme,
+  getWindowOverlayTheme,
+} from "./desktopWindowChrome.js";
 import { resolveWindowsAppUserModelIdForFlavor } from "../../scripts/desktop-product-identity.mjs";
 import type { DesktopWindowSize } from "./desktopWindowSize.js";
 import { maybeWarnArchitectureMismatch } from "./desktopArchitectureGuard.js";
@@ -1925,7 +1930,7 @@ function openUpdateStatusWindow() {
           }
         : {}),
     transparent: false,
-    backgroundColor: "#ffffff",
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#181714" : "#fcf9f2",
     title: "",
     icon: iconPath,
     parent: parentWindow,
@@ -1948,6 +1953,7 @@ function openUpdateStatusWindow() {
   if (process.platform === "darwin") {
     syncUpdateStatusWindowChrome(win);
   }
+  applyWindowsTitleBarTheme(win, getWindowOverlayTheme());
   syncUpdateStatusWindowClosePolicy(win);
   syncUpdateStatusWindowLayout(win);
 

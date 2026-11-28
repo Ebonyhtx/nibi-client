@@ -939,7 +939,7 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
 
     expect(html).toContain('data-workspace-header-variant="draft"');
     expect(html).not.toContain('data-testid="linux-window-controls"');
-    expect(html).toContain("rounded-xl");
+    expect(html).toContain("rounded-[18px]");
   });
 
   it("renders the workspace header again after the draft is promoted to a task", async () => {
@@ -994,14 +994,14 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
   });
 });
 
-it("places the workspace header inside the independent conversation frame", async () => {
+it("places the Folio workspace header above the split conversation frame on desktop", async () => {
   const html = await renderWorkspaceShell({ isDesktop: true, isMacDesktop: true });
   expect(html).toContain('data-workspace-conversation-frame="true"');
-  expect(html.indexOf('data-panel-id="conversation-column"')).toBeLessThan(
-    html.indexOf('data-testid="workspace-header"'),
+  expect(html.indexOf('data-testid="workspace-header"')).toBeLessThan(
+    html.indexOf('data-panel-id="conversation-column"'),
   );
-  expect(html.indexOf('data-workspace-conversation-frame="true"')).toBeLessThan(
-    html.indexOf('data-testid="workspace-header"'),
+  expect(html.indexOf('data-testid="workspace-header"')).toBeLessThan(
+    html.indexOf('data-workspace-conversation-frame="true"'),
   );
 });
 

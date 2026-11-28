@@ -7,7 +7,7 @@ import type {
   RemoteTarget,
   UserInfo,
 } from "@nibi/shared";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { TID_WORKSPACE_HEADER } from "@nibi/shared/test-ids";
 import type { ConversationDropTargetController } from "@/v4/composer/conversationDropTarget.js";
 import { cn } from "@/components/lib/utils.js";
@@ -88,6 +88,9 @@ export function WorkspaceHeader({
   onReloadSession,
   reloadSessionDisabled,
   reloadSessionPending,
+  folioBar = false,
+  leadingSlot,
+  keepRightControlsPinned = false,
 }: {
   variant?: WorkspaceHeaderVariant;
   draftDropTargetController?: ConversationDropTargetController | null;
@@ -142,6 +145,9 @@ export function WorkspaceHeader({
   onCreateTask: () => void;
   onOpenWorkspace: () => void;
   allowOpenWorkspace?: boolean;
+  folioBar?: boolean;
+  leadingSlot?: ReactNode;
+  keepRightControlsPinned?: boolean;
 }) {
   const [selectedEditor, setSelectedEditor] = useState<EditorInfo | null>(null);
   // Linux 与 Windows 共用内联窗控，不再预留旧悬浮窗控的标题栏区域。
@@ -158,10 +164,15 @@ export function WorkspaceHeader({
       data-testid={TID_WORKSPACE_HEADER}
       data-workspace-header-variant={variant}
       className={cn(
-        "@container/workspace-header relative flex w-full shrink-0 h-12 border-b transition-colors",
-        variant === "draft"
-          ? "border-transparent"
-          : "border-border/60 bg-header/82 supports-[backdrop-filter]:backdrop-blur-md",
+        "@container/workspace-header relative flex w-full shrink-0 transition-colors",
+        folioBar
+          ? "h-10 border-b-0 bg-transparent"
+          : cn(
+              "h-12 border-b",
+              variant === "draft"
+                ? "border-transparent"
+                : "border-border/60 bg-header/82 supports-[backdrop-filter]:backdrop-blur-md",
+            ),
       )}
     >
       {variant === "draft" && draftDropTargetController?.active ? (
@@ -177,74 +188,174 @@ export function WorkspaceHeader({
         className={cn(
           // 大会话 resize trace 显示 titlebar padding 动画层会触发 scrollbar-color 非合成动画；
           // 明确限定 transition-property 为 padding，避免 duration-300 退回默认 all。
-          "flex h-12 flex-1 min-w-0 items-center justify-between gap-2 overflow-hidden p-2 [app-region:drag] transition-[padding] duration-300",
-          // 旧 caption 菜单移除后不能继续清零右边距，否则终端按钮会贴住面板边框。
-          headerWindowControlsPaddingClass,
+          folioBar
+            ? "flex h-10 flex-1 min-w-0 items-center overflow-hidden px-2.5 pt-2 pb-0 [app-region:drag]"
+            : cn(
+                "flex h-12 flex-1 min-w-0 items-center justify-between gap-2 overflow-hidden p-2 [app-region:drag] transition-[padding] duration-300",
+                // 旧 caption 菜单移除后不能继续清零右边距，否则终端按钮会贴住面板边框。
+                headerWindowControlsPaddingClass,
+              ),
         )}
       >
-        {variant === "task" || remoteTarget || workspaceIdentity || remoteSessionId ? (
-          <WorkspaceHeaderTitleSection
-            variant={variant}
-            readOnlyReason={readOnlyReason}
-            workspaceAbsPath={workspaceAbsPath}
-            remoteSessionId={remoteSessionId}
-            workspaceIdentity={workspaceIdentity}
-            remoteTarget={remoteTarget}
-            projectName={projectName}
-            activeTaskTitle={activeTaskTitle}
-            activeTaskChangeSummary={activeTaskChangeSummary}
-            activeTaskId={activeTaskId}
-            activeTraceId={activeTraceId}
-            activeSessionId={activeSessionId}
-            activeTaskProvider={activeTaskProvider}
-            resolvedActiveTaskMeta={resolvedActiveTaskMeta}
-            gitSummary={gitSummary}
-            gitDirtyFileCount={gitDirtyFileCount}
-            sessionLogPath={sessionLogPath}
-            nativeSessionLogProvider={nativeSessionLogProvider}
-            nativeSessionLogPath={nativeSessionLogPath}
-            nativeSessionLogExists={nativeSessionLogExists}
-            nativeSessionLogLoading={nativeSessionLogLoading}
-            providerWorkspaceConfigPath={providerWorkspaceConfigPath}
-            providerWorkspaceConfigExists={providerWorkspaceConfigExists}
-            providerWorkspaceConfigLoading={providerWorkspaceConfigLoading}
-            workspaceHeaderState={workspaceHeaderState}
-            isMacDesktop={isMacDesktop}
-            isMacFullscreen={isMacFullscreen}
-            isWindowsDesktop={isWindowsDesktop}
-            isWebRemoteControl={isWebRemoteControl}
-            simplifyForNarrowRemote={simplifyForNarrowRemote}
-            selectedEditor={selectedEditor}
-            onReloadSession={onReloadSession}
-            reloadSessionDisabled={reloadSessionDisabled}
-            reloadSessionPending={reloadSessionPending}
-            onRefreshGit={onRefreshGit}
-          />
+        {folioBar ? (
+          <>
+            <div
+              data-folio-top-leading=""
+              style={
+                isSidebarVisible
+                  ? { width: "calc(var(--workspace-sidebar-panel-width, 248px) - 2px)" }
+                  : undefined
+              }
+              className={cn(
+                "flex shrink-0 items-center",
+                // 仅在侧栏展开且有显式面板宽度时开启 @container/topoverlayer；收起态按固有内容占宽，避免 inline-size 折叠导致标题重叠。
+                isSidebarVisible &&
+                  "@container/topoverlayer max-w-[50%] transition-[width] duration-200 ease-out [[data-workspace-sidebar-resizing=true]_&]:transition-none",
+              )}
+            >
+              {leadingSlot}
+            </div>
+            {!isSidebarVisible &&
+            (variant === "task" || remoteTarget || workspaceIdentity || remoteSessionId) ? (
+              <span aria-hidden="true" className="mx-2 h-3.5 w-px shrink-0 bg-border/65" />
+            ) : null}
+            <div className="flex min-w-0 flex-1 items-center pl-1">
+              {variant === "task" || remoteTarget || workspaceIdentity || remoteSessionId ? (
+                <WorkspaceHeaderTitleSection
+                  variant={variant}
+                  readOnlyReason={readOnlyReason}
+                  workspaceAbsPath={workspaceAbsPath}
+                  remoteSessionId={remoteSessionId}
+                  workspaceIdentity={workspaceIdentity}
+                  remoteTarget={remoteTarget}
+                  projectName={projectName}
+                  activeTaskTitle={activeTaskTitle}
+                  activeTaskChangeSummary={activeTaskChangeSummary}
+                  activeTaskId={activeTaskId}
+                  activeTraceId={activeTraceId}
+                  activeSessionId={activeSessionId}
+                  activeTaskProvider={activeTaskProvider}
+                  resolvedActiveTaskMeta={resolvedActiveTaskMeta}
+                  gitSummary={gitSummary}
+                  gitDirtyFileCount={gitDirtyFileCount}
+                  sessionLogPath={sessionLogPath}
+                  nativeSessionLogProvider={nativeSessionLogProvider}
+                  nativeSessionLogPath={nativeSessionLogPath}
+                  nativeSessionLogExists={nativeSessionLogExists}
+                  nativeSessionLogLoading={nativeSessionLogLoading}
+                  providerWorkspaceConfigPath={providerWorkspaceConfigPath}
+                  providerWorkspaceConfigExists={providerWorkspaceConfigExists}
+                  providerWorkspaceConfigLoading={providerWorkspaceConfigLoading}
+                  workspaceHeaderState={workspaceHeaderState}
+                  isMacDesktop={isMacDesktop}
+                  isMacFullscreen={isMacFullscreen}
+                  isWindowsDesktop={isWindowsDesktop}
+                  isWebRemoteControl={isWebRemoteControl}
+                  simplifyForNarrowRemote={simplifyForNarrowRemote}
+                  selectedEditor={selectedEditor}
+                  onReloadSession={onReloadSession}
+                  reloadSessionDisabled={reloadSessionDisabled}
+                  reloadSessionPending={reloadSessionPending}
+                  onRefreshGit={onRefreshGit}
+                  folioBar
+                />
+              ) : null}
+            </div>
+            <div className="ml-2 flex shrink-0 items-center">
+              <WorkspaceHeaderActionSection
+                variant={variant}
+                activeTaskId={activeTaskId}
+                user={user}
+                readOnlyReason={readOnlyReason}
+                workspaceAbsPath={workspaceAbsPath}
+                workspaceIdentity={workspaceIdentity}
+                remoteSessionId={remoteSessionId}
+                remoteTarget={remoteTarget}
+                isWebRemoteControl={isWebRemoteControl}
+                isDesktop={isDesktop}
+                isTerminalOpen={isTerminalOpen}
+                isSidePaneOpen={isSidePaneOpen}
+                onToggleTerminal={onToggleTerminal}
+                onToggleSidePane={onToggleSidePane}
+                toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
+                simplifyForNarrowRemote={simplifyForNarrowRemote}
+                hideHelpMenu={false}
+                showWindowControls={usesInlineWindowControls}
+                keepRightControlsPinned={keepRightControlsPinned}
+                // 面板操作按钮沿用 macOS 紧凑样式，Windows/Linux 窗控跟随最右侧 Header。
+                onSelectedEditorChange={setSelectedEditor}
+              />
+            </div>
+          </>
         ) : (
-          <div className="min-w-0 flex-1" aria-hidden="true" />
+          <>
+            {leadingSlot}
+            {variant === "task" || remoteTarget || workspaceIdentity || remoteSessionId ? (
+              <WorkspaceHeaderTitleSection
+                variant={variant}
+                readOnlyReason={readOnlyReason}
+                workspaceAbsPath={workspaceAbsPath}
+                remoteSessionId={remoteSessionId}
+                workspaceIdentity={workspaceIdentity}
+                remoteTarget={remoteTarget}
+                projectName={projectName}
+                activeTaskTitle={activeTaskTitle}
+                activeTaskChangeSummary={activeTaskChangeSummary}
+                activeTaskId={activeTaskId}
+                activeTraceId={activeTraceId}
+                activeSessionId={activeSessionId}
+                activeTaskProvider={activeTaskProvider}
+                resolvedActiveTaskMeta={resolvedActiveTaskMeta}
+                gitSummary={gitSummary}
+                gitDirtyFileCount={gitDirtyFileCount}
+                sessionLogPath={sessionLogPath}
+                nativeSessionLogProvider={nativeSessionLogProvider}
+                nativeSessionLogPath={nativeSessionLogPath}
+                nativeSessionLogExists={nativeSessionLogExists}
+                nativeSessionLogLoading={nativeSessionLogLoading}
+                providerWorkspaceConfigPath={providerWorkspaceConfigPath}
+                providerWorkspaceConfigExists={providerWorkspaceConfigExists}
+                providerWorkspaceConfigLoading={providerWorkspaceConfigLoading}
+                workspaceHeaderState={workspaceHeaderState}
+                isMacDesktop={isMacDesktop}
+                isMacFullscreen={isMacFullscreen}
+                isWindowsDesktop={isWindowsDesktop}
+                isWebRemoteControl={isWebRemoteControl}
+                simplifyForNarrowRemote={simplifyForNarrowRemote}
+                selectedEditor={selectedEditor}
+                onReloadSession={onReloadSession}
+                reloadSessionDisabled={reloadSessionDisabled}
+                reloadSessionPending={reloadSessionPending}
+                onRefreshGit={onRefreshGit}
+              />
+            ) : (
+              <div className="min-w-0 flex-1" aria-hidden="true" />
+            )}
+            <WorkspaceHeaderActionSection
+              variant={variant}
+              activeTaskId={activeTaskId}
+              user={user}
+              readOnlyReason={readOnlyReason}
+              workspaceAbsPath={workspaceAbsPath}
+              workspaceIdentity={workspaceIdentity}
+              remoteSessionId={remoteSessionId}
+              remoteTarget={remoteTarget}
+              isWebRemoteControl={isWebRemoteControl}
+              isDesktop={isDesktop}
+              isTerminalOpen={isTerminalOpen}
+              isSidePaneOpen={isSidePaneOpen}
+              onToggleTerminal={onToggleTerminal}
+              onToggleSidePane={onToggleSidePane}
+              toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
+              simplifyForNarrowRemote={simplifyForNarrowRemote}
+              hideHelpMenu={false}
+              showWindowControls={usesInlineWindowControls}
+              keepRightControlsPinned={keepRightControlsPinned}
+              // 面板操作按钮沿用 macOS 紧凑样式，Windows/Linux 窗控跟随最右侧 Header。
+              onSelectedEditorChange={setSelectedEditor}
+            />
+          </>
         )}
-        <WorkspaceHeaderActionSection
-          variant={variant}
-          activeTaskId={activeTaskId}
-          user={user}
-          readOnlyReason={readOnlyReason}
-          workspaceAbsPath={workspaceAbsPath}
-          workspaceIdentity={workspaceIdentity}
-          remoteSessionId={remoteSessionId}
-          remoteTarget={remoteTarget}
-          isWebRemoteControl={isWebRemoteControl}
-          isDesktop={isDesktop}
-          isTerminalOpen={isTerminalOpen}
-          isSidePaneOpen={isSidePaneOpen}
-          onToggleTerminal={onToggleTerminal}
-          onToggleSidePane={onToggleSidePane}
-          toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
-          simplifyForNarrowRemote={simplifyForNarrowRemote}
-          hideHelpMenu={false}
-          showWindowControls={usesInlineWindowControls}
-          // 面板操作按钮沿用 macOS 紧凑样式，Windows/Linux 窗控跟随最右侧 Header。
-          onSelectedEditorChange={setSelectedEditor}
-        />
       </div>
     </header>
   );

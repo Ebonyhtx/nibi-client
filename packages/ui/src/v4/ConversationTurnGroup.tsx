@@ -43,7 +43,13 @@ import {
   type AssistantCodeCommentCard,
 } from "@/lib/assistantCodeComment.js";
 import { useAssistantPreviewCardsForAssistantTextRow } from "@/v4/useAssistantPreviewCardsForRow.js";
-import { shouldShowTurnChatLoading } from "@/v4/chatLoadingVisibility.js";
+import {
+  resolveTurnWorkingActivity,
+  shouldShowTurnChatLoading,
+  type TurnWorkingPhase,
+  type TurnWorkingToolSubPhase,
+} from "@/v4/chatLoadingVisibility.js";
+import { NibiWorkingIndicator } from "@/components/mobile-ui/NibiWorkingIndicator.js";
 import {
   buildAssistantWorkRenderItems,
   ENABLE_CHANGES_TOOL_CALL_GROUPING,
@@ -128,18 +134,42 @@ function toRetryStatus(apiRetry: ApiRetryState): NibiApiRetryStatus {
     kind: "api_retry",
     attempt,
     maxRetries,
-    retryDelayMs: 0,
+    retryDelayMs: Math.max(0, apiRetry.nextRetryAt - Date.now()),
     errorStatus: null,
     error: apiRetry.reasonCode,
   };
 }
 
+function formatWorkingPhaseLabel(
+  intl: ReturnType<typeof useNibiIntl>["intl"],
+  phase: TurnWorkingPhase,
+  toolSubPhase?: TurnWorkingToolSubPhase,
+): string {
+  switch (phase) {
+    case "starting":
+      return intl.formatMessage({ id: "chat.workingPhase.starting" });
+    case "tooling":
+      if (toolSubPhase && toolSubPhase !== "tooling") {
+        return intl.formatMessage({ id: `chat.workingPhase.tooling.${toolSubPhase}` });
+      }
+      return intl.formatMessage({ id: "chat.workingPhase.tooling" });
+    case "generating":
+      return intl.formatMessage({ id: "chat.workingPhase.generating" });
+    case "thinking":
+      return intl.formatMessage({ id: "chat.workingPhase.thinking" });
+  }
+}
+
 function TurnChatLoadingSlot({
   apiRetry,
   eligible,
+  phase,
+  toolSubPhase,
 }: {
   apiRetry: ApiRetryState | null;
   eligible: boolean;
+  phase: TurnWorkingPhase;
+  toolSubPhase?: TurnWorkingToolSubPhase;
 }) {
   const { intl, locale } = useNibiIntl();
   const retryStatus = useMemo(() => (apiRetry ? toRetryStatus(apiRetry) : null), [apiRetry]);
@@ -149,18 +179,27 @@ function TurnChatLoadingSlot({
   const visibleRetryStatus =
     retryStatus && retryStatus.attempt >= MIN_VISIBLE_API_RETRY_ATTEMPT ? retryStatus : null;
   if (!visibleRetryStatus && !eligible) return null;
+  const phaseLabel = visibleRetryStatus
+    ? ""
+    : formatWorkingPhaseLabel(intl, phase, toolSubPhase);
   return (
     <div data-nibi-chat-loading-slot="true" className="min-h-5">
       {visibleRetryStatus ? (
-        <ChatApiRetryStatus apiRetry={visibleRetryStatus} intl={intl} locale={locale} />
+        <ChatApiRetryStatus
+          apiRetry={visibleRetryStatus}
+          intl={intl}
+          locale={locale}
+          nextRetryAt={apiRetry?.nextRetryAt}
+        />
       ) : (
         <span
           role="status"
-          aria-label={intl.formatMessage({ id: "common.loading" })}
+          aria-label={phaseLabel}
           data-testid={TID_CHAT_LOADING}
+          data-working-phase={phase}
           className="inline-flex items-center"
         >
-          <RunningStatusDot />
+          <NibiWorkingIndicator label={phaseLabel} phase={phase} />
         </span>
       )}
     </div>
@@ -541,7 +580,7 @@ function LegacyConversationAssistantWorkItems({
       data-testid={testId(TID_CHAT_ASSISTANT_HISTORY_CONTENT, historyContainer.chunkKey)}
       data-history-open={String(historyContainer.open)}
     >
-      <div className="pt-5">{content}</div>
+      <div className="mt-2.5 ml-1 border-l-2 border-border/60 py-1.5 pl-4">{content}</div>
     </CollapsibleContent>
   );
 }
@@ -641,10 +680,6 @@ function CronAutomationTurnCards({
   );
 }
 
-function RunningStatusDot() {
-  return <span className="running-status-dot" aria-hidden="true" />;
-}
-
 function AssistantHistoryStatus({
   segment,
   open,
@@ -673,14 +708,15 @@ function AssistantHistoryStatus({
           : intl.formatMessage({ id: "chat.history.worked" });
 
   return (
-    <div className="relative flex w-full flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)]/50 pb-2">
-      <div className="flex min-w-0 items-center gap-2">
+    <div className="relative flex w-full flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)]/45 pb-2">
+      {/* 负横向外边距必须放在占满可用宽度的 flex-1 容器上，避免收缩包裹父级把 max-w-full 按钮裁掉 12px，导致「已工作 X 秒」「已停止」被省略号截断。 */}
+      <div className="-mx-1.5 flex min-w-0 flex-1 items-center gap-2">
         <CollapsibleTrigger asChild>
           <button
             type="button"
             data-testid={testId(TID_CHAT_ASSISTANT_HISTORY_TRIGGER, segment.key)}
             data-history-open={String(open)}
-            className="group/history-message inline-flex max-w-full items-center gap-2 text-left text-ui-base text-foreground-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-input-border-focused)]"
+            className="group/history-message inline-flex max-w-full items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-left text-ui-sm font-medium text-foreground-subtle transition-colors hover:bg-surface/75 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-input-border-focused)]"
           >
             <span className="truncate">{label}</span>
             {!segment.assistantHistoryDefaultOpen ? (
@@ -907,6 +943,10 @@ function ConversationTurnFlow({
     fetchFileChanges: context.fetchFileChanges,
   });
 
+  const workingActivity = showLoading
+    ? resolveTurnWorkingActivity(unit.assistantWorkRows)
+    : { phase: "starting" as const };
+
   if (unit.timelineOnly) {
     return (
       <div className="flex flex-col gap-2">
@@ -916,7 +956,12 @@ function ConversationTurnFlow({
           stageTailIsRunning={unit.isRunning}
           assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
         />
-        <TurnChatLoadingSlot apiRetry={apiRetry} eligible={showLoading} />
+        <TurnChatLoadingSlot
+          apiRetry={apiRetry}
+          eligible={showLoading}
+          phase={workingActivity.phase}
+          toolSubPhase={workingActivity.toolSubPhase}
+        />
       </div>
     );
   }
@@ -990,7 +1035,12 @@ function ConversationTurnFlow({
           canRetryLatestAssistant={canRetryLatestAssistant}
         />
       ))}
-      <TurnChatLoadingSlot apiRetry={apiRetry} eligible={showLoading} />
+      <TurnChatLoadingSlot
+        apiRetry={apiRetry}
+        eligible={showLoading}
+        phase={workingActivity.phase}
+        toolSubPhase={workingActivity.toolSubPhase}
+      />
     </div>
   );
 }
@@ -1070,6 +1120,9 @@ function ConversationBackgroundResultWork({
     isRunning: unit.isRunning,
     rows: unit.assistantWorkRows,
   });
+  const workingActivity = showLoading
+    ? resolveTurnWorkingActivity(unit.assistantWorkRows)
+    : { phase: "starting" as const };
   const latestAssistantTextRow = unit.latestAssistantTextRow;
   const assistantPreviewCards = useAssistantPreviewCardsForAssistantTextRow({
     row: latestAssistantTextRow,
@@ -1197,7 +1250,12 @@ function ConversationBackgroundResultWork({
           assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
         />
       ) : null}
-      <TurnChatLoadingSlot apiRetry={apiRetry} eligible={showLoading} />
+      <TurnChatLoadingSlot
+        apiRetry={apiRetry}
+        eligible={showLoading}
+        phase={workingActivity.phase}
+        toolSubPhase={workingActivity.toolSubPhase}
+      />
     </div>
   );
 }

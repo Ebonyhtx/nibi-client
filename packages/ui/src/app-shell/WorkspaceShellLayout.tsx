@@ -54,6 +54,7 @@ import {
 import { requestV4ComposerDraftWorkspaceTransfer } from "@/v4/composer/composerDraftWorkspaceTransfer.js";
 import { ProjectComposerMenu, ProjectDirectoryProvider } from "@/project-sidebar/index.js";
 import { DesktopTopOverlay } from "@/DesktopTopOverlay.js";
+import { DesktopWindowControls } from "@/DesktopWindowControls.js";
 import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
 import { WorkspacePluginPreview } from "@/workspace-plugin-preview/index.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
@@ -474,7 +475,8 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
   const tabStoreApi = useTabStoreApi();
   const isLinuxDesktop = Boolean(isDesktop && !isMacDesktop && !isWindowsDesktop);
   const isWebRemoteControlShell = Boolean(webRemoteControlWorkspaceSwitcher);
-  // Windows/Linux 原先遗漏外层留白，导致独立面板贴住窗口边缘；桌面统一使用 4px 间距。
+  const useFolioTopBar = !isWebRemoteControlShell;
+  // Windows/Linux 原先遗漏外层留白，导致独立面板贴住窗口边缘；Folio Desk 桌面统一使用柔和桌边距。
   const hasDesktopPanelInset = isMacDesktop || isWindowsDesktop || isLinuxDesktop;
   const usesInlineWindowControls = Boolean(isWindowsDesktop || isLinuxDesktop);
   const workspaceShellRadiusOptions = {
@@ -487,7 +489,13 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
   const workspaceResizeHandleInsetPx = resolveWorkspaceShellResizeHandleInsetPx(
     workspaceShellRadiusOptions,
   );
-  const collapsedSidebarWidthPx = hasDesktopPanelInset ? (isWindowsDesktop ? 6 : 4) : 0;
+  const collapsedSidebarWidthPx = useFolioTopBar
+    ? 0
+    : hasDesktopPanelInset
+      ? isWindowsDesktop
+        ? 6
+        : 4
+      : 0;
   const [isWebRemoteControlNavigationCollapsed, setIsWebRemoteControlNavigationCollapsed] =
     useState(() => (isWebRemoteControlShell ? consumeWebRemoteControlCollapseIntent() : false));
   const [webRemoteControlNavigationHeightPx, setWebRemoteControlNavigationHeightPx] = useState(
@@ -1945,7 +1953,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
         supportsNativeRoundedCorners:
           desktopWindowChromeState?.supportsNativeRoundedCorners ?? null,
       })}
-      showWindowControls={!options.mobileOverlay && usesInlineWindowControls}
+      showWindowControls={!options.mobileOverlay && !useFolioTopBar && usesInlineWindowControls}
       // 工作区保活与侧栏动画会保留 DOM；独立 guest 浮层必须同步服从当前页面的展示状态。
       isVisible={
         isWorkspaceVisible &&
@@ -1955,6 +1963,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
       }
       onCloseSidePane={handleToggleSidePane}
       toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
+      hideSidePaneToggle={!options.mobileOverlay && useFolioTopBar}
       fullViewToggle={
         !options.mobileOverlay && fullViewController
           ? {
@@ -1969,12 +1978,14 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
           ? {
               surface: activeFullView.surface,
               conversationTitle: fullViewConversationTitle,
-              leadingInsetClassName: resolveTopOverlayLeadingPaddingClass({
-                isSidebarVisible,
-                isMacDesktop,
-                isMacFullscreen,
-                hasUpdateReady: hasUpdateStatusButton,
-              }),
+              leadingInsetClassName: useFolioTopBar
+                ? false
+                : resolveTopOverlayLeadingPaddingClass({
+                    isSidebarVisible,
+                    isMacDesktop,
+                    isMacFullscreen,
+                    hasUpdateReady: hasUpdateStatusButton,
+                  }),
               onSelectSurface: fullViewController.setSurface,
             }
           : null
@@ -2107,6 +2118,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
       isWebRemoteControl={isWebRemoteControlShell}
       isMacDesktop={isMacDesktop}
       isWindowsDesktop={isWindowsDesktop}
+      hideTopSpacer={useFolioTopBar}
       isSidebarVisible={isSidebarVisible}
       onToggleSidebar={handleToggleSidebar}
       toggleSidebarShortcutLabel={toggleSidebarShortcutLabel}
@@ -2385,26 +2397,132 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
       wideContent
     );
 
-  const wideContent = (
-    // 完成卡上那两个壳级落点（docs/dynamic-workflow/transcript-and-notifications.md「Saving the
-    // run, and running it again」）：芯片开到中枢那一页、「再次运行」启动后切到新会话。只包桌面
-    // 这一支——手机远控壳本来就不提供中枢，那边芯片是纯文字。
-    <SavedWorkflowHubProvider
-      openWorkflow={handleOpenSavedWorkflowInHub}
-      navigateToRun={handleNavigateToLaunchedRun}
+  const topOverlayNode = (
+    <ScopedErrorBoundary
+      scope="desktop-top-overlay"
+      resetKeys={workspaceSidebarVisibilityResetKeys}
+      variant="silent"
     >
-      <div
-        ref={workspaceShellRef}
-        data-workspace-shell="true"
-        style={workspaceShellSplitStyle}
-        className={cn(
-          "relative flex h-full min-h-0 w-full overflow-hidden [anchor-scope:--sidebar-task-list-divider]",
-          // 修复原因：窗口原生 resize 时，外层 react-resizable-panels 会把每一帧
-          // 都写进 layout store，连带侧栏 tooltip/menu 子树反复 commit。这里改成
-          // CSS 变量驱动的专用 split，普通窗口 resize 只走浏览器布局，不触发 React 状态。
-          isWebRemoteControlShell && "max-md:flex-col",
-        )}
-      >
+      <DesktopTopOverlay
+        inline={useFolioTopBar}
+        newTaskDisabledReason={workspaceReadOnlyReason}
+        workspaceAbsPath={workspaceAbsPath}
+        isMacDesktop={isMacDesktop}
+        isMacFullscreen={isMacFullscreen}
+        macWindowControlsLeftPaddingPx={macWindowControlsLeftPaddingPx}
+        windowsWindowControlsRightPaddingPx={windowsWindowControlsRightPaddingPx}
+        isWindowsDesktop={isWindowsDesktop}
+        isDesktop={isDesktop}
+        isSidebarVisible={isSidebarVisible}
+        updateReadyVersion={updateReadyVersion}
+        updateState={updateState}
+        toggleSidebarShortcutLabel={toggleSidebarShortcutLabel}
+        newTaskShortcutLabel={newTaskShortcutLabel}
+        goBackShortcutLabel={goBackShortcutLabel}
+        goForwardShortcutLabel={goForwardShortcutLabel}
+        canTaskNavBack={canPrimaryNavigationBack}
+        canTaskNavForward={canTaskNavForward}
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
+        showNewTaskButton={showTopOverlayNewTaskButton}
+        appLogoUrl={appLogoUrl}
+        platform={platform}
+        onToggleSidebar={handleToggleSidebar}
+        onCreateTask={handleCreateTaskInChat}
+        onGoBack={primaryNavigationBack}
+        onGoForward={handleTaskNavForward}
+        hideTaskNavigationButtons={simplifyHeaderForNarrowRemote}
+      />
+    </ScopedErrorBoundary>
+  );
+
+  const renderWorkspaceHeaderNode = (options?: {
+    folioBar?: boolean;
+    leadingSlot?: ReactNode;
+  }) => (
+    <ScopedErrorBoundary
+      scope="workspace-header"
+      resetKeys={workspaceOnlyResetKeys}
+      variant="compact"
+      className={options?.folioBar ? "shrink-0" : "border-b"}
+    >
+      <WorkspaceHeader
+        folioBar={options?.folioBar}
+        keepRightControlsPinned={options?.folioBar}
+        leadingSlot={options?.leadingSlot}
+        reserveWindowControls={options?.folioBar ? false : !isSidePaneVisible}
+        variant={activeTaskId === null ? "draft" : "task"}
+        draftDropTargetController={
+          activeTaskId === null ? draftHeaderDropTargetController : undefined
+        }
+        readOnlyReason={workspaceReadOnlyReason}
+        workspaceAbsPath={workspaceAbsPath}
+        remoteSessionId={workspaceRemoteSessionId}
+        workspaceIdentity={workspaceIdentity}
+        remoteTarget={workspaceRemoteTarget}
+        projectName={projectName}
+        activeTaskTitle={activeTaskTitle}
+        activeTaskChangeSummary={activeTaskChangeSummary}
+        hasUpdateReady={hasUpdateStatusButton}
+        activeTaskId={activeTaskId}
+        user={user}
+        activeTraceId={activeTraceId}
+        activeSessionId={activeSessionId}
+        activeTaskProvider={activeTaskProvider}
+        resolvedActiveTaskMeta={resolvedActiveTaskMeta}
+        sessionLogPath={taskSessionFile.path}
+        nativeSessionLogProvider={taskNativeSessionLogFile.provider}
+        nativeSessionLogPath={taskNativeSessionLogFile.path}
+        nativeSessionLogExists={taskNativeSessionLogFile.exists}
+        nativeSessionLogLoading={taskNativeSessionLogFile.loading}
+        providerWorkspaceConfigPath={providerConfigFile.path}
+        providerWorkspaceConfigExists={providerConfigFile.exists}
+        providerWorkspaceConfigLoading={providerConfigFile.loading}
+        workspaceHeaderState={workspaceShellNibiState}
+        gitSummary={gitState.summary}
+        gitDirtyFileCount={gitDirtyFileCount}
+        isMacDesktop={isMacDesktop}
+        isMacFullscreen={isMacFullscreen}
+        isWindowsDesktop={isWindowsDesktop}
+        isWebRemoteControl={isWebRemoteControlShell}
+        windowsWindowControlsRightPaddingPx={windowsWindowControlsRightPaddingPx}
+        isDesktop={isDesktop}
+        simplifyForNarrowRemote={simplifyHeaderForNarrowRemote}
+        isSidebarVisible={isSidebarVisible}
+        isTerminalOpen={isTerminalOpen}
+        isSidePaneOpen={isSidePaneOpen}
+        onRefreshGit={handleRefreshGit}
+        onToggleTerminal={handleToggleTerminal}
+        onToggleBrowser={handleToggleBrowser}
+        onToggleSidePane={handleToggleSidePane}
+        toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
+        onReloadSession={handleReloadSession}
+        reloadSessionDisabled={workspaceSessionActionDisabled}
+        reloadSessionPending={reloadSessionPending}
+        onCreateTask={handleCreateTaskInChat}
+        onOpenWorkspace={onOpenWorkspace}
+        allowOpenWorkspace={allowOpenWorkspace}
+      />
+    </ScopedErrorBoundary>
+  );
+
+  const folioTopBarNode = useFolioTopBar ? (
+    shouldRenderWorkspaceHeader ? (
+      renderWorkspaceHeaderNode({ folioBar: true, leadingSlot: topOverlayNode })
+    ) : (
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-2 [app-region:drag]">
+        {topOverlayNode}
+        {usesInlineWindowControls ? (
+          <div className="flex shrink-0 items-center [app-region:no-drag]">
+            <DesktopWindowControls />
+          </div>
+        ) : null}
+      </div>
+    )
+  ) : null;
+
+  const wideBodyContent = (
+    <>
         <div
           ref={workspaceSidebarPanelElementRef}
           data-panel=""
@@ -2480,7 +2598,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
             )}
           />
         ) : null}
-        {isSidebarPanelVisible && renderWebRemoteNavigationPanel ? (
+        {!useFolioTopBar && isSidebarPanelVisible && renderWebRemoteNavigationPanel ? (
           // 原因：侧栏 overflow 裁掉横线末端；延伸装饰放在共同布局容器，不改变拖拽命中区。
           <span
             aria-hidden="true"
@@ -2497,13 +2615,19 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
           id="content"
           className={cn(
             "flex min-w-[320px] flex-1 flex-col",
-            hasDesktopPanelInset ? (isWindowsDesktop ? "pr-1.5 pb-1.5" : "pr-1 pb-1") : "p-0",
+            useFolioTopBar
+              ? cn("pr-2.5 pb-2.5", !isSidebarPanelVisible && "pl-2.5")
+              : hasDesktopPanelInset
+                ? isWindowsDesktop
+                  ? "pr-1.5 pb-1.5"
+                  : "pr-1 pb-1"
+                : "p-0",
             isWebRemoteControlShell &&
               "max-md:!w-full max-md:!min-w-0 max-md:!flex-1 max-md:!basis-0",
           )}
         >
           {
-            hasDesktopPanelInset && (
+            !useFolioTopBar && hasDesktopPanelInset && (
               <div className={cn("w-full [app-region:drag]", isWindowsDesktop ? "h-1.5" : "h-1")} />
             ) /* 修复 macOS 顶部窗口控制按钮被 header 遮挡无法点击的问题 */
           }
@@ -2562,7 +2686,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                         "relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background",
                         !isFullView && !isWebRemoteControlShell && "nibi-atelier-panel",
                         isSidePaneVisible
-                          ? "rounded-[var(--workspace-panel-radius)] border border-border"
+                          ? "rounded-[var(--workspace-panel-radius)] border border-border/65"
                           : resolveWorkspaceShellWindowChromeClass({
                               isMacDesktop,
                               isWindowsDesktop,
@@ -2579,70 +2703,13 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                         isFullView && "rounded-none border-0",
                       )}
                     >
-                      {shouldRenderWorkspaceHeader && !isFullView ? (
-                        <ScopedErrorBoundary
-                          scope="workspace-header"
-                          resetKeys={workspaceOnlyResetKeys}
-                          variant="compact"
-                          className="border-b"
-                        >
-                          <WorkspaceHeader
-                            reserveWindowControls={!isSidePaneVisible}
-                            variant={activeTaskId === null ? "draft" : "task"}
-                            draftDropTargetController={
-                              activeTaskId === null ? draftHeaderDropTargetController : undefined
-                            }
-                            readOnlyReason={workspaceReadOnlyReason}
-                            workspaceAbsPath={workspaceAbsPath}
-                            remoteSessionId={workspaceRemoteSessionId}
-                            workspaceIdentity={workspaceIdentity}
-                            remoteTarget={workspaceRemoteTarget}
-                            projectName={projectName}
-                            activeTaskTitle={activeTaskTitle}
-                            activeTaskChangeSummary={activeTaskChangeSummary}
-                            hasUpdateReady={hasUpdateStatusButton}
-                            activeTaskId={activeTaskId}
-                            user={user}
-                            activeTraceId={activeTraceId}
-                            activeSessionId={activeSessionId}
-                            activeTaskProvider={activeTaskProvider}
-                            resolvedActiveTaskMeta={resolvedActiveTaskMeta}
-                            sessionLogPath={taskSessionFile.path}
-                            nativeSessionLogProvider={taskNativeSessionLogFile.provider}
-                            nativeSessionLogPath={taskNativeSessionLogFile.path}
-                            nativeSessionLogExists={taskNativeSessionLogFile.exists}
-                            nativeSessionLogLoading={taskNativeSessionLogFile.loading}
-                            providerWorkspaceConfigPath={providerConfigFile.path}
-                            providerWorkspaceConfigExists={providerConfigFile.exists}
-                            providerWorkspaceConfigLoading={providerConfigFile.loading}
-                            workspaceHeaderState={workspaceShellNibiState}
-                            gitSummary={gitState.summary}
-                            gitDirtyFileCount={gitDirtyFileCount}
-                            isMacDesktop={isMacDesktop}
-                            isMacFullscreen={isMacFullscreen}
-                            isWindowsDesktop={isWindowsDesktop}
-                            isWebRemoteControl={isWebRemoteControlShell}
-                            windowsWindowControlsRightPaddingPx={
-                              windowsWindowControlsRightPaddingPx
-                            }
-                            isDesktop={isDesktop}
-                            simplifyForNarrowRemote={simplifyHeaderForNarrowRemote}
-                            isSidebarVisible={isSidebarVisible}
-                            isTerminalOpen={isTerminalOpen}
-                            isSidePaneOpen={isSidePaneOpen}
-                            onRefreshGit={handleRefreshGit}
-                            onToggleTerminal={handleToggleTerminal}
-                            onToggleBrowser={handleToggleBrowser}
-                            onToggleSidePane={handleToggleSidePane}
-                            toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
-                            onReloadSession={handleReloadSession}
-                            reloadSessionDisabled={workspaceSessionActionDisabled}
-                            reloadSessionPending={reloadSessionPending}
-                            onCreateTask={handleCreateTaskInChat}
-                            onOpenWorkspace={onOpenWorkspace}
-                            allowOpenWorkspace={allowOpenWorkspace}
-                          />
-                        </ScopedErrorBoundary>
+                      {!useFolioTopBar && shouldRenderWorkspaceHeader && !isFullView ? (
+                        renderWorkspaceHeaderNode()
+                      ) : useFolioTopBar && !isFullView && workspaceMainView === "chat" ? (
+                        <div
+                          aria-hidden="true"
+                          className="nibi-sheet-top-feather pointer-events-none absolute inset-x-0 top-0 z-10 h-4"
+                        />
                       ) : null}
                       {isWebRemoteControlShell ? (
                         <Button
@@ -2860,7 +2927,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                     <AnimatedTerminalPanel
                       frameClassName={cn(
                         isSidePaneVisible
-                          ? "rounded-[var(--workspace-panel-radius)] border border-border"
+                          ? "rounded-[var(--workspace-panel-radius)] border border-border/65"
                           : resolveWorkspaceShellWindowChromeClass({
                               isMacDesktop,
                               isWindowsDesktop,
@@ -2892,41 +2959,43 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
             {sidePanePanel}
           </ResizablePanelGroup>
         </div>
-        <ScopedErrorBoundary
-          scope="desktop-top-overlay"
-          resetKeys={workspaceSidebarVisibilityResetKeys}
-          variant="silent"
-        >
-          <DesktopTopOverlay
-            newTaskDisabledReason={workspaceReadOnlyReason}
-            workspaceAbsPath={workspaceAbsPath}
-            isMacDesktop={isMacDesktop}
-            isMacFullscreen={isMacFullscreen}
-            macWindowControlsLeftPaddingPx={macWindowControlsLeftPaddingPx}
-            windowsWindowControlsRightPaddingPx={windowsWindowControlsRightPaddingPx}
-            isWindowsDesktop={isWindowsDesktop}
-            isDesktop={isDesktop}
-            isSidebarVisible={isSidebarVisible}
-            updateReadyVersion={updateReadyVersion}
-            updateState={updateState}
-            toggleSidebarShortcutLabel={toggleSidebarShortcutLabel}
-            newTaskShortcutLabel={newTaskShortcutLabel}
-            goBackShortcutLabel={goBackShortcutLabel}
-            goForwardShortcutLabel={goForwardShortcutLabel}
-            canTaskNavBack={canPrimaryNavigationBack}
-            canTaskNavForward={canTaskNavForward}
-            canGoBack={canGoBack}
-            canGoForward={canGoForward}
-            showNewTaskButton={showTopOverlayNewTaskButton}
-            appLogoUrl={appLogoUrl}
-            platform={platform}
-            onToggleSidebar={handleToggleSidebar}
-            onCreateTask={handleCreateTaskInChat}
-            onGoBack={primaryNavigationBack}
-            onGoForward={handleTaskNavForward}
-            hideTaskNavigationButtons={simplifyHeaderForNarrowRemote}
-          />
-        </ScopedErrorBoundary>
+    </>
+  );
+
+  const wideContent = (
+    // 完成卡上那两个壳级落点（docs/dynamic-workflow/transcript-and-notifications.md「Saving the
+    // run, and running it again」）：芯片开到中枢那一页、「再次运行」启动后切到新会话。只包桌面
+    // 这一支——手机远控壳本来就不提供中枢，那边芯片是纯文字。
+    <SavedWorkflowHubProvider
+      openWorkflow={handleOpenSavedWorkflowInHub}
+      navigateToRun={handleNavigateToLaunchedRun}
+    >
+      <div
+        ref={workspaceShellRef}
+        data-workspace-shell="true"
+        style={workspaceShellSplitStyle}
+        className={cn(
+          "relative flex h-full min-h-0 w-full overflow-hidden",
+          useFolioTopBar ? "flex-col" : "[anchor-scope:--sidebar-task-list-divider]",
+          // 修复原因：窗口原生 resize 时，外层 react-resizable-panels 会把每一帧
+          // 都写进 layout store，连带侧栏 tooltip/menu 子树反复 commit。这里改成
+          // CSS 变量驱动的专用 split，普通窗口 resize 只走浏览器布局，不触发 React 状态。
+          isWebRemoteControlShell && "max-md:flex-col",
+        )}
+      >
+        {useFolioTopBar ? (
+          <>
+            {folioTopBarNode}
+            <div className="relative flex min-h-0 w-full flex-1 overflow-hidden">
+              {wideBodyContent}
+            </div>
+          </>
+        ) : (
+          <>
+            {wideBodyContent}
+            {topOverlayNode}
+          </>
+        )}
 
         {isWebRemoteControlShell && isWebRemoteControlTaskSwitching ? (
           <div

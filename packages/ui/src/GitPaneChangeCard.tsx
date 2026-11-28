@@ -89,7 +89,7 @@ export function GitPaneChangeCard({
             type="button"
             aria-expanded={isExpanded}
             className={cn(
-              "sticky top-0 z-10 flex h-8 w-full items-center gap-3 border-b border-border/55 bg-background/92 px-3 text-left transition-colors hover:bg-surface/80 supports-[backdrop-filter]:backdrop-blur-sm",
+              "sticky top-0 z-10 flex h-8 w-full items-center gap-3 border-b border-border/55 bg-background px-3 text-left transition-colors hover:bg-surface/80",
               isExpanded && "border-border/80 bg-surface/90 shadow-2xs",
             )}
             onClick={() => onOpenChange(change, !isExpanded)}

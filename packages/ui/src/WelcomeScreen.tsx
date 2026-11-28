@@ -541,7 +541,7 @@ function LoginPanelHeader({
     <header className="flex flex-col items-center gap-3 text-center">
       <LoginPanelLogo />
       <div className="flex flex-col items-center gap-1 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">{title}</h1>
+        <h1 className="font-display text-3xl font-semibold leading-[1.25] tracking-tight text-balance">{title}</h1>
         <p className="text-ui-base/relaxed text-pretty text-foreground-subtle">{description}</p>
       </div>
       {children}

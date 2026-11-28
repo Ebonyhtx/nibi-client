@@ -43,7 +43,7 @@ export function CallCard({
     <article data-trajectory-call="" className="col-span-full grid grid-cols-subgrid">
       <div
         data-trajectory-call-summary=""
-        className="sticky top-0 z-10 col-span-full flex w-full min-w-0 items-center gap-1.5 border-b border-border/50 bg-surface/90 px-3 py-2 text-left supports-[backdrop-filter]:backdrop-blur-sm"
+        className="sticky top-0 z-10 col-span-full flex w-full min-w-0 items-center gap-1.5 border-b border-border/50 bg-surface px-3 py-2 text-left"
       >
         <span className="flex size-5 shrink-0 items-center justify-center font-mono text-ui-xs text-foreground-subtlest">
           {String(index + 1).padStart(2, "0")}

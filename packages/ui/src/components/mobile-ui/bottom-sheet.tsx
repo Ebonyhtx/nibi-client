@@ -31,7 +31,7 @@ function BottomSheetContent({ className, children, ...props }: BottomSheetConten
       <DialogPrimitive.Content
         data-slot="bottom-sheet-content"
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-popover-border bg-popover pb-[calc(env(safe-area-inset-bottom)+12px)] text-foreground shadow-2xl outline-none duration-200 data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom",
+          "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-popover-border bg-popover pb-[calc(env(safe-area-inset-bottom)+12px)] text-foreground shadow-[var(--nibi-shadow-popover)] outline-none duration-200 data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom",
           className,
         )}
         {...props}
@@ -59,7 +59,7 @@ function BottomSheetTitle({
   return (
     <DialogPrimitive.Title
       data-slot="bottom-sheet-title"
-      className={cn("text-ui-lg font-semibold", className)}
+      className={cn("font-display text-ui-lg font-semibold", className)}
       {...props}
     />
   );

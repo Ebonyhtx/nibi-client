@@ -183,14 +183,13 @@ describe("GroupedTaskRow pending interaction tag", () => {
     expect(html).toContain("bg-interaction-confirmation-surface");
   });
 
-  it("使用与普通任务列表相同的 sky 未读点", () => {
+  it("使用与普通任务列表相同的 bg-icon-blue 未读点", () => {
     const html = renderGroupedTaskRow({
       unreadAt: 100,
       permissionCount: 0,
     });
 
-    expect(html).toContain("bg-sky-500");
-    expect(html).toContain("dark:bg-sky-400");
+    expect(html).toContain("bg-icon-blue");
     expect(html).not.toContain("bg-brand");
   });
 
@@ -205,7 +204,7 @@ describe("GroupedTaskRow pending interaction tag", () => {
       phase: "completedSuccess",
     });
 
-    expect(html).toContain("bg-sky-500");
+    expect(html).toContain("bg-icon-blue");
     expect(html).toContain('data-cron-task-icon="true"');
     expect(html).toContain('aria-label="定时任务"');
     expect(html).toContain("刚刚");

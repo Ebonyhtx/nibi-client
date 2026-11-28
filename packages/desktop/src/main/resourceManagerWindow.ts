@@ -1,4 +1,4 @@
-import { app, BrowserWindow, webContents as electronWebContents } from "electron";
+import { app, BrowserWindow, nativeTheme, webContents as electronWebContents } from "electron";
 import type { UtilityProcess as ElectronUtilityProcess } from "electron";
 import os from "node:os";
 import { join } from "node:path";
@@ -266,8 +266,8 @@ export function openResourceManager(): void {
     minWidth: 640,
     minHeight: 420,
     title: RESOURCE_MANAGER_WINDOW_TITLE,
-    // 不继承主窗口的自定义标题栏，使用系统默认标题栏
-    backgroundColor: "#1e1e1e",
+    // 不继承主窗口的自定义标题栏，使用系统默认标题栏；启动底色对齐 NIBI 主题避免黑/白闪
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#181714" : "#fcf9f2",
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,

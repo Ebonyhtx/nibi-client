@@ -300,8 +300,8 @@ export function PluginUiLauncherItems(props: PluginUiLauncherItemsProps) {
             avatar={
               <PluginStoreAvatar
                 item={item}
-                className="size-12"
-                fallbackIcon={<PuzzleIcon className="size-6" />}
+                className="size-10 rounded-xl"
+                fallbackIcon={<PuzzleIcon className="size-5" />}
               />
             }
             label={title}
@@ -349,15 +349,18 @@ export function SidePaneLauncherRow({
     <button
       type="button"
       data-side-pane-open-tab-item={itemId}
-      className="flex w-full min-w-0 items-center gap-3 rounded-xl border border-card-border/70 bg-card/85 px-3 py-2.5 text-left shadow-[var(--nibi-shadow-card)] transition-[background-color,border-color,box-shadow,translate] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      className="group flex w-full min-w-0 items-center gap-3 rounded-xl border border-card-border/70 bg-card/85 px-3 py-2.5 text-left shadow-[var(--nibi-shadow-card)] transition-[background-color,border-color,box-shadow,translate] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
       onClick={onOpen}
       disabled={disabled}
       aria-busy={loading || undefined}
     >
       {/* 应用插件复用市场图标来源；固定 PuzzleIcon 会忽略已发布的品牌图片。 */}
       {avatar ?? (
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/55 bg-surface/85 shadow-2xs">
-          <Icon className="size-6 text-foreground-subtle" aria-hidden="true" />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/55 bg-surface/85 shadow-2xs transition-colors duration-150 group-hover:border-primary/30 group-hover:bg-primary/8">
+          <Icon
+            className="size-5 text-foreground-subtle transition-colors duration-150 group-hover:text-primary"
+            aria-hidden="true"
+          />
         </span>
       )}
       <span className="min-w-0 flex-1">
@@ -375,7 +378,7 @@ export function SidePaneLauncherRow({
         aria-hidden="true"
         className={cn(
           buttonVariants({ variant: "secondary", size: "sm" }),
-          "shrink-0 rounded-full",
+          "shrink-0 rounded-full transition-colors duration-150 group-hover:bg-primary/12 group-hover:text-primary",
         )}
       >
         {loading ? (

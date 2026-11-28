@@ -129,7 +129,7 @@ export function WorkspaceEditorButtonGroup({
   }
 
   return (
-    <div className="flex items-center h-7 rounded-lg border border-border bg-input overflow-hidden p-0 hover:border-border-hover">
+    <div className="flex items-center h-7 rounded-lg border border-transparent bg-transparent overflow-hidden p-0 transition-colors hover:border-border/70 hover:bg-hover">
       <Button
         type="button"
         variant="ghost"

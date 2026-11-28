@@ -28,6 +28,7 @@ export function WorkspaceHeaderActionSection({
   simplifyForNarrowRemote = false,
   hideHelpMenu = false,
   showWindowControls = false,
+  keepRightControlsPinned = false,
   useWindowsCaptionSpacing = false,
 }: WorkspaceHeaderActionSectionProps) {
   return (
@@ -72,7 +73,7 @@ export function WorkspaceHeaderActionSection({
         </>
       ) : null}
       {/* 远程控制移动端只保留图标，避免 diff 数字把按钮撑宽导致标题拥挤。 */}
-      {!isSidePaneOpen ? (
+      {keepRightControlsPinned || !isSidePaneOpen ? (
         <WorkspaceSidePaneToggleButton
           isSidePaneOpen={isSidePaneOpen}
           onToggleSidePane={onToggleSidePane}
@@ -80,7 +81,9 @@ export function WorkspaceHeaderActionSection({
           useWindowsCaptionSpacing={useWindowsCaptionSpacing}
         />
       ) : null}
-      {showWindowControls && !isSidePaneOpen ? <DesktopWindowControls /> : null}
+      {showWindowControls && (keepRightControlsPinned || !isSidePaneOpen) ? (
+        <DesktopWindowControls />
+      ) : null}
     </div>
   );
 }

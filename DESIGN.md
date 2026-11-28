@@ -17,7 +17,7 @@ Design for:
 - desktop and web parity
 - Windows, macOS, and Linux
 - internationalization and variable text length
-- system, light, and dark themes
+- four paper-and-ink themes plus `system`
 
 Avoid oversized marketing spacing, decorative gradients, and bright full-surface
 brand fills.
@@ -47,6 +47,10 @@ Rules:
 - Interface font scaling changes only `--ui-font-size`; never mutate the root
   `html` font size.
 - Use `font-mono` for paths, commands, hashes, model IDs, and terminal-like data.
+- Three families ship with the app (`--font-sans`, `--font-display`,
+  `--font-mono`). `font-display` is the serif face reserved for brand and a few
+  display headings; it changes the typeface, never the `text-ui-*` scale. See
+  [Folio Desk themes](docs/design/folio-desk-themes.md).
 
 ## Color
 
@@ -65,6 +69,16 @@ at least 4.5:1 contrast in every shipped theme.
 
 Git status colors use `text-git-*` / `bg-git-*`, not generic diff or warning
 tokens. Diff UI uses the diff-specific tokens only.
+
+### Themes
+
+Four themes ship: `nibi-light` (default), `nibi-mist`, `nibi-dark`, and
+`nibi-obsidian`. `system` resolves to light/dark and then to `nibi-light` /
+`nibi-dark`; the legacy `light` / `dark` values normalize to those two. The root
+carries both the resolved `dark` class and a `theme-nibi-*` class — style against
+semantic tokens, never a specific theme id. Theme roles, typography and the
+inlined desktop top bar are described in
+[docs/design/folio-desk-themes.md](docs/design/folio-desk-themes.md).
 
 ## Spacing
 
@@ -123,6 +137,8 @@ Layer primarily through background contrast, borders, and radius.
 - Surface: border-led separation
 - Overlay: `shadow-md`
 - Attention: `shadow-lg` only for toasts and rare emphasized panels
+- Paper surfaces use the `--nibi-shadow-*` token set (panel, card, composer,
+  popover, active row). Do not hand-roll multi-layer shadows per component.
 
 Motion should clarify state change. Favor short fades, zooms, and directional
 slides. Respect reduced-motion settings.

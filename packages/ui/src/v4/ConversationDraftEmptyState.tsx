@@ -259,7 +259,7 @@ export function ConversationDraftEmptyState({
   return (
     <div
       className={cn(
-        "relative mb-10 flex w-full max-w-2xl flex-col items-center justify-center gap-6 text-foreground sm:mb-8",
+        "relative mb-8 flex w-full max-w-2xl flex-col items-center justify-center gap-5 text-foreground sm:mb-7",
         className,
       )}
     >
@@ -269,7 +269,7 @@ export function ConversationDraftEmptyState({
       <div className="relative flex items-center justify-center">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-6 rounded-full bg-radial from-brand/16 via-brand/5 to-transparent blur-2xl"
+          className="pointer-events-none absolute inset-6 rounded-full bg-radial from-primary/14 via-primary/4 to-transparent blur-2xl"
         />
         <NibiEmptyStateLogo
           className={cn("relative z-10 -mb-10", logoReady ? "opacity-100" : "opacity-0")}
@@ -286,14 +286,14 @@ export function ConversationDraftEmptyState({
         className={cn(
           "relative z-10 w-full px-4 text-center font-semibold tracking-[-0.02em] text-foreground",
           compactForRemoteControl
-            ? "text-xl/[1.2]"
-            : "text-[length:var(--v4-draft-greeting-font-size)]/[1.2]",
+            ? "text-xl/[1.3]"
+            : "text-[length:var(--v4-draft-greeting-font-size)]/[1.3]",
         )}
       >
         <span
           ref={greetingMeasurementRef}
           aria-hidden="true"
-          className="pointer-events-none invisible absolute whitespace-nowrap text-3xl/[1.2]"
+          className="pointer-events-none invisible absolute whitespace-nowrap text-3xl/[1.3]"
         >
           {greeting}
         </span>

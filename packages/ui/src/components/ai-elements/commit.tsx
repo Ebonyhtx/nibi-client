@@ -248,7 +248,7 @@ const fileStatusStyles = {
   added: "text-green-600 dark:text-green-400",
   deleted: "text-red-600 dark:text-red-400",
   modified: "text-yellow-600 dark:text-yellow-400",
-  renamed: "text-blue-600 dark:text-blue-400",
+  renamed: "text-git-renamed",
 };
 
 const fileStatusLabels = {

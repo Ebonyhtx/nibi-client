@@ -177,9 +177,24 @@ export const WorkflowRunPhaseList = memo(function WorkflowRunPhaseList({
     model.stations.some((station) => station.hole?.state === "waiting");
   useEffect(() => {
     if (!hasQuestions) return undefined;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), QUESTION_TICK_MS);
-    return () => clearInterval(timer);
+    const syncNow = () => setNow(Date.now());
+    const onVisibility = () => {
+      if (typeof document === "undefined" || !document.hidden) syncNow();
+    };
+    syncNow();
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      syncNow();
+    }, QUESTION_TICK_MS);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
+    return () => {
+      clearInterval(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
+    };
   }, [hasQuestions]);
   // 正在等补全的留白自己展开（与正在运行的站同一条规则：它是当前站）。
   const waitingHoleKey = model.stations

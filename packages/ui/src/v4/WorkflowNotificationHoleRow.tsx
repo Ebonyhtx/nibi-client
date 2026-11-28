@@ -1,5 +1,6 @@
 import { Pen } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useHalfMinuteClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import type { WorkflowNotificationMeta, WorkflowRunHole } from "@nibi/shared/nibi-protocol-v4";
 import { ToolLayout } from "@/ToolCallBlocks/ToolLayout.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
@@ -60,14 +61,8 @@ export function WorkflowNotificationHoleRow({
   const { intl } = useNibiIntl();
   const state = holeRowState(holes, notification.siteId);
 
-  // 等待时长要在没有事件流时也照走（停驻的 run 恰恰不发事件），30 秒喂一次新的「现在」；只在等待时走。
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (state !== "waiting") return undefined;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(timer);
-  }, [state]);
+  // 等待时长仅在 waiting 时激活共享 30 秒时钟；已补全或离线行零订阅。
+  const now = useHalfMinuteClock(state === "waiting");
   const waited =
     state === "waiting"
       ? workflowRunQuestionWaitedLabel(notification.reachedAt, now, (descriptor, values) =>

@@ -258,9 +258,13 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
     <ProjectTaskListContext.Provider value={taskPresentation}>
       <SidebarTooltipProvider>
         <aside data-testid={TID_SIDEBAR} className="flex h-full min-h-0 flex-col overflow-hidden">
-          <div
-            className={`h-12 shrink-0 [app-region:drag] ${props.isWebRemoteControl ? "max-md:hidden" : ""}`}
-          />
+          {props.hideTopSpacer ? (
+            <div className="h-1 shrink-0" />
+          ) : (
+            <div
+              className={`h-12 shrink-0 [app-region:drag] ${props.isWebRemoteControl ? "max-md:hidden" : ""}`}
+            />
+          )}
           {/* 内联改名聚焦曾把 hidden 容器横向滚动，导致手机整栏左移；滑动面板只裁切，不允许焦点滚动。 */}
           <div className="relative min-h-0 flex-1 overflow-clip">
             <div
@@ -271,7 +275,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
               <ProjectSidebarNavigation props={props} onCreate={() => props.onCreateTask()} />
               <div
                 data-testid="sidebar-task-list-region"
-                className="flex min-h-0 flex-1 flex-col border-t border-border/50 pt-3 [anchor-name:--sidebar-task-list-divider]"
+                className={`flex min-h-0 flex-1 flex-col pt-2 [anchor-name:--sidebar-task-list-divider] ${props.hideTopSpacer ? "" : "border-t border-border/50"}`}
               >
                 <ProjectSidebarListHeader
                   onOpenCommandCenter={props.onOpenCommandCenter}
@@ -284,7 +288,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
                 <div className="relative flex min-h-0 flex-1 flex-col">
                   <div ref={setGroupedSticky} />
                   <ScrollFadeViewport ref={scrollRef} className="overflow-x-hidden">
-                    <div className="flex flex-col gap-3 pb-3">
+                    <div className="flex flex-col gap-3 pr-1.5 pb-3">
                       {homeOnlySwitcher ? (
                         <HomeOnlyWorkspaceRows switcher={homeOnlySwitcher} />
                       ) : view === "projects" ? (
@@ -366,7 +370,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
                 </div>
               </div>
               <WorkspaceSidebarFooter
-                className="pr-3"
+                className="px-2.5 pt-1.5 pb-2.5"
                 theme={props.theme}
                 localeMenuValue={localePreference}
                 onLocaleChange={changeLocale}

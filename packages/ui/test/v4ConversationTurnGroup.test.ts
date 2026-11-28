@@ -31,6 +31,10 @@ import {
   groupConsecutiveAssistantSummaries,
 } from "@/v4/conversationSummaryGroups.js";
 import {
+  resolveTurnWorkingActivity,
+  resolveTurnWorkingPhase,
+} from "@/v4/chatLoadingVisibility.js";
+import {
   buildConversationTurnRenderUnits,
   type ConversationTurnRenderUnit,
 } from "@/v4/conversationTurnRenderUnits.js";
@@ -1930,6 +1934,59 @@ describe("ConversationTurnGroup assistant history status", () => {
     expect(expandedHtml).not.toContain('data-testid="v4-copy-6"');
     expect(expandedHtml).toContain('data-testid="v4-copy-8"');
   });
+
+  it("把 -mx-1.5 放到 flex-1 外层包装器，避免 max-w-full 按钮被父级收缩裁剪出省略号", () => {
+    const row = reasoningRow();
+    const cases = [
+      {
+        label: "已工作 2 秒",
+        html: renderUnit(
+          baseUnit({
+            key: "turn-worked-2s:1",
+            turnId: "turn-worked-2s",
+            isLastTurn: false,
+            workStatus: { state: "completed", durationMs: 2_000 },
+            assistantWorkRows: [row],
+            assistantHistoryRows: [row],
+            renderRows: [row],
+          }),
+        ),
+      },
+      {
+        label: "已停止",
+        html: renderUnit(
+          baseUnit({
+            key: "turn-stopped:1",
+            turnId: "turn-stopped",
+            assistantHistoryDefaultOpen: true,
+            workStatus: { state: "interrupted", durationMs: 5_000 },
+            assistantWorkRows: [row],
+            assistantHistoryRows: [row],
+            renderRows: [row],
+          }),
+        ),
+      },
+    ];
+
+    for (const { label, html } of cases) {
+      expect(html).toContain(`<span class="truncate">${label}</span>`);
+      const triggerPos = html.indexOf('data-testid="chat-assistant-history-trigger-');
+      expect(triggerPos).toBeGreaterThan(-1);
+      const buttonStart = html.lastIndexOf("<button", triggerPos);
+      const buttonEnd = html.indexOf(">", triggerPos);
+      const wrapperStart = html.lastIndexOf("<div", buttonStart);
+      const wrapperEnd = html.indexOf(">", wrapperStart);
+      const buttonTag = html.slice(buttonStart, buttonEnd + 1);
+      const wrapperTag = html.slice(wrapperStart, wrapperEnd + 1);
+      const wrapperClass = /class="([^"]*)"/.exec(wrapperTag)?.[1] ?? "";
+      const buttonClass = /class="([^"]*)"/.exec(buttonTag)?.[1] ?? "";
+
+      expect(wrapperClass.split(/\s+/)).toContain("flex-1");
+      expect(wrapperClass.split(/\s+/)).toContain("-mx-1.5");
+      expect(buttonClass.split(/\s+/)).toContain("max-w-full");
+      expect(buttonClass.split(/\s+/)).not.toContain("-mx-1.5");
+    }
+  });
 });
 
 describe("ConversationTurnGroup ChatLoading lifecycle", () => {
@@ -1950,7 +2007,28 @@ describe("ConversationTurnGroup ChatLoading lifecycle", () => {
     );
 
     expect(html).toContain("重新连接中... 3/10");
+    expect(html).toContain('title="重新连接中... 3/10 · fault.provider.rateLimited"');
     expect(html).not.toContain('data-testid="chat-loading"');
+  });
+
+  it("apiRetry 带未来 nextRetryAt 时展示秒级倒计时并附带 reasonCode 提示", () => {
+    const html = renderUnit(
+      baseUnit({
+        isRunning: true,
+        assistantHistoryDefaultOpen: true,
+      }),
+      {
+        apiRetry: {
+          attempt: 3,
+          maxAttempts: 11,
+          nextRetryAt: Date.now() + 8_000,
+          reasonCode: "fault.provider.rateLimited",
+        },
+      },
+    );
+
+    expect(html).toMatch(/重新连接中\.\.\. 3\/10 · [78]s/);
+    expect(html).toContain("fault.provider.rateLimited");
   });
 
   it.each([1, 2])("attempt=%d 时隐藏 retry 文案并继续显示通用 loading", (attempt) => {
@@ -2066,6 +2144,84 @@ describe("ConversationTurnGroup ChatLoading lifecycle", () => {
     );
 
     expect(html).toContain('data-testid="chat-loading"');
+    expect(html).toContain('data-nibi-working-indicator="true"');
+    expect(html).toContain('data-working-phase="generating"');
+    expect(html).toContain("nibi-working-emblem");
+    expect(html).toContain("nibi-working-glow");
+    expect(html).toContain("nibi-working-lattice");
+    expect(html).toContain("nibi-working-vane--1");
+    expect(html).toContain("nibi-working-vane--5");
+    expect(html).toContain("nibi-working-label");
+  });
+
+  it("resolves live turn working phases for Plume Tide indicator", () => {
+    expect(resolveTurnWorkingPhase([])).toBe("starting");
+    expect(resolveTurnWorkingPhase([{ ...reasoningRow(), rowId: 31, state: "streaming" }])).toBe(
+      "thinking",
+    );
+    expect(
+      resolveTurnWorkingPhase([
+        { ...reasoningRow(), rowId: 32, state: "complete" },
+        toolCallRow(33, "Bash", { command: "pwd" }, { status: "inputStreaming" }),
+      ]),
+    ).toBe("tooling");
+    expect(
+      resolveTurnWorkingPhase([
+        subagentRow(34, { status: "running" }),
+      ]),
+    ).toBe("tooling");
+    expect(
+      resolveTurnWorkingPhase([
+        toolCallRow(35, "Read", { path: "a.ts" }, { status: "success" }),
+        assistantTextRow(36, { state: "streaming" }),
+      ]),
+    ).toBe("generating");
+    // 工具与子代理都已结束后轮次仍在运行，回落为衔接思考态。
+    expect(
+      resolveTurnWorkingPhase([
+        toolCallRow(37, "Read", { path: "a.ts" }, { status: "success" }),
+      ]),
+    ).toBe("thinking");
+  });
+
+  it("resolves granular tooling sub-phases without breaking data-working-phase contract", () => {
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(50, "Read", { path: "a.ts" }, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "reading" });
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(51, "Glob", { pattern: "*.ts" }, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "reading" });
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(52, "Edit", { path: "a.ts" }, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "editing" });
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(53, "Write", { path: "a.ts" }, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "editing" });
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(54, "Bash", { command: "ls" }, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "executing" });
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(55, "WebSearch", { query: "nibi" }, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "browsing" });
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(56, "WebFetch", { url: "https://a.test" }, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "browsing" });
+    expect(
+      resolveTurnWorkingActivity([subagentRow(57, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "delegating" });
+    expect(
+      resolveTurnWorkingActivity([toolCallRow(58, "TodoWrite", {}, { status: "running" })]),
+    ).toEqual({ phase: "tooling", toolSubPhase: "tooling" });
+
+    const browsingHtml = renderUnit(
+      baseUnit({
+        isRunning: true,
+        assistantHistoryDefaultOpen: true,
+        assistantWorkRows: [toolCallRow(59, "WebSearch", { query: "nibi" }, { status: "running" })],
+      }),
+    );
+    expect(browsingHtml).toContain('data-working-phase="tooling"');
+    expect(browsingHtml).toContain("正在查阅网页");
   });
 
   it("hides loading after the latest turn reaches a terminal state", () => {

@@ -149,7 +149,7 @@ export function SortableSidePaneTabTrigger({
           "flex-[1_1_9.75rem] !h-7 min-w-15 max-w-39 justify-start overflow-hidden rounded-md border px-1.5 pr-2 text-ui-base font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
           "!border-transparent !bg-transparent text-foreground-subtle !rounded-lg",
           "hover:text-foreground",
-          !isActive && "hover:!bg-hover/80",
+          !isActive && "hover:!bg-card/60",
           // TabsTrigger asChild 经过 ContextMenuTrigger 再包一层后，Radix 的 active 标记不会稳定落到真实 tab div。
           // 这里用受控的 isActive 同步补齐 data-active / data-state，保证 Tailwind 的 active variant 能命中。
           "data-active:!border-border/75 data-active:!bg-card data-active:text-foreground data-active:shadow-[var(--nibi-shadow-active-row)]",
@@ -161,6 +161,7 @@ export function SortableSidePaneTabTrigger({
           tab={tab}
           title={title}
           diffBadgeLabel={diffBadgeLabel}
+          isActive={isActive}
           closeVisible={isActive}
           revealCloseOnHover
         />
@@ -170,7 +171,7 @@ export function SortableSidePaneTabTrigger({
           size="icon-xs"
           aria-label={closeTabLabel}
           className={cn(
-            "absolute right-1 top-1/2 -translate-y-1/2 rounded-md",
+            "absolute right-1 top-1/2 -translate-y-1/2 rounded-md text-foreground-subtle hover:bg-hover hover:text-foreground",
             !isActive &&
               "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
           )}
@@ -230,12 +231,14 @@ function SidePaneTabItemContent({
   tab,
   title,
   diffBadgeLabel,
+  isActive = false,
   closeVisible = false,
   revealCloseOnHover = false,
 }: {
   tab: WorkspaceSidePaneTab;
   title: string;
   diffBadgeLabel: string;
+  isActive?: boolean;
   closeVisible?: boolean;
   revealCloseOnHover?: boolean;
 }) {
@@ -249,7 +252,12 @@ function SidePaneTabItemContent({
           "group-hover:[--tab-fade-offset:1.25rem] group-focus-within:[--tab-fade-offset:1.25rem]",
       )}
     >
-      <span className="flex size-4 shrink-0 items-center justify-center">
+      <span
+        className={cn(
+          "flex size-4 shrink-0 items-center justify-center transition-colors",
+          isActive && "text-primary",
+        )}
+      >
         <SidePaneTabIcon tab={tab} />
       </span>
       <span data-side-pane-tab-title="" className="shrink-0 whitespace-nowrap">

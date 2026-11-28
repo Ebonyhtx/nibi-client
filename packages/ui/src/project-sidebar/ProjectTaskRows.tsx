@@ -119,7 +119,7 @@ export function ProjectTaskRows({
     if (kind === "pinned" || !showEmptyState) return null;
     return (
       <div
-        className="px-8.5 py-2 text-ui-base text-foreground-subtlest"
+        className="mx-2 my-0.5 rounded-lg border border-dashed border-border/55 bg-background/35 px-3 py-2 text-ui-sm text-foreground-subtlest"
         data-testid={kind === "unread" ? "project-no-unread-tasks" : "project-no-tasks"}
       >
         {intl.formatMessage({
